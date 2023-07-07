@@ -1,1 +1,3 @@
-add_subdirectory(Standalone)
+add_subdirectory(SpecHLS)
+add_subdirectory(Conversion)
+add_subdirectory(Target)

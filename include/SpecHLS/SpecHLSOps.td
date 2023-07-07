@@ -1,4 +1,4 @@
-//===- StandaloneOps.td - Standalone dialect ops -----------*- tablegen -*-===//
+//===- SpecHLSOps.td - SpecHLS dialect ops -----------*- tablegen -*-===//
 //
 // This file is licensed under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,18 +6,17 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef STANDALONE_OPS
-#define STANDALONE_OPS
+#ifndef SpecHLS_OPS
+#define SpecHLS_OPS
 
-include "StandaloneDialect.td"
+include "SpecHLSDialect.td"
 include "/mlir/Interfaces/InferTypeOpInterface.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 
-def Standalone_FooOp : Standalone_Op<"foo", [Pure,
-                                             SameOperandsAndResultType]> {
+def SpecHLS_GammaOp : SpecHLS_Gamma<"gamma", [Pure]> {
     let summary = "Illustrates how to define an operation.";
     let description = [{
-        The `standalone.foo` operation illustrates how to define a new
+        The `SpecHLS.foo` operation illustrates how to define a new
         operation in a dialect. It uses an operation trait to declare that it
         has no side effects.
 
@@ -28,16 +27,18 @@ def Standalone_FooOp : Standalone_Op<"foo", [Pure,
         ```mlir
         %0 = constant 2 : i32
         // Apply the foo operation to %0
-        %1 = standalone.foo %0 : i32
+        %1 = SpecHLS.foo %0 : i32
         ```
     }];
 
-    let arguments = (ins I32:$input);
-    let results = (outs I32:$res);
+    let arguments = (ins SignlessIntegerLike:$select, Variadic<AnyType>:$inputs);
+    let results = (outs AnyType:$res);
 
-    let assemblyFormat = [{
-        $input attr-dict `:` type($input)
-    }];
+    let builders = [
+        OpBuilder<(ins), [{
+        /* nothing to do */ }]>,
+    ];
+    let assemblyFormat = "attr-dict  `(` $select `:` type($select) `,` ($inputs^ `:` type($inputs))? `)` `:`  type($res)";
 }
 
-#endif // STANDALONE_OPS
+#endif // SpecHLS_OPS

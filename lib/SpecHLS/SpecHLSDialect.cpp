@@ -1,4 +1,4 @@
-//===- StandaloneDialect.cpp - Standalone dialect ---------------*- C++ -*-===//
+//===- SpecHLSDialect.cpp - SpecHLS dialect ---------------*- C++ -*-===//
 //
 // This file is licensed under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,19 +6,19 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "Standalone/StandaloneDialect.h"
-#include "Standalone/StandaloneOps.h"
+#include "SpecHLS/SpecHLSDialect.h"
+#include "SpecHLS/SpecHLSOps.h"
 
 using namespace mlir;
-using namespace mlir::standalone;
+using namespace mlir::SpecHLS;
 
 //===----------------------------------------------------------------------===//
-// Standalone dialect.
+// SpecHLS dialect.
 //===----------------------------------------------------------------------===//
 
-void StandaloneDialect::initialize() {
+void SpecHLSDialect::initialize() {
   addOperations<
 #define GET_OP_LIST
-#include "Standalone/StandaloneOps.cpp.inc"
+#include "SpecHLS/SpecHLSOps.cpp.inc"
       >();
 }
