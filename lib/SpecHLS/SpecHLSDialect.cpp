@@ -10,7 +10,7 @@
 #include "SpecHLS/SpecHLSOps.h"
 
 using namespace mlir;
-using namespace mlir::SpecHLS;
+using namespace SpecHLS;
 
 //===----------------------------------------------------------------------===//
 // SpecHLS dialect.

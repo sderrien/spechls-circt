@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
   SpecHLS::registerAllPasses();
 
   mlir::DialectRegistry registry;
-  registry.insert<mlir::SpecHLS::SpecHLSDialect>();
+  registry.insert<SpecHLS::SpecHLSDialect>();
   registry.insert<mlir::func::FuncDialect>();
   registry.insert<mlir::arith::ArithDialect>();
   // Add the following to include *all* MLIR Core dialects, or selectively

@@ -23,7 +23,7 @@ def SpecHLS_Dialect : Dialect {
         illustrate the basic setup required to develop MLIR-based tools without
         working inside of the LLVM source tree.
     }];
-    let cppNamespace = "::mlir::SpecHLS";
+    let cppNamespace = "SpecHLS";
 }
 
 //===----------------------------------------------------------------------===//
@@ -33,4 +33,23 @@ def SpecHLS_Dialect : Dialect {
 class SpecHLS_Gamma<string mnemonic, list<Trait> traits = []> :
         Op<SpecHLS_Dialect, mnemonic, traits>;
 
+class SpecHLS_Alpha<string mnemonic, list<Trait> traits = []> :
+        Op<SpecHLS_Dialect, mnemonic, traits>;
+
+class SpecHLS_Delay<string mnemonic, list<Trait> traits = []> :
+        Op<SpecHLS_Dialect, mnemonic, traits>;
+
+/*
+class SpecHLS_MuNode<string mnemonic, list<Trait> traits = []> :
+        Op<SpecHLS_Dialect, mnemonic, traits>;
+
+class SpecHLS_RollBack<string mnemonic, list<Trait> traits = []> :
+        Op<SpecHLS_Dialect, mnemonic, traits>;
+
+class SpecHLS_Commit<string mnemonic, list<Trait> traits = []> :
+        Op<SpecHLS_Dialect, mnemonic, traits>;
+
+class SpecHLS_Alias<string mnemonic, list<Trait> traits = []> :
+        Op<SpecHLS_Dialect, mnemonic, traits>;
+*/
 #endif // SpecHLS_DIALECT

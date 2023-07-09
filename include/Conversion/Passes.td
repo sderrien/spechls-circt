@@ -24,8 +24,7 @@ def SpecHLSToComb : Pass<"lower-spechls-to-comb", "mlir::ModuleOp"> {
   let summary = "Lower SPECHLS to comb";
   let constructor = "SpecHLS::createConvertSpecHLSToCombPass()";
   let dependentDialects = [
-    "circt::comb::CombDialect",
-    "SpecHLS::SpecHLSDialect"
+    "circt::hw::HWDialect,circt::comb::CombDialect,SpecHLS::SpecHLSDialect"
   ];
 }
 

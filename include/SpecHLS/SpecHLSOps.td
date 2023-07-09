@@ -41,4 +41,50 @@ def SpecHLS_GammaOp : SpecHLS_Gamma<"gamma", [Pure]> {
     let assemblyFormat = "attr-dict  `(` $select `:` type($select) `,` ($inputs^ `:` type($inputs))? `)` `:`  type($res)";
 }
 
+def SpecHLS_AlphaOp : SpecHLS_Alpha<"alpha", [Pure]> {
+    let summary = "Array update operation.";
+    let description = [{
+        Example:
+
+        ```mlir
+        %0 = constant 2 : i32
+        // Apply the foo operation to %0
+        %1 = SpecHLS.foo %0 : i32
+        ```
+    }];
+
+    let arguments = (ins AnyMemRef:$array, AnyType:$value, I1:$we,Variadic<AnyInteger>:$indices);
+    let results = (outs AnyMemRef:$res);
+
+    let builders = [
+        OpBuilder<(ins), [{
+        /* nothing to do */ }]>,
+    ];
+    let assemblyFormat = "attr-dict  `(` $array `:` type($array) $value type($we) $we `:` type($value) `,` ($indices^ `:` type($indices))? `)` `:`  type($res)";
+}
+
+def SpecHLS_DelayOp : SpecHLS_Delay<"delay", [Pure]> {
+    let summary = "Delay node operation.";
+    let description = [{
+        Example:
+
+        ```mlir
+        %0 = constant 2 : i32
+        // Apply the foo operation to %0
+        %1 = SpecHLS.foo %0 : i32
+        ```
+    }];
+
+    let arguments = (ins AnyType:$d, I1:$we,  AnyType:$init);
+    let results = (outs AnyType:$q);
+
+    let builders = [
+        OpBuilder<(ins), [{
+        /* nothing to do */ }]>,
+    ];
+    let assemblyFormat = "attr-dict  `(` $d `:` type($d) `,` $we `,` $init `:` type($init) `)` `:` type($q)";
+}
+
+
+
 #endif // SpecHLS_OPS
