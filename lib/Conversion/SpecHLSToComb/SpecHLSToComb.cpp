@@ -37,94 +37,91 @@ struct GammaToMuxOpConversion : OpConversionPattern<GammaOp> {
   matchAndRewrite(GammaOp op, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
 
+    llvm::outs() << "hello world";
     Type inputType = op.getSelect().getType();
     if (op.getInputs().size()==2) {
-        if (inputType.isa<IntegerType>() &&
-          inputType.getIntOrFloatBitWidth() == 1) {
-          rewriter.replaceOpWithNewOp<MuxOp>(op,  op.getSelect(),  *op.getInputs().begin(),*op.getInputs().end());
-          return success();
+      llvm::outs() << "two data inputs";
+        if (inputType.isa<IntegerType>()) {
+          llvm::outs() << "select is integer";
+          if (inputType.getIntOrFloatBitWidth() == 1) {
+            llvm::outs() << "select is bool";
+            rewriter.replaceOpWithNewOp<MuxOp>(op, op.getSelect(),
+                                               *op.getInputs().begin(),
+                                               *op.getInputs().end());
+            return success();
+          }
         }
     }
-
-//
-//    if (inputType.isa<IntegerType>() &&
-//        inputType.getIntOrFloatBitWidth() == 1) {
-//      Type outType = rewriter.getIntegerType(op.getMultiple());
-//      rewriter.replaceOpWithNewOp<ExtSIOp>(op, outType, adaptor.getInput());
-//      return success();
-//    }
-//
-//    SmallVector<Value> inputs(op.getMultiple(), adaptor.getInput());
-//    rewriter.replaceOpWithNewOp<GammaOp>(op, inputs);
-//    return success();
-  }
-};
-
-
-
-
-/// Lower a comb::GammaOp operation to the arith dialect
-struct GammaOpConversion : OpConversionPattern<GammaOp> {
-  using OpConversionPattern<GammaOp>::OpConversionPattern;
-
-  LogicalResult
-  matchAndRewrite(GammaOp op, OpAdaptor adaptor,
-                  ConversionPatternRewriter &rewriter) const override {
-//    Type type = op.getResult().getType();
-//    Location loc = op.getLoc();
-//    unsigned nextInsertion = type.getIntOrFloatBitWidth();
-//
-//    Value aggregate =
-//        rewriter.create<arith::ConstantOp>(loc, IntegerAttr::get(type, 0));
-//
-//    for (unsigned i = 0, e = op.getNumOperands(); i < e; i++) {
-//      nextInsertion -=
-//          adaptor.getOperands()[i].getType().getIntOrFloatBitWidth();
-//
-//      Value nextInsValue = rewriter.create<arith::ConstantOp>(
-//          loc, IntegerAttr::get(type, nextInsertion));
-//      Value extended =
-//          rewriter.create<ExtUIOp>(loc, type, adaptor.getOperands()[i]);
-//      Value shifted = rewriter.create<ShLIOp>(loc, extended, nextInsValue);
-//      aggregate = rewriter.create<OrIOp>(loc, aggregate, shifted);
-//    }
-//
-//    rewriter.replaceOp(op, aggregate);
     return success();
+
   }
 };
+
+
+
+
+///// Lower a comb::GammaOp operation to the arith dialect
+//struct GammaOpConversion : OpConversionPattern<GammaOp> {
+//  using OpConversionPattern<GammaOp>::OpConversionPattern;
+
+//  LogicalResult
+//  matchAndRewrite(GammaOp op, OpAdaptor adaptor,
+//                  ConversionPatternRewriter &rewriter) const override {
+////    Type type = op.getResult().getType();
+////    Location loc = op.getLoc();
+////    unsigned nextInsertion = type.getIntOrFloatBitWidth();
+////
+////    Value aggregate =
+////        rewriter.create<arith::ConstantOp>(loc, IntegerAttr::get(type, 0));
+////
+////    for (unsigned i = 0, e = op.getNumOperands(); i < e; i++) {
+////      nextInsertion -=
+////          adaptor.getOperands()[i].getType().getIntOrFloatBitWidth();
+////
+////      Value nextInsValue = rewriter.create<arith::ConstantOp>(
+////          loc, IntegerAttr::get(type, nextInsertion));
+////      Value extended =
+////          rewriter.create<ExtUIOp>(loc, type, adaptor.getOperands()[i]);
+////      Value shifted = rewriter.create<ShLIOp>(loc, extended, nextInsValue);
+////      aggregate = rewriter.create<OrIOp>(loc, aggregate, shifted);
+////    }
+////
+////    rewriter.replaceOp(op, aggregate);
+//    return success();
+//  }
+//};
 } // namespace
 
 //===----------------------------------------------------------------------===//
 // Convert Comb to Arith pass
 //===----------------------------------------------------------------------===//
 
-namespace {
-// CRTP pattern
-struct ConvertSpecHLSToCombPass : public ConvertSpecHLSToCombPassBase<OperationPass<ModuleOp>> {
 
+namespace {
+
+
+// CRTP pattern
+struct ConvertSpecHLSToCombPass : public SpecHLS::impl::SpecHLSToCombBase<ConvertSpecHLSToCombPass> {
   void runOnOperation() override;
-  StringRef getName() const override {
-    return "ConvertSpecHLSToCombPass";
-  }
+//  virtual StringRef getName() ;
+//  virtual std::unique_ptr<Pass> clonePass() ;
+
 };
 } // namespace
 
 void populateSpecHLSToCombConversionPatterns(
     TypeConverter &converter, mlir::RewritePatternSet &patterns) {
-  patterns.add<GammaToMuxOpConversion,GammaOpConversion>(
+  patterns.add<GammaToMuxOpConversion/*,GammaOpConversion*/>(
       converter, patterns.getContext());
 }
 
 void ConvertSpecHLSToCombPass::runOnOperation() {
   ConversionTarget target(getContext());
-  target.addIllegalOp<SpecHLS::GammaOp>();
+
+
+  //target.addIllegalOp<SpecHLS::GammaOp>();
   target.addLegalDialect<SpecHLSDialect>();
-  //target.addLegalDialect<ArithDialect>();
-  // Arith does not have an operation equivalent to comb.parity. A lowering
-  // would result in undesirably complex logic, therefore, we mark it legal
-  // here.
-  //target.addLegalOp<comb::ParityOp>();
+  target.addLegalDialect<CombDialect>();
 
   RewritePatternSet patterns(&getContext());
   TypeConverter converter;
