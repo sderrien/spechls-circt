@@ -15,16 +15,17 @@
 #define SPECHLS_INITALLPASSES_H_
 
 #include "SpecHLS/SpecHLSDialect.h"
+#include "Transforms/Passes.h"
+#include "Conversion/Passes.h"
 #include "circt/Transforms/Passes.h"
 
 namespace SpecHLS {
 
-void registerConvertSpecHLSToCombPass();
-
 inline void registerAllPasses() {
 
   static bool initOnce = []() {
-    SpecHLS::registerConvertSpecHLSToCombPass();
+    registerSpecHLSToCombPass();
+    registerMergeGammasPass();
     return true;
   }();
   (void)initOnce;

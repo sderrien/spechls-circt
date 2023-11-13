@@ -1,1 +1,2 @@
 add_subdirectory(SpecHLSToComb)
+add_subdirectory(SpecHLSToArc)

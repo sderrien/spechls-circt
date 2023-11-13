@@ -17,4 +17,6 @@ target_link_libraries(SpecHLSToComb
 
         PUBLIC
         CIRCTComb
+        CIRCTHW
+        CIRCTSupport
         )

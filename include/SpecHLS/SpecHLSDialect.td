@@ -17,11 +17,9 @@ include "mlir/IR/OpBase.td"
 
 def SpecHLS_Dialect : Dialect {
     let name = "SpecHLS";
-    let summary = "A SpecHLS out-of-tree MLIR dialect.";
+    let summary = "A Dialect for Speculative HLS.";
     let description = [{
-        This dialect is an example of an out-of-tree MLIR dialect designed to
-        illustrate the basic setup required to develop MLIR-based tools without
-        working inside of the LLVM source tree.
+        This dialect is tu support speculative pipelining in CIRCT .
     }];
     let cppNamespace = "SpecHLS";
 }
@@ -30,26 +28,8 @@ def SpecHLS_Dialect : Dialect {
 // Base SpecHLS operation definition.
 //===----------------------------------------------------------------------===//
 
-class SpecHLS_Gamma<string mnemonic, list<Trait> traits = []> :
-        Op<SpecHLS_Dialect, mnemonic, traits>;
+// Base class for the operation in this dialect.
+class SpecHLSOp<string mnemonic, list<Trait> traits = []> :
+    Op<SpecHLS_Dialect, mnemonic, traits>;
 
-class SpecHLS_Alpha<string mnemonic, list<Trait> traits = []> :
-        Op<SpecHLS_Dialect, mnemonic, traits>;
-
-class SpecHLS_Delay<string mnemonic, list<Trait> traits = []> :
-        Op<SpecHLS_Dialect, mnemonic, traits>;
-
-/*
-class SpecHLS_MuNode<string mnemonic, list<Trait> traits = []> :
-        Op<SpecHLS_Dialect, mnemonic, traits>;
-
-class SpecHLS_RollBack<string mnemonic, list<Trait> traits = []> :
-        Op<SpecHLS_Dialect, mnemonic, traits>;
-
-class SpecHLS_Commit<string mnemonic, list<Trait> traits = []> :
-        Op<SpecHLS_Dialect, mnemonic, traits>;
-
-class SpecHLS_Alias<string mnemonic, list<Trait> traits = []> :
-        Op<SpecHLS_Dialect, mnemonic, traits>;
-*/
 #endif // SpecHLS_DIALECT

@@ -6,6 +6,11 @@ set(LIBS
         MLIROptLib
         MLIRSpecHLS
         SpecHLSToComb
+        SpecHLSTransforms
+        CIRCTSeq
+        CIRCTComb
+        CIRCTHW
+        CIRCTSupport
         MLIRTargetCustomCEmit
         MLIRTargetCustomCEmit
         )

@@ -22,9 +22,17 @@ include "mlir/Pass/PassBase.td"
 
 def SpecHLSToComb : Pass<"lower-spechls-to-comb", "mlir::ModuleOp"> {
   let summary = "Lower SPECHLS to comb";
-  let constructor = "SpecHLS::createConvertSpecHLSToCombPass()";
+  let constructor = "createConvertSpecHLSToCombPass()";
   let dependentDialects = [
     "circt::hw::HWDialect,circt::comb::CombDialect,SpecHLS::SpecHLSDialect"
+  ];
+}
+
+def SpecHLSToArc : Pass<"lower-spechls-to-comb", "mlir::ModuleOp"> {
+  let summary = "Lower SPECHLS to arc";
+  let constructor = "createConvertSpecHLSToArcPass()";
+  let dependentDialects = [
+    "circt::hw::HWDialect,circt::arc::ArcDialect,circt::seq::SeqDialect,SpecHLS::SpecHLSDialect"
   ];
 }
 

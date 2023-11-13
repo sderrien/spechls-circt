@@ -8,6 +8,7 @@
 
 
 #include "circt/Dialect/Comb/CombOps.h"
+#include "circt/Dialect/Seq/SeqOps.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "SpecHLS/SpecHLSOps.h"
@@ -17,6 +18,7 @@
 namespace SpecHLS {
 #define GEN_PASS_DEF_SPECHLSTOCOMB
 #include "Conversion/Passes.h.inc"
+
 }
 using namespace circt;
 using namespace hw;
@@ -28,68 +30,95 @@ using namespace SpecHLS;
 // Conversion patterns
 //===----------------------------------------------------------------------===//
 
+namespace SpecHLS {
+  unsigned long upper_power_of_two(const unsigned long _v) {
+    unsigned long v = _v;
+    v--;
+    v |= v >> 1;
+    v |= v >> 2;
+    v |= v >> 4;
+    v |= v >> 8;
+    v |= v >> 16;
+    v++;
+    return v;
+  }
+}
+
 namespace {
 /// Lower a comb::GammaOp operation to a comb::GammaOp
 struct GammaToMuxOpConversion : OpConversionPattern<GammaOp> {
   using OpConversionPattern<GammaOp>::OpConversionPattern;
 
+  bool match(const Value seed,const  Value candidate) const {
+    if (candidate.getDefiningOp()==seed.getDefiningOp()) {
+      if (candidate.getType()==candidate.getType()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+
   LogicalResult
   matchAndRewrite(GammaOp op, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
 
-    llvm::outs() << "hello world";
-    Type inputType = op.getSelect().getType();
-    if (op.getInputs().size()==2) {
-      llvm::outs() << "two data inputs";
-        if (inputType.isa<IntegerType>()) {
-          llvm::outs() << "select is integer";
-          if (inputType.getIntOrFloatBitWidth() == 1) {
-            llvm::outs() << "select is bool";
-            rewriter.replaceOpWithNewOp<MuxOp>(op, op.getSelect(),
-                                               *op.getInputs().begin(),
-                                               *op.getInputs().end());
-            return success();
-          }
-        }
+
+    //llvm::errs() << "==== Lowering "<< op << "\n";
+
+    int width = op.getInputs().size();
+    int depth = 0;
+    int cwidth = upper_power_of_two(width);
+    Value* muxOperands = new Value[cwidth * (cwidth+1)];
+    //S//mallVector<Value,SPEC_GAMMAOP_MAXOPERANDS> muxOperands;
+
+    for (int k=0;k<cwidth;k+=1) {
+      if (k<width) {
+        muxOperands[k] = op.getInputs()[k];
+      } else {
+        muxOperands[k] = op.getInputs()[width-1];
+      }
+      //llvm::errs() << "\t-mux[" << k << "," << 0 << "] = "<< muxOperands[k] <<"\n" ;
     }
-    return success();
+    while (cwidth>1) {
+      auto selBit = rewriter.create<ExtractOp>(op.getLoc(), op.getSelect(),depth, 1);
+      //llvm::errs()  << "depth = " << depth << " -> extract "<< selBit <<"\n";
+      for (int k=0;k<cwidth;k+=2) {
+        //llvm::errs()  << "  k=  " << k <<"\n";
+        int offset = (width*depth);
+        Value opa = muxOperands[k+offset];
+        Value opb = NULL;
+        //llvm::errs() << "opa = mux[" << k << "," << depth << "] = "<< opa <<"\n" ;
+
+        if (k+1<cwidth) {
+          opb =muxOperands[k+1+offset];
+          //llvm::errs() << "opb = mux[" << k+1 << "," << depth << "] = "<< opb <<"\n" ;
+        } else {
+          opb =muxOperands[k+offset];
+          //llvm::errs() << "opb = mux[" << k << "," << depth << "]= "<< opb <<"\n" ; ;
+        }
+        if (opa || opb) {
+          //llvm::errs() << " null";
+        }
+        auto mux = rewriter.create<MuxOp>(op.getLoc(), selBit, opa,opb);
+        //llvm::errs() << "mux[" << k/2 << "," << depth+1 << "] = " ;
+        //llvm::errs() << mux;
+        muxOperands[k/2+offset+width] =mux;
+      }
+      cwidth = cwidth/2;
+      depth++;
+    }
+    //llvm::errs() << "result is " <<  muxOperands[width*depth] << "\n" ;
+      rewriter.replaceOp(op, muxOperands[width*depth]);
+      delete muxOperands;
+      return success();
+
+    return failure();
 
   }
 };
 
 
-
-
-///// Lower a comb::GammaOp operation to the arith dialect
-//struct GammaOpConversion : OpConversionPattern<GammaOp> {
-//  using OpConversionPattern<GammaOp>::OpConversionPattern;
-
-//  LogicalResult
-//  matchAndRewrite(GammaOp op, OpAdaptor adaptor,
-//                  ConversionPatternRewriter &rewriter) const override {
-////    Type type = op.getResult().getType();
-////    Location loc = op.getLoc();
-////    unsigned nextInsertion = type.getIntOrFloatBitWidth();
-////
-////    Value aggregate =
-////        rewriter.create<arith::ConstantOp>(loc, IntegerAttr::get(type, 0));
-////
-////    for (unsigned i = 0, e = op.getNumOperands(); i < e; i++) {
-////      nextInsertion -=
-////          adaptor.getOperands()[i].getType().getIntOrFloatBitWidth();
-////
-////      Value nextInsValue = rewriter.create<arith::ConstantOp>(
-////          loc, IntegerAttr::get(type, nextInsertion));
-////      Value extended =
-////          rewriter.create<ExtUIOp>(loc, type, adaptor.getOperands()[i]);
-////      Value shifted = rewriter.create<ShLIOp>(loc, extended, nextInsValue);
-////      aggregate = rewriter.create<OrIOp>(loc, aggregate, shifted);
-////    }
-////
-////    rewriter.replaceOp(op, aggregate);
-//    return success();
-//  }
-//};
 } // namespace
 
 //===----------------------------------------------------------------------===//
@@ -119,27 +148,30 @@ void ConvertSpecHLSToCombPass::runOnOperation() {
   ConversionTarget target(getContext());
 
 
-  //target.addIllegalOp<SpecHLS::GammaOp>();
   target.addLegalDialect<SpecHLSDialect>();
   target.addLegalDialect<CombDialect>();
+  target.addIllegalOp<SpecHLS::GammaOp>();
 
   RewritePatternSet patterns(&getContext());
   TypeConverter converter;
+
   converter.addConversion([](Type type) { return type; });
-  // TODO: a pattern for comb.parity
+
   populateSpecHLSToCombConversionPatterns(converter, patterns);
 
-  if (failed(mlir::applyPartialConversion(getOperation(), target,
-                                          std::move(patterns))))
+  if (failed(mlir::applyPartialConversion(getOperation(), target, std::move(patterns))))
     signalPassFailure();
 }
+
+
+namespace SpecHLS {
 
 std::unique_ptr<OperationPass<ModuleOp>> createConvertSpecHLSToCombPass() {
   return std::make_unique<ConvertSpecHLSToCombPass>();
 }
 
-namespace SpecHLS {
 void registerConvertSpecHLSToCombPass() {
   PassRegistration<ConvertSpecHLSToCombPass>();
+
 }
 } // namespace mlir

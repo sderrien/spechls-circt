@@ -35,6 +35,7 @@
 #include "circt/Conversion/MooreToCore.h"
 #include "circt/Conversion/PipelineToHW.h"
 #include "circt/Conversion/SCFToCalyx.h"
+#include "circt/Dialect/Arc/ArcDialect.h"
 #include "circt/Conversion/StandardToHandshake.h"
 #include "mlir/IR/DialectRegistry.h"
 #include "mlir/Pass/Pass.h"
@@ -42,8 +43,16 @@
 
 namespace SpecHLS {
 
+
+
+std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>> createConvertSpecHLSToCombPass() ;
+std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>> createConvertSpecHLSToArcPass() ;
+
 // Generate the code for registering conversion passes.
 #define GEN_PASS_REGISTRATION
+#define GEN_PASS_DEF_MERGEGAMMASPASS
+#define GEN_PASS_DEF_SPECHLSTOARC
+
 #include "Conversion/Passes.h.inc"
 
 } // namespace circt
