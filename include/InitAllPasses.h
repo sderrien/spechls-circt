@@ -26,6 +26,7 @@ inline void registerAllPasses() {
   static bool initOnce = []() {
     registerSpecHLSToCombPass();
     registerMergeGammasPass();
+    registerMergeLookUpTablesPass();
     return true;
   }();
   (void)initOnce;

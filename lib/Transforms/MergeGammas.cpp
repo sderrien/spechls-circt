@@ -36,18 +36,18 @@ struct GammaMergingPattern : OpConversionPattern<GammaOp> {
     llvm::errs() << "analyzing  " << op << " \n";
     auto nbOuterInputs = op.getInputs().size();
     for (int i = 0; i < op.getInputs().size(); i++) {
-      llvm::errs() << "input  value " << op.getInputs()[i] << " \n";
+      llvm::errs() << "\tinput  value " << op.getInputs()[i] << " \n";
       auto input = op.getInputs()[i].getDefiningOp();
       if (input!=NULL) {
 
-        llvm::errs() << "input op " << input << " \n";
+        llvm::errs() << "\tinput op " << input << " \n";
 
         if (llvm::isa<SpecHLS::GammaOp>(input)) {
           llvm::errs() << "Found nested gamma \n";
           auto innerGamma = cast<SpecHLS::GammaOp>(input);
 
-          llvm::errs() << " inner " << innerGamma << "\n";
-          llvm::errs() << " outer " << op << "\n";
+          llvm::errs() << "\t inner " << innerGamma << "\n";
+          llvm::errs() << "\t outer " << op << "\n";
 
           auto nbInnerInputs = innerGamma.getInputs().size();
           int newDepth = int(ceil(log(nbOuterInputs + nbInnerInputs) / log(2)));
@@ -68,14 +68,31 @@ struct GammaMergingPattern : OpConversionPattern<GammaOp> {
               op.getLoc(), op->getResultTypes(),
               ValueRange({op.getSelect(), innerGamma.getSelect()}));
 
-          llvm::errs() << "created concat " << newSelect << "\n";
+          llvm::errs() << "\tcreated concat " << newSelect << "\n";
           ArrayAttr tab;
 
           auto lutSelect =
               rewriter.create<LookUpTableOp>(op.getLoc(), op->getResultTypes(),
                                              ValueRange(newSelect.getResult()));
 
-          llvm::errs() << "created Lut " << lutSelect << "\n";
+          SmallVector<int,1024> content;
+          int offset=0;
+          int index=0;
+
+          for (int o = 0; o < nbOuterInputs; o++) {
+
+            for (int inner = 0; inner < nbInnerInputs; inner++) {
+                llvm::errs() << "\t\t- LUT["<< inner << "," << o << "->" << index << "] =" << offset << "\n";
+                content.push_back(offset);
+                if (o==i) offset++;
+                index++;
+            }
+            if (o!=i) offset++;
+          }
+
+          lutSelect.setContentAttr(rewriter.getI32ArrayAttr(content));
+
+          llvm::errs() << "\tcreated Lut " << lutSelect << "\n";
 
           // newSelect.setContentAttr(tab);
           int depth = int(ceil(log(nbInnerInputs+nbOuterInputs-1)/log(2)));
@@ -84,11 +101,10 @@ struct GammaMergingPattern : OpConversionPattern<GammaOp> {
               rewriter.create<GammaOp>(op.getLoc(), addrType,
                                        op.getSelect(), ValueRange(muxOperands));
 
-          llvm::errs() << "created newGamma  " << newGamma << "\n";
+          llvm::errs() << "\t- created newGamma  " << newGamma << "\n";
 
           rewriter.replaceOp(op, newGamma);
 
-          llvm::errs() << " op preds " << op->getPrevNode() << "\n";
           return success();
         }
       }

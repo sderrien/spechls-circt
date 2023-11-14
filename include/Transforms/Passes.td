@@ -26,4 +26,17 @@ def MergeGammasPass : Pass<"merge-gammas"> {
   let dependentDialects = ["circt::hw::HWDialect, mlir::arith::ArithDialect, circt::comb::CombDialect,circt::seq::SeqDialect,SpecHLS::SpecHLSDialect"];
 }
 
-#endif // CIRCT_TRANSFORMS_PASSES
+
+
+
+def MergeLookUpTablesPass : Pass<"merge-luts"> {
+  let summary = "Merge connected LUTs ops";
+  let description = [{
+    Merge consecutive `LUT` ops
+
+  }];
+  let constructor = "SpecHLS::createMergeLookUpTablesPass()";
+  let dependentDialects = ["circt::hw::HWDialect, mlir::arith::ArithDialect, circt::comb::CombDialect,circt::seq::SeqDialect,SpecHLS::SpecHLSDialect"];
+}
+
+#endif // SPECHLS_TRANSFORMS_PASSES

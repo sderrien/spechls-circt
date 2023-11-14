@@ -1,6 +1,6 @@
 add_mlir_library(SpecHLSTransforms
 		MergeGammas.cpp
-
+		MergeLUTs.cpp
 		DEPENDS
 
 		MLIRSpecHLSOpsIncGen
@@ -12,7 +12,6 @@ add_mlir_library(SpecHLSTransforms
 		MLIRSpecHLS
 		MLIRTransforms
 		)
-
 target_link_libraries(SpecHLSTransforms
 
 		PUBLIC
