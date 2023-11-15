@@ -12,6 +12,7 @@
 
 #include "SpecHLS/SpecHLSDialect.h"
 #include "SpecHLS/SpecHLSOps.h"
+#include "SpecHLS/SpecHLSUtils.h"
 #include "Transforms/Passes.h"
 #include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/HW/HWOpInterfaces.h"
@@ -27,13 +28,14 @@ using namespace SpecHLS;
 
 namespace SpecHLS {
 
+
 struct GammaMergingPattern : OpRewritePattern<GammaOp> {
 
   using OpRewritePattern<GammaOp>::OpRewritePattern;
 
   LogicalResult matchAndRewrite(GammaOp op, PatternRewriter &rewriter) const override {
 
-    llvm::errs() << "analyzing  " << op << " \n";
+    //llvm::errs() << "analyzing  " << op << " \n";
     auto nbOuterInputs = op.getInputs().size();
     for (int i = 0; i < op.getInputs().size(); i++) {
       //      llvm::errs() << "\tinput  value " << op.getInputs()[i] << " \n";
@@ -45,18 +47,18 @@ struct GammaMergingPattern : OpRewritePattern<GammaOp> {
         if (llvm::isa<SpecHLS::GammaOp>(input)) {
 
           auto innerGamma = cast<SpecHLS::GammaOp>(input);
-          llvm::errs() << "Found nested gamma \n";
-          llvm::errs() << "\t inner " << innerGamma << "\n";
-          llvm::errs() << "\t outer " << op << "\n";
+//          llvm::errs() << "Found nested gamma \n";
+//          llvm::errs() << "\t inner " << innerGamma << "\n";
+//          llvm::errs() << "\t outer " << op << "\n";
 
 
           auto users  = innerGamma->getUsers();
           auto nbusers = std::distance(users.begin(),users.end());
 
           if (nbusers==1) {
-            llvm::errs() << "Found nested gamma \n";
-            llvm::errs() << "\t inner " << innerGamma << "\n";
-            llvm::errs() << "\t outer " << op << "\n";
+//            llvm::errs() << "Found nested gamma \n";
+//            llvm::errs() << "\t inner " << innerGamma << "\n";
+//            llvm::errs() << "\t outer " << op << "\n";
 
             auto nbInnerInputs = innerGamma.getInputs().size();
             int newDepth = int(ceil(log(nbOuterInputs + nbInnerInputs) / log(2)));
@@ -86,7 +88,7 @@ struct GammaMergingPattern : OpRewritePattern<GammaOp> {
             for (int o = 0; o < outerPow2Inputs; o++) {
 
               for (int inner = 0; inner < innerPow2Inputs; inner++) {
-                 llvm::errs() << "\t\t- LUT["<< inner << "," << o << "->" << index << "] =" << offset << "\n";
+                // llvm::errs() << "\t\t- LUT["<< inner << "," << o << "->" << index << "] =" << offset << "\n";
                 content.push_back(offset);
                 index++;
                 if (o == i)
@@ -96,11 +98,11 @@ struct GammaMergingPattern : OpRewritePattern<GammaOp> {
                 offset++;
             }
 
-            auto lutSelect = rewriter.create<LookUpTableOp>(op.getLoc(), concatOp->getResultTypes(),concatOp.getResult(),rewriter.getI32ArrayAttr(content));
-
-
             int depth = int(ceil(log(nbInnerInputs + nbOuterInputs - 1) / log(2)));
             mlir::Type addrType = rewriter.getIntegerType(depth);
+
+            auto lutSelect = rewriter.create<LookUpTableOp>(op.getLoc(), addrType,concatOp.getResult(),rewriter.getI32ArrayAttr(content));
+
 
             rewriter.replaceOpWithNewOp<GammaOp>(op, op->getResultTypes(), lutSelect.getResult(),ValueRange(muxOperands));
 

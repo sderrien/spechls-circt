@@ -1,4 +1,5 @@
-// RUN: spechls-opt | FileCheck %s
+// RUN: spechls-opt %s | spechls-opt | FileCheck %s
+// CHECK-LABEL:   @top
 module {
     hw.module @top(%in0: i32) -> (o: i32) {
       %1 = arith.constant 2 : i32

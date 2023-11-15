@@ -1,4 +1,5 @@
-// RUN: spechls-opt | FileCheck %s
+// RUN: spechls-opt %s | spechls-opt | FileCheck %s
+// CHECK-LABEL:   @top
 module {
     hw.module @top(%in0: memref<16xi32>) -> (o: memref<16xi32>) {
       %0 = arith.constant 0 : index

@@ -8,6 +8,8 @@
 
 #include "SpecHLS/SpecHLSOps.h"
 #include "SpecHLS/SpecHLSDialect.h"
+#include "SpecHLS/SpecHLSUtils.h"
+
 #include "mlir/IR/OpImplementation.h"
 
 #include "mlir/IR/DialectImplementation.h"
@@ -103,7 +105,14 @@ mlir::ParseResult LookUpTableOp::parse(mlir::OpAsmParser &parser, mlir::Operatio
     //
     while (true) {
       int value;
-      if (parser.parseInteger(value)) return mlir::failure();
+      if (parser.parseInteger(value)) {
+        // llvm::errs() << " LUT["<< nbelt <<"] = " <<value <<"\n" ;
+        return mlir::failure();
+      }
+      if (value>=(1l<<(dataType.getIntOrFloatBitWidth()))) {
+        llvm::errs() << " value " <<value <<" does not fit on "<< dataType <<"\n" ;
+        return mlir::failure();
+      }
       content.push_back(value);
       // llvm::errs() << " LUT["<< nbelt <<"] = " <<value <<"\n" ;
       nbelt++;

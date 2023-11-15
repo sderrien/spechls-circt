@@ -1,9 +1,9 @@
 // RUN: spechls-opt --merge-gammas %s | spechls-opt | FileCheck %s
 // CHECK-LABEL:   @bar
-// CHECK-NEXT:   (%arg0: i2, %arg1: i32, %arg2: i32, %arg3: i32, %arg4: i32) -> i32 {
-// CHECK:    %0 = comb.concat %arg0, %arg0 : i2, i2
-// CHECK:    %1 = SpecHLS.lookUpTable [%0 ] :i32= {0,1,2,3,3,3,4,4,4 }
-// CHECK:    %2 = SpecHLS.gamma %1 ? %arg1,%arg2,%arg3,%arg2,%arg4 :i32
+// CHECK-SAME: (%arg0: i2, %arg1: i2, %arg2: i32, %arg3: i32, %arg4: i32, %arg5: i32) -> i32 {
+// CHECK-NEXT:     %0 = comb.concat %arg1, %arg0 : i2, i2
+// CHECK:     %1 = SpecHLS.lookUpTable [%0 ] :i3= {0,1,2,3,4,4,4,4,5,5,5,5,6,6,6,6 }
+// CHECK:     %2 = SpecHLS.gamma %1 ? %arg2,%arg3,%arg4,%arg2,%arg4 :i32
 // CHECK:    return %2 : i32
 
 module {
