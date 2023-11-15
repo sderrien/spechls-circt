@@ -19,17 +19,47 @@
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/ToolOutputFile.h"
 
+#include "mlir/Dialect/MemRef/IR/MemRef.h"
+
 #include "circt/Dialect/Comb/CombDialect.h"
 #include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/Seq/SeqDialect.h"
 #include "circt/Dialect/Seq/SeqOps.h"
 #include "circt/Dialect/HW/HWDialect.h"
 #include "circt/Dialect/HW/HWOps.h"
+#include "circt/Dialect/HWArith/HWArithDialect.h"
 
 #include "SpecHLS/SpecHLSDialect.h"
 #include "SpecHLS/SpecHLSOpsDialect.cpp.inc"
 #include "InitAllPasses.h"
 #include "InitAllTranslations.h"
+
+
+#include "circt/Dialect/Arc/ArcDialect.h"
+#include "circt/Dialect/Calyx/CalyxDialect.h"
+#include "circt/Dialect/Comb/CombDialect.h"
+#include "circt/Dialect/DC/DCDialect.h"
+#include "circt/Dialect/ESI/ESIDialect.h"
+#include "circt/Dialect/FIRRTL/CHIRRTLDialect.h"
+#include "circt/Dialect/FIRRTL/FIRRTLDialect.h"
+#include "circt/Dialect/FSM/FSMOps.h"
+#include "circt/Dialect/HW/HWDialect.h"
+#include "circt/Dialect/HWArith/HWArithDialect.h"
+#include "circt/Dialect/Handshake/HandshakeDialect.h"
+#include "circt/Dialect/Interop/InteropDialect.h"
+#include "circt/Dialect/LLHD/IR/LLHDDialect.h"
+#include "circt/Dialect/LTL/LTLDialect.h"
+#include "circt/Dialect/LoopSchedule/LoopScheduleDialect.h"
+#include "circt/Dialect/MSFT/MSFTDialect.h"
+#include "circt/Dialect/Moore/MooreDialect.h"
+#include "circt/Dialect/OM/OMDialect.h"
+#include "circt/Dialect/Pipeline/PipelineDialect.h"
+#include "circt/Dialect/SSP/SSPDialect.h"
+#include "circt/Dialect/SV/SVDialect.h"
+#include "circt/Dialect/Seq/SeqDialect.h"
+#include "circt/Dialect/SystemC/SystemCDialect.h"
+#include "circt/Dialect/Verif/VerifDialect.h"
+#include "mlir/IR/Dialect.h"
 
 int main(int argc, char **argv) {
   mlir::registerAllPasses();
@@ -38,13 +68,17 @@ int main(int argc, char **argv) {
   SpecHLS::registerAllPasses();
 
   mlir::DialectRegistry registry;
-  registry.insert<SpecHLS::SpecHLSDialect>();
-  registry.insert<mlir::func::FuncDialect>();
-  registry.insert<mlir::arith::ArithDialect>();
-  registry.insert<circt::comb::CombDialect>();
-  registry.insert<circt::seq::SeqDialect>();
-  registry.insert<circt::hw::HWDialect>();
 
+  registry.insert<SpecHLS::SpecHLSDialect,
+      mlir::func::FuncDialect,
+      mlir::arith::ArithDialect,
+      mlir::memref::MemRefDialect,
+      circt::hwarith::HWArithDialect,
+      circt::comb::CombDialect,
+      circt::seq::SeqDialect,
+      circt::hw::HWDialect,
+//      circt::firrtl::FIRRTLDialect,
+      circt::fsm::FSMDialect>();
   // Add the following to include *all* MLIR Core dialects, or selectively
   // include what you need like above. You only need to register dialects that
   // will be *parsed* by the tool, not the one generated

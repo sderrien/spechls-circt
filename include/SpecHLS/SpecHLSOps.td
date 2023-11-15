@@ -48,7 +48,7 @@ def SpecHLS_GammaOp : SpecHLSOp<"gamma", [Pure]> {
     //let assemblyFormat = "attr-dict  `(` $select `:` type($select) `,` ($inputs^ `:` type($inputs))? `)` `:`  type($res)";
 }
 
-def SpecHLS_AlphaOp : SpecHLSOp<"alpha", [Pure,
+def SpecHLS_AlphaOp : SpecHLSOp<"alpha", [Pure,AttrSizedOperandSegments,
     TypesMatchWith<"value type must match element type of 'memref'",
                      "memref", "value",
                      "::llvm::cast<mlir::MemRefType>($_self).getElementType()">,
@@ -61,11 +61,13 @@ def SpecHLS_AlphaOp : SpecHLSOp<"alpha", [Pure,
 
     let arguments = (ins Arg<AnyMemRef, "the reference to update",[MemRead]>:$memref,
                         AnyType:$value,
-                        Variadic<Index>:$indices);
+                        Variadic<Index>:$indices, Optional<I1>:$we);
     let results = (outs AnyMemRef:$result);
 
+//  let hasCustomAssemblyFormat =1;
+
     let assemblyFormat = [{
-    $memref `[` $indices `]` `,` $value attr-dict `:` type($memref) 
+    $we `->` $memref `[` $indices `]` `,` $value attr-dict `:` type($memref)
     }];
 }
 
@@ -81,29 +83,24 @@ def SpecHLS_MuOp : SpecHLSOp<"mu", [Pure,SameOperandsAndResultType,
    let results = (outs AnyType:$result);
 
  let assemblyFormat = [{
-   $next `,` $init attr-dict `:` type($init) 
+     $next `,` $init attr-dict `:` type($init)
  }];
-
-//  let hasCanonicalizer = 1;
-//  let hasFolder = 1;
-//  let hasCustomAssemblyFormat =1;
-  //  let assemblyFormat = "attr-dict  `(` $array `:` type($array) $value type($we) $we `:` type($value) `,` ($indices^ `:` type($indices))? `)` `:`  type($res)";
 
 }
 
-def SpecHLS_DelayOp : SpecHLSOp<"delay", [
+def SpecHLS_DelayOp : SpecHLSOp<"delay", [AttrSizedOperandSegments,
     TypesMatchWith<"Delay data must match'", "result", "next", "$_self">,
     TypesMatchWith<"Delay data must match'", "result", "init", "$_self">
 ]> {
-    let summary = "Array update operation.";
+    let summary = "Delay operation.";
     let description = [{}];
 
-   let arguments = (ins AnyType:$next,I1:$enable,AnyType:$init);
+   let arguments = (ins AnyType:$next,Optional<I1>:$enable,Optional<AnyType>:$init);
    let results = (outs AnyType:$result);
 
- let assemblyFormat = [{
-    $enable `:` $next `,` $init `:` type($result) attr-dict
- }];
+   let assemblyFormat = [{
+        $enable `->` $next `(` $init `)` `:` type($result) attr-dict
+   }];
 
 //  let hasCanonicalizer = 1;
 //  let hasFolder = 1;
@@ -123,17 +120,28 @@ def SpecHLS_LookUpTableOp : SpecHLSOp<"lookUpTable", [Pure]> {
    let arguments = (ins AnySignlessInteger:$input, I32ArrayAttr:$content);
    let results = (outs AnyInteger:$result);
 
-// let assemblyFormat = [{
-//     `[` $input `:` type($input) `]` `:`  type($result)  attr-dict $content
-// }];
-
 //  let hasCanonicalizer = 1;
 //  let hasFolder = 1;
-  let hasCustomAssemblyFormat =1;
-//  let assemblyFormat = "attr-dict  `(` $array `:` type($array) $value type($we) $we `:` type($value) `,` ($indices^ `:` type($indices))? `)` `:`  type($res)";
+
+   let hasCustomAssemblyFormat =1;
 
 }
 
+
+
+def SpecHLS_DontCareOp : SpecHLSOp<"dontCare", [Pure]> {
+    let summary = "Array update operation.";
+    let description = [{}];
+
+   let arguments = (ins );
+   let results = (outs AnyInteger:$result);
+
+     let assemblyFormat = [{
+         `:` type($result)  attr-dict
+     }];
+
+
+}
 
 
   

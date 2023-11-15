@@ -11,8 +11,21 @@ set(LIBS
         CIRCTSeq
         CIRCTComb
         CIRCTHW
+        CIRCTDC
+        CIRCTFIRRTL
+        CIRCTHWArith
+        CIRCTComb
+        CIRCTSeq
+        CIRCTCombTransforms
+        CIRCTFIRRTL
+        CIRCTFSM
+        CIRCTHW
+        CIRCTHWArith
+        CIRCTScheduling
+        CIRCTHWArith
+        CIRCTSystemC
+        CIRCTTransforms
         CIRCTSupport
-        MLIRTargetCustomCEmit
         MLIRTargetCustomCEmit
         )
 add_llvm_executable(spechls-opt spechls-opt.cpp)

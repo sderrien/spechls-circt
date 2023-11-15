@@ -17,20 +17,25 @@
 #include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/HW/HWOpInterfaces.h"
 #include "circt/Dialect/HW/HWOps.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
+#include "mlir/IR/BuiltinDialect.h"
 #include "mlir/Transforms/DialectConversion.h"
+#include "mlir/IR/PatternMatch.h"
+#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
 using namespace mlir;
 using namespace circt;
 using namespace SpecHLS;
 
+
 namespace SpecHLS {
 
-struct LookUpMergingPattern : OpConversionPattern<LookUpTableOp> {
+struct LookUpMergingPattern : OpRewritePattern<LookUpTableOp> {
 
-  using OpConversionPattern<LookUpTableOp>::OpConversionPattern;
+  using OpRewritePattern<LookUpTableOp>::OpRewritePattern;
 
-  ArrayAttr updateLUTContent(ArrayAttr inner, ArrayAttr outer, ConversionPatternRewriter &rewriter) const {
+  ArrayAttr updateLUTContent(ArrayAttr inner, ArrayAttr outer, PatternRewriter &rewriter) const {
     SmallVector<int, 1024> newcontent;
     int innerSize = inner.size();
     int outerSize = outer.size();
@@ -47,37 +52,30 @@ struct LookUpMergingPattern : OpConversionPattern<LookUpTableOp> {
         return NULL;
       }
 
-      auto outerValue =
-          cast<IntegerAttr>(outer.getValue()[innerValue]).getInt();
+      auto outerValue = cast<IntegerAttr>(outer.getValue()[innerValue]).getInt();
       newcontent.push_back(outerValue);
     }
     return rewriter.getI32ArrayAttr(newcontent);
   }
 
-  LogicalResult matchAndRewrite(LookUpTableOp op, OpAdaptor adaptor, ConversionPatternRewriter &rewriter) const override {
+  LogicalResult matchAndRewrite(LookUpTableOp op, PatternRewriter &rewriter) const override {
 
-    llvm::errs() << "Analyzing  " << op << " \n";
+//    llvm::errs() << "Analyzing  " << op << " \n";
     auto input = op.getInput().getDefiningOp();
     if (input!=NULL && llvm::isa<SpecHLS::LookUpTableOp>(input)) {
       auto inputLUT = cast<SpecHLS::LookUpTableOp>(input);
-      llvm::errs() << "Found nested LUTs \n";
-      llvm::errs() << "\t " << op << "  \n";
-      llvm::errs() << "\t " << input << "  \n";
-      int innerSize = inputLUT.getContent().size();
-      int outerSize = op.getContent().size();
-      int innerWL = inputLUT.getType().getWidth();
-      int outerWL = op.getType().getWidth();
-      auto lutSelect = rewriter.create<LookUpTableOp>(op.getLoc(), op->getResultTypes(), input->getOperands());
-      // FIXME : Why can't I directly create A LUT with Attrbute using the builder ?
+
+//      llvm::errs() << "Found nested LUTs \n";
+//      llvm::errs() << "\t " << op << "  \n";
+//      llvm::errs() << "\t " << input << "  \n";
+
       ArrayAttr newAttr = updateLUTContent(inputLUT.getContent(),op.getContent(),rewriter);
-      lutSelect.setContentAttr(newAttr);
+      auto lutSelect = rewriter.replaceOpWithNewOp<LookUpTableOp>(op, op->getResultTypes(), inputLUT.getInput(), newAttr);
 
-      llvm::errs() << "\t- created LUT  " << lutSelect << "\n";
+     rewriter.eraseOp(inputLUT);
 
-      rewriter.replaceOp(op, lutSelect);
-      rewriter.eraseOp(inputLUT);
-
-      llvm::errs() << "\t-sucess ?  " << lutSelect << "\n";
+//      llvm::errs() << "\t-sucess ?  " << lutSelect << "\n";
+//      llvm::errs() << "\t-sucess ?  " << lutSelect << "\n";
       return success();
     }
 
@@ -90,18 +88,15 @@ public:
   void runOnOperation() override {
     auto *ctx = &getContext();
     //
-    ConversionTarget target(*ctx);
-    target.addLegalDialect<comb::CombDialect, hw::HWDialect>();
     //    target.addIllegalDialect<arith::ArithDialect>();
     //    MapArithTypeConverter typeConverter;
     RewritePatternSet patterns(ctx);
     //
     patterns.insert<LookUpMergingPattern>(ctx);
-    llvm::errs() << "inserted pattern  \n";
+    //llvm::errs() << "inserted pattern  \n";
 
-    if (failed(applyPartialConversion(getOperation(), target,
-                                      std::move(patterns)))) {
-      llvm::errs() << "partial conversion faile pattern  \n";
+    if (failed(applyPatternsAndFoldGreedily(getOperation(),std::move(patterns)))) {
+      llvm::errs() << "partial conversion failed pattern  \n";
       signalPassFailure();
     }
   }

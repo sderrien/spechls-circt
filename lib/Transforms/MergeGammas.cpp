@@ -17,7 +17,9 @@
 #include "circt/Dialect/HW/HWOpInterfaces.h"
 #include "circt/Dialect/HW/HWOps.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
+#include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/DialectConversion.h"
+#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
 using namespace mlir;
 using namespace circt;
@@ -25,87 +27,88 @@ using namespace SpecHLS;
 
 namespace SpecHLS {
 
-struct GammaMergingPattern : OpConversionPattern<GammaOp> {
+struct GammaMergingPattern : OpRewritePattern<GammaOp> {
 
-  using OpConversionPattern<GammaOp>::OpConversionPattern;
+  using OpRewritePattern<GammaOp>::OpRewritePattern;
 
-  LogicalResult
-  matchAndRewrite(GammaOp op, OpAdaptor adaptor,
-                  ConversionPatternRewriter &rewriter) const override {
+  LogicalResult matchAndRewrite(GammaOp op, PatternRewriter &rewriter) const override {
 
     llvm::errs() << "analyzing  " << op << " \n";
     auto nbOuterInputs = op.getInputs().size();
     for (int i = 0; i < op.getInputs().size(); i++) {
-      llvm::errs() << "\tinput  value " << op.getInputs()[i] << " \n";
+      //      llvm::errs() << "\tinput  value " << op.getInputs()[i] << " \n";
       auto input = op.getInputs()[i].getDefiningOp();
-      if (input!=NULL) {
+      if (input != NULL) {
 
-        llvm::errs() << "\tinput op " << input << " \n";
+        //     llvm::errs() << "\tinput op " << input << " \n";
 
         if (llvm::isa<SpecHLS::GammaOp>(input)) {
-          llvm::errs() << "Found nested gamma \n";
-          auto innerGamma = cast<SpecHLS::GammaOp>(input);
 
+          auto innerGamma = cast<SpecHLS::GammaOp>(input);
+          llvm::errs() << "Found nested gamma \n";
           llvm::errs() << "\t inner " << innerGamma << "\n";
           llvm::errs() << "\t outer " << op << "\n";
 
-          auto nbInnerInputs = innerGamma.getInputs().size();
-          int newDepth = int(ceil(log(nbOuterInputs + nbInnerInputs) / log(2)));
-          //  Value* muxOperands = new Value[cwidth * (cwidth+1)];
-          Operation::operand_range in = innerGamma.getInputs();
-          SmallVector<Value, 8> muxOperands;
-          // muxOperands.append(innerGamma.getInputs())
 
-          for (int pos = 0; pos < nbInnerInputs; pos++) {
-            muxOperands.push_back(op.getInputs()[pos]);
-          }
-          for (int pos = 0; pos < nbOuterInputs; pos++) {
-            if (pos != i) {
-              muxOperands.push_back(op.getInputs()[pos]);
+          auto users  = innerGamma->getUsers();
+          auto nbusers = std::distance(users.begin(),users.end());
+
+          if (nbusers==1) {
+            llvm::errs() << "Found nested gamma \n";
+            llvm::errs() << "\t inner " << innerGamma << "\n";
+            llvm::errs() << "\t outer " << op << "\n";
+
+            auto nbInnerInputs = innerGamma.getInputs().size();
+            int newDepth = int(ceil(log(nbOuterInputs + nbInnerInputs) / log(2)));
+            //  Value* muxOperands = new Value[cwidth * (cwidth+1)];
+            Operation::operand_range in = innerGamma.getInputs();
+            SmallVector<Value, 8> muxOperands;
+            // muxOperands.append(innerGamma.getInputs())
+
+            for (int pos = 0; pos < nbInnerInputs; pos++) {
+              muxOperands.push_back(innerGamma.getInputs()[pos]);
             }
-          }
-          auto newSelect = rewriter.create<comb::ConcatOp>(
-              op.getLoc(), op->getResultTypes(),
-              ValueRange({op.getSelect(), innerGamma.getSelect()}));
+            for (int pos = 0; pos < nbOuterInputs; pos++) {
+              if (pos != i) {
+                muxOperands.push_back(op.getInputs()[pos]);
+              }
+            }
+            auto controlType = rewriter.getIntegerType(op.getSelect().getType().getIntOrFloatBitWidth()+innerGamma.getSelect().getType().getIntOrFloatBitWidth());
+            auto concatOp = rewriter.create<comb::ConcatOp>(
+                op.getLoc(), controlType,ValueRange({op.getSelect(), innerGamma.getSelect()}));
 
-          llvm::errs() << "\tcreated concat " << newSelect << "\n";
-          ArrayAttr tab;
+            ArrayAttr tab;
+            SmallVector<int, 1024> content;
+            int offset = 0;
+            int index = 0;
+            int innerPow2Inputs = 1<<innerGamma.getSelect().getType().getIntOrFloatBitWidth();
+            int outerPow2Inputs = 1<<op.getSelect().getType().getIntOrFloatBitWidth();
+            for (int o = 0; o < outerPow2Inputs; o++) {
 
-          auto lutSelect =
-              rewriter.create<LookUpTableOp>(op.getLoc(), op->getResultTypes(),
-                                             ValueRange(newSelect.getResult()));
-
-          SmallVector<int,1024> content;
-          int offset=0;
-          int index=0;
-
-          for (int o = 0; o < nbOuterInputs; o++) {
-
-            for (int inner = 0; inner < nbInnerInputs; inner++) {
-                llvm::errs() << "\t\t- LUT["<< inner << "," << o << "->" << index << "] =" << offset << "\n";
+              for (int inner = 0; inner < innerPow2Inputs; inner++) {
+                 llvm::errs() << "\t\t- LUT["<< inner << "," << o << "->" << index << "] =" << offset << "\n";
                 content.push_back(offset);
-                if (o==i) offset++;
                 index++;
+                if (o == i)
+                  offset++;
+              }
+              if (o != i)
+                offset++;
             }
-            if (o!=i) offset++;
+
+            auto lutSelect = rewriter.create<LookUpTableOp>(op.getLoc(), concatOp->getResultTypes(),concatOp.getResult(),rewriter.getI32ArrayAttr(content));
+
+
+            int depth = int(ceil(log(nbInnerInputs + nbOuterInputs - 1) / log(2)));
+            mlir::Type addrType = rewriter.getIntegerType(depth);
+
+            rewriter.replaceOpWithNewOp<GammaOp>(op, op->getResultTypes(), lutSelect.getResult(),ValueRange(muxOperands));
+
+            lutSelect->getParentOfType<mlir::ModuleOp>().dump();
+            //rewriter.eraseOp(innerGamma);
+            return success();
+
           }
-
-          lutSelect.setContentAttr(rewriter.getI32ArrayAttr(content));
-
-          llvm::errs() << "\tcreated Lut " << lutSelect << "\n";
-
-          // newSelect.setContentAttr(tab);
-          int depth = int(ceil(log(nbInnerInputs+nbOuterInputs-1)/log(2)));
-          mlir::Type addrType = rewriter.getIntegerType(depth);
-          auto newGamma =
-              rewriter.create<GammaOp>(op.getLoc(), addrType,
-                                       op.getSelect(), ValueRange(muxOperands));
-
-          llvm::errs() << "\t- created newGamma  " << newGamma << "\n";
-
-          rewriter.replaceOp(op, newGamma);
-
-          return success();
         }
       }
     }
@@ -113,23 +116,19 @@ struct GammaMergingPattern : OpConversionPattern<GammaOp> {
     return failure();
   }
 };
+
 struct MergeGammasPass : public impl::MergeGammasPassBase<MergeGammasPass> {
 public:
   void runOnOperation() override {
     auto *ctx = &getContext();
-    //
-    ConversionTarget target(*ctx);
-    target.addLegalDialect<comb::CombDialect, hw::HWDialect>();
-    //    target.addIllegalDialect<arith::ArithDialect>();
-    //    MapArithTypeConverter typeConverter;
-    RewritePatternSet patterns(ctx);
-    //
-    patterns.insert<GammaMergingPattern>(ctx);
-    llvm::errs() << "inserted pattern  \n";
 
-    if (failed(applyPartialConversion(getOperation(), target,
-                                      std::move(patterns)))) {
-      llvm::errs() << "partial conversion faile pattern  \n";
+    RewritePatternSet patterns(ctx);
+
+    patterns.insert<GammaMergingPattern>(ctx);
+   // llvm::errs() << "inserted pattern  \n";
+
+    if (failed(applyPatternsAndFoldGreedily(getOperation(), std::move(patterns)))) {
+      llvm::errs() << "partial conversion failed pattern  \n";
       signalPassFailure();
     }
   }

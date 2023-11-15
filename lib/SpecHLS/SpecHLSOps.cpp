@@ -85,13 +85,13 @@ mlir::ParseResult LookUpTableOp::parse(mlir::OpAsmParser &parser, mlir::Operatio
     nok = parser.parseRSquare();
     if (nok) return mlir::failure();
 
-    llvm::errs() << "LUT index " << selectOperand.name <<"\n" ;
+    // llvm::errs() << "LUT index " << selectOperand.name <<"\n" ;
     // [ op ] : type
     nok = parser.parseColon();
     if (nok) return mlir::failure();
     nok = parser.parseType(dataType);
     if (nok) return mlir::failure();
-    llvm::errs() << "LUT type " << dataType <<"\n" ;
+    // llvm::errs() << "LUT type " << dataType <<"\n" ;
 
     // [ op ] : type
     if (parser.parseEqual()) return mlir::failure();
@@ -105,7 +105,7 @@ mlir::ParseResult LookUpTableOp::parse(mlir::OpAsmParser &parser, mlir::Operatio
       int value;
       if (parser.parseInteger(value)) return mlir::failure();
       content.push_back(value);
-      llvm::errs() << " LUT["<< nbelt <<"] = " <<value <<"\n" ;
+      // llvm::errs() << " LUT["<< nbelt <<"] = " <<value <<"\n" ;
       nbelt++;
       if (parser.parseOptionalComma()) break;
     }
@@ -114,8 +114,7 @@ mlir::ParseResult LookUpTableOp::parse(mlir::OpAsmParser &parser, mlir::Operatio
     result.addAttribute("content", parser.getBuilder().getI32ArrayAttr(content));
     int depth = int(ceil(log(nbelt)/log(2)));
     if ((1<<depth)!=nbelt) {
-      llvm::errs() << " Inconsistent number of values "
-                      "in LookUpTable (should be a power of two), but currently is  "<< nbelt;
+      llvm::errs() << " Inconsistent number of values in LookUpTable (should be a power of two), but currently is  "<< nbelt;
       return mlir::failure();
     }
     mlir::Type addrType = parser.getBuilder().getIntegerType(depth);
