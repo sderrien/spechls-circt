@@ -95,17 +95,17 @@ def SpecHLS_DelayOp : SpecHLSOp<"delay", [AttrSizedOperandSegments,
     let summary = "Delay operation.";
     let description = [{}];
 
-   let arguments = (ins AnyType:$next,Optional<I1>:$enable,Optional<AnyType>:$init);
+   let arguments = (ins AnyType:$next,Optional<I1>:$enable,Optional<AnyType>:$init, I32Attr:$depth);
    let results = (outs AnyType:$result);
 
    let assemblyFormat = [{
-        $enable `->` $next `(` $init `)` `:` type($result) attr-dict
+        $enable `->` $depth `:` $next `(` $init `)` `:` type($result) attr-dict
    }];
 
 //  let hasCanonicalizer = 1;
 //  let hasFolder = 1;
 //  let hasCustomAssemblyFormat =1;
-//  let assemblyFormat = "attr-dict  `(` $array `:` type($array) $value type($we) $we `:` type($value) `,` ($indices^ `:` type($indices))? `)` `:`  type($res)";
+//  let assemblyFormat = "attr-dict  `(` $array `:` type($array) $value type($we) $we `:` type($value) `,` ($indices^ `:` type($indices))? `)` `:` $depth type($res)";
 
 }
 
