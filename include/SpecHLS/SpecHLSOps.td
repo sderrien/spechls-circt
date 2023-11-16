@@ -122,9 +122,7 @@ def SpecHLS_LookUpTableOp : SpecHLSOp<"lookUpTable", [Pure]> {
 
 //  let hasCanonicalizer = 1;
 //  let hasFolder = 1;
-
    let hasCustomAssemblyFormat =1;
-
 }
 
 
@@ -143,6 +141,18 @@ def SpecHLS_DontCareOp : SpecHLSOp<"dontCare", [Pure]> {
 
 }
 
+def SpecHLS_ExitOp : SpecHLSOp<"exit", []> {
+    let summary = "Exit.";
+    let description = [{}];
+
+   let arguments = (ins I1:$finished, Variadic<AnyType>:$inputs);
+   let results = (outs I1:$end );
+
+  // let hasCustomAssemblyFormat =1;
+     let assemblyFormat = [{
+         $finished `:` `live` $inputs `:` type($inputs)   attr-dict
+     }];
+}
 
   
 

@@ -7,6 +7,7 @@ module {
       %2 = SpecHLS.delay %we -> %in0(%1) : i32
       %3 = SpecHLS.mu %in0,%1 : i32
       %4 = SpecHLS.dontCare : i32
+      %5 = SpecHLS.exit %we : live %4 : i32
       hw.output %2 : i32
     }
 }

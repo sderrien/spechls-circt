@@ -15,9 +15,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/IR/Dialect.h"
+//#include "mlir/IR/Dialect.h"
 
-#include "SpecHLS/SpecHLSOpsDialect.h.inc"
+#include "mlir-c/IR.h"
+
+//#include "SpecHLS/SpecHLSOpsDialect.h.inc"
 
 #ifdef __cplusplus
 extern "C" {
