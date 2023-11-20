@@ -6,17 +6,29 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "SpecHLS/SpecHLSOps.h"
-#include "SpecHLS/SpecHLSDialect.h"
-#include "SpecHLS/SpecHLSUtils.h"
 
+#include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/BuiltinTypes.h"
+#include "mlir/IR/Operation.h"
 #include "mlir/IR/OpImplementation.h"
+#include "circt/Dialect/Comb/CombDialect.h"
+#include "circt/Dialect/HW/HWTypes.h"
+#include "circt/Support/LLVM.h"
+#include "mlir/Bytecode/BytecodeOpInterface.h"
+#include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/OpImplementation.h"
+#include "mlir/Interfaces/FunctionInterfaces.h"
+#include "mlir/Interfaces/InferTypeOpInterface.h"
+#include "mlir/Interfaces/SideEffectInterfaces.h"
 
 #include "mlir/IR/DialectImplementation.h"
 #include "mlir/IR/IRMapping.h"
 
 #include "llvm/ADT/MapVector.h"
 #include "llvm/ADT/TypeSwitch.h"
+#include "SpecHLS/SpecHLSOps.h"
+#include "SpecHLS/SpecHLSDialect.h"
+#include "SpecHLS/SpecHLSUtils.h"
 
 #define GET_OP_CLASSES
 #include "SpecHLS/SpecHLSOps.cpp.inc"

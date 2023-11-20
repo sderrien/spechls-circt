@@ -30,7 +30,6 @@ set(LIBS
 #       yosys
         )
 add_llvm_executable(spechls-opt spechls-opt.cpp)
-target_link_directories(spechls-opt PRIVATE "/Users/steven/eclipse-workspace/mlir_c/")
 
 llvm_update_compile_flags(spechls-opt)
 target_link_libraries(spechls-opt PRIVATE ${LIBS})

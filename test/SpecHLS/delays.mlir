@@ -1,7 +1,7 @@
 // RUN: spechls-opt %s | spechls-opt | FileCheck %s
 // CHECK-LABEL:   @top
 module {
-    hw.module @top(%in0: i32) -> (o: i32) {
+    hw.module @top(in %in0: i32, out o: i32) {
       %1 = arith.constant 2 : i32
       %we = arith.constant 1 : i1
       %2 = SpecHLS.delay %we -> 2: %in0(%1) : i32

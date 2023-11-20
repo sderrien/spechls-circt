@@ -1,0 +1,10 @@
+//
+// Created by Steven on 19/11/2023.
+//
+
+#ifndef SPECHLS_DIALECT_SPECHLSGECOSUTILS_H
+#define SPECHLS_DIALECT_SPECHLSGECOSUTILS_H
+
+class SpecHLSGecosUtils {};
+
+#endif // SPECHLS_DIALECT_SPECHLSGECOSUTILS_H

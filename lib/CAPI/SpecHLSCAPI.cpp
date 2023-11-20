@@ -10,18 +10,21 @@
 #include "SpecHLS/SpecHLSOps.h"
 #include "SpecHLS/SpecHLSUtils.h"
 #include "Transforms/Passes.h"
-#include "circt/Dialect/Comb/CombOps.h"
-#include "circt/Dialect/HW/HWOpInterfaces.h"
-#include "circt/Dialect/HW/HWOps.h"
-#include "mlir/Dialect/Arith/IR/Arith.h"
-#include "mlir/IR/PatternMatch.h"
-#include "mlir/Transforms/DialectConversion.h"
-#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+//#include "circt/Dialect/Comb/CombOps.h"
+//#include "circt/Dialect/HW/HWOpInterfaces.h"
+//#include "circt/Dialect/HW/HWOps.h"
+//#include "mlir/Dialect/Arith/IR/Arith.h"
+//#include "mlir/IR/PatternMatch.h"
+//#include "mlir/Transforms/DialectConversion.h"
+//#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
 #include "mlir/CAPI/Registration.h"
+#include "SpecHLS/SpecHLSOpsDialect.cpp.inc"
 
 
+extern "C" {
 MLIR_DEFINE_CAPI_DIALECT_REGISTRATION(SpecHLS, spechls, SpecHLS::SpecHLSDialect)
+}
 
-void registerSeqPasses() { SpecHLS::registerTransformsPasses(); }
+//void registerSeqPasses() { SpecHLS::registerTransformsPasses(); }
 

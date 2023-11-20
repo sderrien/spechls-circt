@@ -12,5 +12,4 @@
 #include "mlir/IR/Dialect.h"
 
 #include "SpecHLS/SpecHLSOpsDialect.h.inc"
-
 #endif // SpecHLS_SpecHLSDIALECT_H

@@ -71,6 +71,21 @@ def SpecHLS_AlphaOp : SpecHLSOp<"alpha", [Pure,AttrSizedOperandSegments,
     }];
 }
 
+def SpecHLS_ArrayReadOp : SpecHLSOp<"read", [Pure,
+    TypesMatchWith<"value type must match element type of 'memref'","memref", "result","::llvm::cast<mlir::MemRefType>($_self).getElementType()">,
+]> {
+    let summary = "Array read operation.";
+    let description = [{}];
+
+    let arguments = (ins Arg<AnyMemRef, "the array to read",[MemRead]>:$memref, Variadic<Index>:$indices);
+    let results = (outs AnyMemRef:$result);
+
+
+    let assemblyFormat = [{
+     $memref `:` type($memref)`[` $indices `]`   attr-dict
+    }];
+}
+
 def SpecHLS_MuOp : SpecHLSOp<"mu", [Pure,SameOperandsAndResultType,
     TypesMatchWith<"mu inputs type must match'",
                      "next", "init",
