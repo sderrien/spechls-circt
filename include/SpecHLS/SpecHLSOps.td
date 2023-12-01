@@ -19,9 +19,37 @@ include "mlir/Interfaces/SideEffectInterfaces.td"
 // Include the definition of the necessary tablegen constructs for defining
 // our attributes.
 include "mlir/IR/AttrTypeBase.td"
+/*
+// It's common to define a base classes for types in the same dialect. This
+// removes the need to pass in the dialect for each type, and can also be used
+// to define a few fields ahead of time.
+class MyDialect_Type<string name, string typeMnemonic, list<Trait> traits = []>
+    : TypeDef<My_Dialect, name, traits> {
+  let mnemonic = typeMnemonic;
+}
 
+// Here is a simple definition of an "integer" type, with a width parameter.
+def My_IntegerType : MyDialect_Type<"Integer", "int"> {
+  let summary = "Integer type with arbitrary precision up to a fixed limit";
+  let description = [{
+    Integer types have a designated bit width.
+  }];
+  /// Here we defined a single parameter for the type, which is the bitwidth.
+  let parameters = (ins "unsigned":$width);
 
+  /// Here we define the textual format of the type declaratively, which will
+  /// automatically generate parser and printer logic. This will allow for
+  /// instances of the type to be output as, for example:
+  ///
+  ///    !my.int<10> // a 10-bit integer.
+  ///
+  let assemblyFormat = "`<` $width `>`";
 
+  /// Indicate that our type will add additional verification to the parameters.
+  let genVerifyDecl = 1;
+}
+
+*/
 def SpecHLS_GammaOp : SpecHLSOp<"gamma", [Pure]> {
     let summary = "Illustrates how to define an operation.";
     let description = [{
@@ -59,15 +87,13 @@ def SpecHLS_AlphaOp : SpecHLSOp<"alpha", [Pure,AttrSizedOperandSegments,
     let summary = "Array update operation.";
     let description = [{}];
 
-    let arguments = (ins Arg<AnyMemRef, "the reference to update",[MemRead]>:$memref,
+    let arguments = (ins StrAttr:$name, Arg<AnyMemRef, "the reference to update",[MemRead]>:$memref,
                         AnyType:$value,
                         Variadic<Index>:$indices, Optional<I1>:$we);
     let results = (outs AnyMemRef:$result);
 
-//  let hasCustomAssemblyFormat =1;
-
     let assemblyFormat = [{
-    $we `->` $memref `[` $indices `]` `,` $value attr-dict `:` type($memref)
+    $name `:` $we `->` $memref `[` $indices `]` `,` $value attr-dict `:` type($memref)
     }];
 }
 
@@ -78,7 +104,7 @@ def SpecHLS_ArrayReadOp : SpecHLSOp<"read", [Pure,
     let description = [{}];
 
     let arguments = (ins Arg<AnyMemRef, "the array to read",[MemRead]>:$memref, Variadic<Index>:$indices);
-    let results = (outs AnyMemRef:$result);
+    let results = (outs AnyType:$result);
 
 
     let assemblyFormat = [{
@@ -94,18 +120,17 @@ def SpecHLS_MuOp : SpecHLSOp<"mu", [Pure,SameOperandsAndResultType,
     let summary = "Array update operation.";
     let description = [{}];
 
-   let arguments = (ins AnyType:$next,AnyType:$init);
+   let arguments = (ins StrAttr:$name,AnyType:$next,AnyType:$init);
    let results = (outs AnyType:$result);
 
  let assemblyFormat = [{
-     $next `,` $init attr-dict `:` type($init)
+    $name `:` $next `,` $init attr-dict `:` type($init)
  }];
 
 }
 
 def SpecHLS_DelayOp : SpecHLSOp<"delay", [AttrSizedOperandSegments,
-    TypesMatchWith<"Delay data must match'", "result", "next", "$_self">,
-    TypesMatchWith<"Delay data must match'", "result", "init", "$_self">
+    TypesMatchWith<"Delay data must match'", "result", "next", "$_self">
 ]> {
     let summary = "Delay operation.";
     let description = [{}];
@@ -113,14 +138,7 @@ def SpecHLS_DelayOp : SpecHLSOp<"delay", [AttrSizedOperandSegments,
    let arguments = (ins AnyType:$next,Optional<I1>:$enable,Optional<AnyType>:$init, I32Attr:$depth);
    let results = (outs AnyType:$result);
 
-   let assemblyFormat = [{
-        $enable `->` $depth `:` $next `(` $init `)` `:` type($result) attr-dict
-   }];
-
-//  let hasCanonicalizer = 1;
-//  let hasFolder = 1;
-//  let hasCustomAssemblyFormat =1;
-//  let assemblyFormat = "attr-dict  `(` $array `:` type($array) $value type($we) $we `:` type($value) `,` ($indices^ `:` type($indices))? `)` `:` $depth type($res)";
+    let hasCustomAssemblyFormat =1;
 
 }
 
@@ -160,16 +178,69 @@ def SpecHLS_ExitOp : SpecHLSOp<"exit", []> {
     let summary = "Exit.";
     let description = [{}];
 
-   let arguments = (ins I1:$finished, Variadic<AnyType>:$inputs);
+   let arguments = (ins I1:$finished, Variadic<AnyType>:$liveout);
    let results = (outs I1:$end );
 
-  // let hasCustomAssemblyFormat =1;
-     let assemblyFormat = [{
-         $finished `:` `live` $inputs `:` type($inputs)   attr-dict
-     }];
+     let hasCustomAssemblyFormat =1;
 }
 
   
 
+def SpecHLS_SyncOp : SpecHLSOp<"sync", [Pure,
+    TypesMatchWith<"Sync data/result types must match'", "result", "data", "$_self">]> {
+    let summary = "Sync.";
+    let description = [{}];
+
+   let arguments = (ins AnyType:$data, Variadic<AnyType>:$others);
+   let results = (outs AnyType:$result );
+
+  // let hasCustomAssemblyFormat =1;
+     let assemblyFormat = [{
+         $data `:` type($result) `,`  $others `:` type($others)     attr-dict
+     }];
+}
+
+def SpecHLS_StringOp : SpecHLSOp<"string", [Pure]> {
+    let summary = "constant.";
+    let description = [{}];
+
+   let arguments = (ins StrAttr:$value);
+   let results = (outs AnyType:$result );
+
+  // let hasCustomAssemblyFormat =1;
+     let assemblyFormat = [{
+         $value `:` type($result) attr-dict
+     }];
+}
+
+def SpecHLS_InitOp : SpecHLSOp<"init", [Pure]> {
+    let summary = "Init.";
+    let description = [{}];
+
+   let arguments = (ins StrAttr:$name);
+   let results = (outs AnyType:$result );
+
+  // let hasCustomAssemblyFormat =1;
+     let assemblyFormat = [{
+         $name `:` type($result)      attr-dict
+     }];
+}
+
+def SpecHLS_DefOp : SpecHLSOp<"def", [
+    Pure,
+    TypesMatchWith<"Def data/result types must match'", "result", "data", "$_self">
+]> {
+
+    let summary = "Def.";
+    let description = [{}];
+
+   let arguments = (ins AnyType:$data, StrAttr:$name);
+   let results = (outs AnyType:$result );
+
+  // let hasCustomAssemblyFormat =1;
+     let assemblyFormat = [{
+          $name $data `:` type($result)      attr-dict
+     }];
+}
 
 #endif // SpecHLS_OPS

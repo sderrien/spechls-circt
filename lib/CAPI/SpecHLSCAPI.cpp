@@ -21,8 +21,23 @@
 #include "mlir/CAPI/Registration.h"
 #include "SpecHLS/SpecHLSOpsDialect.cpp.inc"
 
+#include "mlir-c/BuiltinAttributes.h"
+#include "mlir-c/Support.h"
+#include "mlir/CAPI/AffineMap.h"
+#include "mlir/CAPI/IR.h"
+#include "mlir/CAPI/Support.h"
+#include "mlir/IR/AsmState.h"
+#include "mlir/IR/Attributes.h"
+#include "mlir/IR/BuiltinAttributes.h"
+#include "mlir/IR/BuiltinTypes.h"
+
 
 extern "C" {
+
+//bool mlirAttributeIsAArray(MlirAttribute attr) {
+//  return llvm::isa<mlir::ArrayAttr>(unwrap(attr));
+//}
+
 MLIR_DEFINE_CAPI_DIALECT_REGISTRATION(SpecHLS, spechls, SpecHLS::SpecHLSDialect)
 }
 

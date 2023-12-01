@@ -1,4 +1,5 @@
 add_mlir_library(SpecHLSTransforms
+		FactorGammaInputs.cpp
 		MergeGammas.cpp
 		MergeLUTs.cpp
 		DEPENDS

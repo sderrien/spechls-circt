@@ -57,6 +57,9 @@ include_directories(${MLIR_INCLUDE_DIRS})
 include_directories(${CIRCT_INCLUDE_DIRS})
 include_directories(${PROJECT_SOURCE_DIR}/include)
 include_directories(${PROJECT_BINARY_DIR}/include)
+
+link_directories(${CIRCT_LIBRARY_DIRS})
+
 add_definitions(${LLVM_DEFINITIONS})
 
 set(LLVM_LIT_ARGS "-sv" CACHE STRING "lit default options")
@@ -67,5 +70,5 @@ add_subdirectory(include)
 add_subdirectory(lib)
 add_subdirectory(test)
 add_subdirectory(GecosAPI)
-add_subdirectory(test-gecos-api)
+#add_subdirectory(test-gecos-api)
 add_subdirectory(spechls-opt)

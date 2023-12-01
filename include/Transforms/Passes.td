@@ -27,6 +27,12 @@ def MergeGammasPass : Pass<"merge-gammas"> {
 }
 
 
+def FactorGammaInputsPass : Pass<"factor-gamma-inputs"> {
+  let summary = "Merge connected gamma ops";
+  let description = [{ }];
+  let constructor = "SpecHLS::createFactorGammaInputsPass()";
+  let dependentDialects = ["circt::hw::HWDialect, mlir::arith::ArithDialect, circt::comb::CombDialect,circt::seq::SeqDialect,SpecHLS::SpecHLSDialect"];
+}
 
 
 def MergeLookUpTablesPass : Pass<"merge-luts"> {

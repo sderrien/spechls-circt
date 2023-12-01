@@ -27,6 +27,7 @@ inline void registerAllPasses() {
     registerSpecHLSToCombPass();
     registerMergeGammasPass();
     registerMergeLookUpTablesPass();
+    registerFactorGammaInputsPass();
     return true;
   }();
   (void)initOnce;

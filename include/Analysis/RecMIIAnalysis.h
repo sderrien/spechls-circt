@@ -29,7 +29,7 @@ using namespace mlir;
 using namespace circt::recmiianalysis;
 
 namespace circt {
-namespace recmiianalysis {
+namespace SpecHLS {
 
 /// RecMIIAnalysis constructs a CyclicProblem for each AffineForOp by
 /// performing a memory dependence analysis and inserting dependences into the
