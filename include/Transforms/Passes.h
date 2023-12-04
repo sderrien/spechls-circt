@@ -36,6 +36,7 @@ namespace SpecHLS {
 std::unique_ptr<mlir::OperationPass<>> createMergeGammasPass() ;
 std::unique_ptr<mlir::OperationPass<>> createMergeLookUpTablesPass() ;
 std::unique_ptr<mlir::OperationPass<>> createFactorGammaInputsPass() ;
+std::unique_ptr<mlir::OperationPass<>> createGroupControlNodePass() ;
 
 //===----------------------------------------------------------------------===//
 // Registration
@@ -46,6 +47,7 @@ std::unique_ptr<mlir::OperationPass<>> createFactorGammaInputsPass() ;
 #define GEN_PASS_DEF_MERGEGAMMASPASS
 #define GEN_PASS_DEF_MERGELOOKUPTABLESPASS
 #define GEN_PASS_DEF_FACTORGAMMAINPUTSPASS
+#define GEN_PASS_DEF_GROUPCONTROLNODEPASS
 
 
 #include "Transforms/Passes.h.inc"

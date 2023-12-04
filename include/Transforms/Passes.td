@@ -45,4 +45,12 @@ def MergeLookUpTablesPass : Pass<"merge-luts"> {
   let dependentDialects = ["circt::hw::HWDialect, mlir::arith::ArithDialect, circt::comb::CombDialect,circt::seq::SeqDialect,SpecHLS::SpecHLSDialect"];
 }
 
+def GroupControlNodePass : Pass<"group-control"> {
+  let summary = "";
+  let description = [{
+    statement.
+  }];
+  let constructor = "SpecHLS::createGroupControlNodePass()";
+  let dependentDialects = ["circt::hw::HWDialect, mlir::arith::ArithDialect, circt::comb::CombDialect,circt::seq::SeqDialect,SpecHLS::SpecHLSDialect"];
+}
 #endif // SPECHLS_TRANSFORMS_PASSES

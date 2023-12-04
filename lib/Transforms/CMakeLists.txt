@@ -2,6 +2,7 @@ add_mlir_library(SpecHLSTransforms
 		FactorGammaInputs.cpp
 		MergeGammas.cpp
 		MergeLUTs.cpp
+		GroupControlLogic.cpp
 		DEPENDS
 
 		MLIRSpecHLSOpsIncGen
