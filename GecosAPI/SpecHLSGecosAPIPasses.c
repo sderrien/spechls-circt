@@ -95,5 +95,5 @@ MlirModule name (MlirModule module) {\
   }
 
 DEFINE_GECOS_API_PASS(schedule,SchedulePass);
-DEFINE_GECOS_API_PASS(canonicalize,TransformsCanonicalizer);
+DEFINE_GECOS_API_PASS(canonicalizeMLIR,TransformsCanonicalizer);
 
