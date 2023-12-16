@@ -27,6 +27,8 @@
 #include "SpecHLS/SpecHLSOps.h"
 #include "SpecHLS/SpecHLSDialect.h"
 
+
+
 namespace SpecHLS {
 
 //===----------------------------------------------------------------------===//
@@ -36,7 +38,12 @@ namespace SpecHLS {
 std::unique_ptr<mlir::OperationPass<>> createMergeGammasPass() ;
 std::unique_ptr<mlir::OperationPass<>> createMergeLookUpTablesPass() ;
 std::unique_ptr<mlir::OperationPass<>> createFactorGammaInputsPass() ;
-std::unique_ptr<mlir::OperationPass<>> createGroupControlNodePass() ;
+std::unique_ptr<mlir::OperationPass<>> createGenerateCPass() ;
+std::unique_ptr<mlir::Pass> createYosysOptimizer() ;
+
+std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>> createGroupControlNodePass() ;
+
+void registerYosysOptimizerPipeline();
 
 //===----------------------------------------------------------------------===//
 // Registration
@@ -48,6 +55,8 @@ std::unique_ptr<mlir::OperationPass<>> createGroupControlNodePass() ;
 #define GEN_PASS_DEF_MERGELOOKUPTABLESPASS
 #define GEN_PASS_DEF_FACTORGAMMAINPUTSPASS
 #define GEN_PASS_DEF_GROUPCONTROLNODEPASS
+#define GEN_PASS_DEF_GENERATECPASS
+#define GEN_PASS_DEF_YOSYSOPTIMIZER
 
 
 #include "Transforms/Passes.h.inc"

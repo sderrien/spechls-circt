@@ -28,6 +28,10 @@ inline void registerAllPasses() {
     registerMergeGammasPass();
     registerMergeLookUpTablesPass();
     registerFactorGammaInputsPass();
+    registerGroupControlNodePass();
+    //registerExportSplitVerilogPass();
+    registerYosysOptimizerPipeline();
+    //registerYosysOptimizerPass();
     return true;
   }();
   (void)initOnce;

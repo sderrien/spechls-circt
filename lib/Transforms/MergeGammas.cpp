@@ -76,6 +76,7 @@ struct GammaMergingPattern : OpRewritePattern<GammaOp> {
               }
             }
             auto controlType = rewriter.getIntegerType(op.getSelect().getType().getIntOrFloatBitWidth()+innerGamma.getSelect().getType().getIntOrFloatBitWidth());
+
             auto concatOp = rewriter.create<comb::ConcatOp>(
                 op.getLoc(), controlType,ValueRange({op.getSelect(), innerGamma.getSelect()}));
 
