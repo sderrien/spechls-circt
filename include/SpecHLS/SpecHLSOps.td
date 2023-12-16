@@ -129,6 +129,48 @@ def SpecHLS_MuOp : SpecHLSOp<"mu", [Pure,SameOperandsAndResultType,
 
 }
 
+def SpecHLS_RollbackOp : SpecHLSOp<"rollback", [Pure,
+    TypesMatchWith<"data and result type must match'",
+                     "data", "result","$_self">
+]> {
+    let summary = "Rollback operation.";
+    let description = [{}];
+
+   let arguments = (ins AnyType:$data,AnyInteger:$command,I32ArrayAttr:$depths);
+   let results = (outs AnyType:$result);
+
+//   let hasCustomAssemblyFormat =1;
+
+ let assemblyFormat = [{
+    $data `:` type($data) `by` $command`:` type($command) `in` $depths attr-dict
+ }];
+
+}
+
+def SpecHLS_EncoderOp : SpecHLSOp<"encode", [Pure
+//,
+//    TypesMatchWith<"data and result type must match'",
+//                     "data", "result",
+//                     "::llvm::cast<mlir::MemRefType>($_self).getElementType()
+//                     std::ceil(std::log2(($_self).getWidth()))
+//                     "
+//                     >
+]> {
+    let summary = "encoder operation.";
+    let description = [{}];
+
+   let arguments = (ins AnyInteger:$data);
+   let results = (outs AnyInteger:$result);
+
+
+
+ let assemblyFormat = [{
+    $data `:` type($data) `as` type($result)  attr-dict
+ }];
+
+}
+
+
 def SpecHLS_DelayOp : SpecHLSOp<"delay", [AttrSizedOperandSegments,
     TypesMatchWith<"Delay data must match'", "result", "next", "$_self">
 ]> {
