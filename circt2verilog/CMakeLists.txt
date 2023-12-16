@@ -1,10 +1,17 @@
 get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
 get_property(conversion_libs GLOBAL PROPERTY MLIR_CONVERSION_LIBS)
-link_directories(/usr/local/lib/yosys/ /opt/yosys/)
+
 set(LIBS
         ${dialect_libs}
         ${conversion_libs}
         CIRCTExportVerilog
+        CIRCTHWTransforms
+        CIRCTOMTransforms
+        CIRCTSeq
+        CIRCTSVTransforms
+        CIRCTTransforms
+        CIRCTFirtool
+        CIRCTTargetDebugInfo
         MLIROptLib
         MLIRSpecHLS
         SpecHLSToComb
@@ -28,10 +35,11 @@ set(LIBS
         CIRCTTransforms
         CIRCTSupport
         MLIRTargetCustomCEmit
-        yosys
-        )
-add_llvm_executable(spechls-opt spechls-opt.cpp)
-llvm_update_compile_flags(spechls-opt)
+        #       yosys
+)
+add_llvm_executable(circt2verilog circt2verilog.cpp)
 
-target_link_libraries(spechls-opt PRIVATE ${LIBS})
+llvm_update_compile_flags(circt2verilog)
+target_link_libraries(circt2verilog PRIVATE ${LIBS})
 
+export_executable_symbols_for_plugins(circt2verilog)

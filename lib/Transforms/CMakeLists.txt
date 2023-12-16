@@ -1,12 +1,27 @@
+
+add_compile_definitions(_YOSYS_)
+include_directories("/opt/yosys/share/include/")
+
+#include_directories("./YosysOptimizer")
+#
+#
+#		YosysOptimizer.cpp
+#
+# RTLILImporter.cpp
 add_mlir_library(SpecHLSTransforms
+		YosysOptimizer.cpp
+		LUTImporter.cpp
+		RTLILImporter.cpp
 		FactorGammaInputs.cpp
 		MergeGammas.cpp
 		MergeLUTs.cpp
-#		GroupControlLogic.cpp
+		GenerateC.cpp
+		GroupControlLogic.cpp
 		DEPENDS
 
 		MLIRSpecHLSOpsIncGen
 		SpecHLSTransformsPassIncGen
+
 		LINK_COMPONENTS
 		Core
 
