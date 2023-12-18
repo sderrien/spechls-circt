@@ -338,7 +338,7 @@ mlir::ParseResult DelayOp::parse(mlir::OpAsmParser &parser,
   SmallVector<int, 3> content = {1, !noEnable, !noInit};
   auto attr = parser.getBuilder().getDenseI32ArrayAttr(content);
 
-  llvm::errs() << "Data type "<< dataType<<"\n";
+  llvm::errs() << "Data type " << dataType << "\n";
   result.addAttribute("operandSegmentSizes", attr);
   NamedAttrList attrs;
   nok = parser.parseOptionalAttrDict(attrs);
@@ -351,17 +351,21 @@ mlir::ParseResult DelayOp::parse(mlir::OpAsmParser &parser,
                               parser.getBuilder().getIntegerType(1),
                               result.operands))
       return mlir::failure();
-    llvm::errs() << "With data  " << secondOperand.name<< ":" << dataType <<"\n";
-    llvm::errs() << "With enable  " << firstOperand.name<< ":" << dataType <<"\n";
+    llvm::errs() << "With data  " << secondOperand.name << ":" << dataType
+                 << "\n";
+    llvm::errs() << "With enable  " << firstOperand.name << ":" << dataType
+                 << "\n";
     if (!noInit) {
       if (parser.resolveOperand(thirdOperand, dataType, result.operands))
         return mlir::failure();
-      llvm::errs() << "With init  " << thirdOperand.name<< ":" << dataType <<"\n";
+      llvm::errs() << "With init  " << thirdOperand.name << ":" << dataType
+                   << "\n";
     }
   } else {
     if (parser.resolveOperand(firstOperand, dataType, result.operands))
       return mlir::failure();
-    llvm::errs() << "With data  " << firstOperand.name<< ":" << dataType <<"\n";
+    llvm::errs() << "With data  " << firstOperand.name << ":" << dataType
+                 << "\n";
   }
 
   result.addTypes({dataType});
@@ -421,7 +425,8 @@ mlir::ParseResult ExitOp::parse(mlir::OpAsmParser &parser,
   nok = parser.parseOperand(firstOperand);
   if (nok)
     return mlir::failure();
-  if (parser.resolveOperand(firstOperand, parser.getBuilder().getIntegerType(1), result.operands))
+  if (parser.resolveOperand(firstOperand, parser.getBuilder().getIntegerType(1),
+                            result.operands))
     return mlir::failure();
 
   nok = parser.parseOptionalKeyword("live");
@@ -444,14 +449,16 @@ mlir::ParseResult ExitOp::parse(mlir::OpAsmParser &parser,
 /// strings, attributes, operands, types, etc.
 void ExitOp::print(mlir::OpAsmPrinter &printer) {
   //         %res = SpecHLS.delay [i32 -> i32] %a ? %b:%c:%d
-    printer << " " << this->getFinished();
-    if (!this->getLiveout().empty()) {
-      printer << " live " ;
-      printer << " " << this->getLiveout()[0] << ":" << this->getLiveout()[0].getType() << " " ;
-      for (int i=1;i<this->getLiveout().size();i++) {
-        printer << "," << this->getLiveout()[i] << ":" << this->getLiveout()[i].getType() << " " ;
-      }
+  printer << " " << this->getFinished();
+  if (!this->getLiveout().empty()) {
+    printer << " live ";
+    printer << " " << this->getLiveout()[0] << ":"
+            << this->getLiveout()[0].getType() << " ";
+    for (int i = 1; i < this->getLiveout().size(); i++) {
+      printer << "," << this->getLiveout()[i] << ":"
+              << this->getLiveout()[i].getType() << " ";
     }
+  }
 }
 
 } // namespace SpecHLS

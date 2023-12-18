@@ -1,4 +1,4 @@
-//#include "include/Transforms/YosysOptimizer.h"
+// #include "include/Transforms/YosysOptimizer.h"
 
 #include <cassert>
 #include <cstdio>
@@ -20,26 +20,26 @@
 #include "circt/Conversion/ExportVerilog.h"
 
 #include "circt/Dialect/Comb/CombDialect.h"
-#include "llvm/ADT/SmallVector.h"           // from @llvm-project
-#include "llvm/Support/Debug.h"             // from @llvm-project
-#include "llvm/Support/FormatVariadic.h"    // from @llvm-project
-#include "llvm/Support/raw_ostream.h"       // from @llvm-project
-#include "mlir/Dialect/Arith/IR/Arith.h"    // from @llvm-project
-#include "mlir/Dialect/Func/IR/FuncOps.h"   // from @llvm-project
-#include "mlir/Dialect/Tensor/IR/Tensor.h"  // from @llvm-project
-#include "mlir/IR/Builders.h"               // from @llvm-project
-#include "mlir/IR/BuiltinTypes.h"           // from @llvm-project
-#include "mlir/IR/DialectRegistry.h"        // from @llvm-project
-#include "mlir/IR/Location.h"               // from @llvm-project
-#include "mlir/IR/Types.h"                  // from @llvm-project
-#include "mlir/IR/Value.h"                  // from @llvm-project
-#include "mlir/IR/ValueRange.h"             // from @llvm-project
-#include "mlir/IR/Visitors.h"               // from @llvm-project
-#include "mlir/Pass/PassManager.h"          // from @llvm-project
-#include "mlir/Pass/PassRegistry.h"         // from @llvm-project
-#include "mlir/Support/LLVM.h"              // from @llvm-project
-#include "mlir/Support/LogicalResult.h"     // from @llvm-project
-#include "mlir/Transforms/Passes.h"         // from @llvm-project
+#include "mlir/Dialect/Arith/IR/Arith.h"   // from @llvm-project
+#include "mlir/Dialect/Func/IR/FuncOps.h"  // from @llvm-project
+#include "mlir/Dialect/Tensor/IR/Tensor.h" // from @llvm-project
+#include "mlir/IR/Builders.h"              // from @llvm-project
+#include "mlir/IR/BuiltinTypes.h"          // from @llvm-project
+#include "mlir/IR/DialectRegistry.h"       // from @llvm-project
+#include "mlir/IR/Location.h"              // from @llvm-project
+#include "mlir/IR/Types.h"                 // from @llvm-project
+#include "mlir/IR/Value.h"                 // from @llvm-project
+#include "mlir/IR/ValueRange.h"            // from @llvm-project
+#include "mlir/IR/Visitors.h"              // from @llvm-project
+#include "mlir/Pass/PassManager.h"         // from @llvm-project
+#include "mlir/Pass/PassRegistry.h"        // from @llvm-project
+#include "mlir/Support/LLVM.h"             // from @llvm-project
+#include "mlir/Support/LogicalResult.h"    // from @llvm-project
+#include "mlir/Transforms/Passes.h"        // from @llvm-project
+#include "llvm/ADT/SmallVector.h"          // from @llvm-project
+#include "llvm/Support/Debug.h"            // from @llvm-project
+#include "llvm/Support/FormatVariadic.h"   // from @llvm-project
+#include "llvm/Support/raw_ostream.h"      // from @llvm-project
 
 #include "Transforms/Passes.h"
 
@@ -111,8 +111,9 @@ LogicalResult runOnGenericOp(MLIRContext *context, circt::hw::HWModuleOp op) {
 
   // Invoke Yosys to translate to a combinational circuit and optimize.
 
-  std:string filename = string(op.getName().str()) + ".sv";
-  string toplevel = string(op.getName().str()) ;
+std:
+  string filename = string(op.getName().str()) + ".sv";
+  string toplevel = string(op.getName().str());
   llvm::outs() << "input filename " << filename << "\n";
   Yosys::yosys_setup();
   Yosys::log_error_stderr = true;
@@ -120,21 +121,22 @@ LogicalResult runOnGenericOp(MLIRContext *context, circt::hw::HWModuleOp op) {
 
   llvm::outs() << "before yosys" << op.getName() << "\n";
 
-  auto command = llvm::formatv(kYosysTemplate.data(), filename,
-                               toplevel, "./", "./", "-fast");
+  auto command = llvm::formatv(kYosysTemplate.data(), filename, toplevel, "./",
+                               "./", "-fast");
 
-//  llvm::outs() << "yosys command " << command << "\n";
-//  Yosys::run_pass(command);
+  //  llvm::outs() << "yosys command " << command << "\n";
+  //  Yosys::run_pass(command);
 
-  Yosys::run_pass("read_verilog "+ filename+"  ");
+  Yosys::run_pass("read_verilog " + filename + "  ");
   llvm::outs() << "after read_verilog " << filename << "\n";
   Yosys::run_pass("proc;");
-//  Yosys::run_pass("proc; flatten; opt -full; synth ; abc -g AND,OR,XOR;");
-  llvm::outs() << "after proc, flatten "  << "\n";
-//  Yosys::run_pass("clean -purge");
-//  llvm::outs() << "after clean -purge " << "\n";
-//  Yosys::run_pass("write_blif"+toplevel+".blif");
-//  llvm::outs() << "write_blif"+toplevel+".blif" << "\n";
+  //  Yosys::run_pass("proc; flatten; opt -full; synth ; abc -g AND,OR,XOR;");
+  llvm::outs() << "after proc, flatten "
+               << "\n";
+  //  Yosys::run_pass("clean -purge");
+  //  llvm::outs() << "after clean -purge " << "\n";
+  //  Yosys::run_pass("write_blif"+toplevel+".blif");
+  //  llvm::outs() << "write_blif"+toplevel+".blif" << "\n";
 
   // Translate Yosys result back to MLIR and insert into the func
   LLVM_DEBUG(Yosys::run_pass("dump;"));
@@ -216,13 +218,12 @@ void YosysOptimizer::runOnOperation() {
   }
 }
 
-}
-namespace  SpecHLS{
+} // namespace mlir
+namespace SpecHLS {
 
 std::unique_ptr<mlir::Pass> createYosysOptimizer() {
   return std::make_unique<mlir::YosysOptimizer>();
 }
-
 
 void registerYosysOptimizerPipeline() {
 
@@ -236,4 +237,4 @@ void registerYosysOptimizerPipeline() {
 }
 
 //}  // namespace heir
-}  // namespace mlir
+} // namespace SpecHLS

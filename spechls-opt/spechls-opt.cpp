@@ -23,17 +23,16 @@
 
 #include "circt/Dialect/Comb/CombDialect.h"
 #include "circt/Dialect/Comb/CombOps.h"
-#include "circt/Dialect/Seq/SeqDialect.h"
-#include "circt/Dialect/Seq/SeqOps.h"
 #include "circt/Dialect/HW/HWDialect.h"
 #include "circt/Dialect/HW/HWOps.h"
 #include "circt/Dialect/HWArith/HWArithDialect.h"
+#include "circt/Dialect/Seq/SeqDialect.h"
+#include "circt/Dialect/Seq/SeqOps.h"
 
-#include "SpecHLS/SpecHLSDialect.h"
-#include "SpecHLS/SpecHLSOpsDialect.cpp.inc"
 #include "InitAllPasses.h"
 #include "InitAllTranslations.h"
-
+#include "SpecHLS/SpecHLSDialect.h"
+#include "SpecHLS/SpecHLSOpsDialect.cpp.inc"
 
 #include "circt/Dialect/Arc/ArcDialect.h"
 #include "circt/Dialect/Calyx/CalyxDialect.h"
@@ -62,28 +61,25 @@
 #include "mlir/IR/Dialect.h"
 
 int main(int argc, char **argv) {
-    mlir::registerAllPasses();
-    // TODO: Register SpecHLS passes here.
-    SpecHLS::registerAllTranslations();
-    SpecHLS::registerAllPasses();
+  mlir::registerAllPasses();
+  // TODO: Register SpecHLS passes here.
+  SpecHLS::registerAllTranslations();
+  SpecHLS::registerAllPasses();
 
-    mlir::DialectRegistry registry;
+  mlir::DialectRegistry registry;
 
-    registry.insert<SpecHLS::SpecHLSDialect,
-            mlir::func::FuncDialect,
-            mlir::arith::ArithDialect,
-            mlir::memref::MemRefDialect,
-            circt::hwarith::HWArithDialect,
-            circt::comb::CombDialect,
-            circt::seq::SeqDialect,
-            circt::hw::HWDialect,
-            circt::ssp::SSPDialect,
-//      circt::firrtl::FIRRTLDialect,
-            circt::fsm::FSMDialect>();
-    // Add the following to include *all* MLIR Core dialects, or selectively
-    // include what you need like above. You only need to register dialects that
-    // will be *parsed* by the tool, not the one generated
-    //registerAllDialects(registry);
+  registry.insert<SpecHLS::SpecHLSDialect, mlir::func::FuncDialect,
+                  mlir::arith::ArithDialect, mlir::memref::MemRefDialect,
+                  circt::hwarith::HWArithDialect, circt::comb::CombDialect,
+                  circt::seq::SeqDialect, circt::hw::HWDialect,
+                  circt::ssp::SSPDialect,
+                  //      circt::firrtl::FIRRTLDialect,
+                  circt::fsm::FSMDialect>();
+  // Add the following to include *all* MLIR Core dialects, or selectively
+  // include what you need like above. You only need to register dialects that
+  // will be *parsed* by the tool, not the one generated
+  // registerAllDialects(registry);
 
-    return mlir::asMainReturnCode(mlir::MlirOptMain(argc, argv, "SpecHLS optimizer driver\n", registry));
+  return mlir::asMainReturnCode(
+      mlir::MlirOptMain(argc, argv, "SpecHLS optimizer driver\n", registry));
 }

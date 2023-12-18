@@ -11,7 +11,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "circt/Firtool/Firtool.h"
 #include "circt/Conversion/ExportVerilog.h"
 #include "circt/Conversion/Passes.h"
 #include "circt/Dialect/Comb/CombDialect.h"
@@ -31,6 +30,7 @@
 #include "circt/Dialect/SV/SVPasses.h"
 #include "circt/Dialect/Seq/SeqDialect.h"
 #include "circt/Dialect/Verif/VerifDialect.h"
+#include "circt/Firtool/Firtool.h"
 #include "circt/Support/LoweringOptions.h"
 #include "circt/Support/LoweringOptionsParser.h"
 #include "circt/Support/Passes.h"
@@ -172,9 +172,9 @@ enum OutputFormatKind {
 
 static cl::opt<OutputFormatKind> outputFormat(
     cl::desc("Specify output format:"),
-    cl::values(
-        clEnumValN(OutputVerilog, "verilog", "Emit Verilog"),
-        clEnumValN(OutputDisabled, "disable-output", "Do not output anything")),
+    cl::values(clEnumValN(OutputVerilog, "verilog", "Emit Verilog"),
+               clEnumValN(OutputDisabled, "disable-output",
+                          "Do not output anything")),
     cl::init(OutputVerilog), cl::cat(mainCategory));
 
 static cl::opt<bool>
@@ -322,9 +322,9 @@ static LogicalResult processBuffer(
     parseStartTime = llvm::sys::TimePoint<>::clock::now();
   }
 
-     auto parserTimer = ts.nest("MLIR Parser");
-    assert(inputFormat == InputMLIRFile);
-    module = parseSourceFile<ModuleOp>(sourceMgr, &context);
+  auto parserTimer = ts.nest("MLIR Parser");
+  assert(inputFormat == InputMLIRFile);
+  module = parseSourceFile<ModuleOp>(sourceMgr, &context);
 
   if (!module)
     return failure();
@@ -360,19 +360,18 @@ static LogicalResult processBuffer(
     return printOp(*module, (*outputFile)->os());
   }
 
-
   // Lower if we are going to verilog or if lowering was specifically requested.
-    if (failed(firtool::populateLowFIRRTLToHW(pm, firtoolOptions)))
+  if (failed(firtool::populateLowFIRRTLToHW(pm, firtoolOptions)))
+    return failure();
+  if (!hwPassPlugin.empty())
+    if (failed(parsePassPipeline(StringRef(hwPassPlugin), pm)))
       return failure();
-    if (!hwPassPlugin.empty())
-      if (failed(parsePassPipeline(StringRef(hwPassPlugin), pm)))
-        return failure();
-    if (outputFormat != OutputIRHW)
-      if (failed(firtool::populateHWToSV(pm, firtoolOptions)))
-        return failure();
-    if (!svPassPlugin.empty())
-      if (failed(parsePassPipeline(StringRef(svPassPlugin), pm)))
-        return failure();
+  if (outputFormat != OutputIRHW)
+    if (failed(firtool::populateHWToSV(pm, firtoolOptions)))
+      return failure();
+  if (!svPassPlugin.empty())
+    if (failed(parsePassPipeline(StringRef(svPassPlugin), pm)))
+      return failure();
 
   // If the user requested HGLDD debug info emission, enable Verilog location
   // tracking.
@@ -550,12 +549,11 @@ static LogicalResult executeFirtool(MLIRContext &context) {
   }
 
   // Figure out the input format if unspecified.
-    if (StringRef(inputFilename).endswith(".mlir")) {
+  if (StringRef(inputFilename).endswith(".mlir")) {
     inputFormat = InputMLIRFile;
-    } else {
+  } else {
     return failure();
-    }
-
+  }
 
   // Create the output directory or output file depending on our mode.
   std::optional<std::unique_ptr<llvm::ToolOutputFile>> outputFile;

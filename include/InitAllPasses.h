@@ -14,10 +14,10 @@
 #ifndef SPECHLS_INITALLPASSES_H_
 #define SPECHLS_INITALLPASSES_H_
 
+#include "Conversion/Passes.h"
 #include "Scheduling/Transforms/SchedulePass.h"
 #include "SpecHLS/SpecHLSDialect.h"
 #include "Transforms/Passes.h"
-#include "Conversion/Passes.h"
 #include "circt/Transforms/Passes.h"
 
 namespace SpecHLS {
@@ -30,17 +30,15 @@ inline void registerAllPasses() {
     registerMergeLookUpTablesPass();
     registerFactorGammaInputsPass();
     registerGroupControlNodePass();
-    //registerExportSplitVerilogPass();
+    // registerExportSplitVerilogPass();
     registerYosysOptimizerPipeline();
-    //registerYosysOptimizerPass();
+    // registerYosysOptimizerPass();
     registerGecosSchedulePass();
     return true;
   }();
   (void)initOnce;
-
-
 }
 
-} // namespace spechls
+} // namespace SpecHLS
 
 #endif // SPECHLS_INITALLPASSES_H_

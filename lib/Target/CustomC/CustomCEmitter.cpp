@@ -32,7 +32,7 @@ namespace mlir {
 namespace customc {
 
 void CustomCEmitter::translateModule(mlir::ModuleOp module,
-                                        llvm::raw_ostream &output) {
+                                     llvm::raw_ostream &output) {
   std::ostringstream out;
 
   for (auto &op : module) {
@@ -50,7 +50,7 @@ void CustomCEmitter::translateModule(mlir::ModuleOp module,
 }
 
 void CustomCEmitter::processModuleOrFunc(Operation *op,
-                                            std::ostringstream &out) {
+                                         std::ostringstream &out) {
   if (auto module = dyn_cast<ModuleOp>(op)) {
     for (auto &inner_op : *module.getBody()) {
       processModuleOrFunc(&inner_op, out);
@@ -155,7 +155,7 @@ std::string CustomCEmitter::value2str(Value *v) {
 }
 
 bool CustomCEmitter::printKernelVar(Operation *op, std::ostringstream &out,
-                                       std::string indent) {
+                                    std::string indent) {
   std::string op_name = "";
   if (gpu::ThreadIdOp::classof(op)) {
     op_name = "threadIdx";
@@ -175,8 +175,8 @@ bool CustomCEmitter::printKernelVar(Operation *op, std::ostringstream &out,
 }
 
 void CustomCEmitter::printLaunchFuncOp(gpu::LaunchFuncOp *launchOp,
-                                          std::ostringstream &out,
-                                          std::string indent) {
+                                       std::ostringstream &out,
+                                       std::string indent) {
   std::vector<std::vector<std::string>> operands;
   auto kernel_name = appendModulePrefix(launchOp->kernel().str(),
                                         launchOp->getKernelModuleName().str());
@@ -229,59 +229,54 @@ void CustomCEmitter::printLaunchFuncOp(gpu::LaunchFuncOp *launchOp,
   }
 }
 
-void CustomCEmitter::printConstantOp(ConstantOp *cop,
-                                        std::ostringstream &out,
-                                        std::string indent) {
+void CustomCEmitter::printConstantOp(ConstantOp *cop, std::ostringstream &out,
+                                     std::string indent) {
   out << indent << type2str(cop->getType()) << " "
       << getFreshVar(cop->getOperation()) << " = "
       << attr2str(cop->getAttr("value")) << ";\n";
 }
 
 void CustomCEmitter::printSIToFPOp(SIToFPOp *fpOp, std::ostringstream &out,
-                                      std::string indent) {
+                                   std::string indent) {
   auto type = type2str(fpOp->getResult()->getType());
   out << indent << type << " " << getFreshVar(fpOp->getOperation()) << " = ("
       << type << ")" << value2str(fpOp->in()) << ";\n";
 }
 
 void CustomCEmitter::printMemRefCastOp(MemRefCastOp *memCastOp,
-                                          std::ostringstream &out,
-                                          std::string indent) {
+                                       std::ostringstream &out,
+                                       std::string indent) {
   auto type = type2str(memCastOp->getResult()->getType());
   out << indent << type << " " << getFreshVar(memCastOp->getOperation())
       << " = (" << type << ")" << value2str(memCastOp->source()) << ";\n";
 }
 
 void CustomCEmitter::printSqrtfOp(comb::SqrtfOp *sqrtOp,
-                                     std::ostringstream &out,
-                                     std::string indent) {
+                                  std::ostringstream &out, std::string indent) {
   out << indent << type2str(sqrtOp->getResult()->getType()) << " "
       << getFreshVar(sqrtOp->getOperation()) << " = sqrt("
       << value2str(sqrtOp->value()) << ");\n";
   includes.insert("math.h");
 }
 
-void CustomCEmitter::printFabsOp(comb::FabsOp *fabsOp,
-                                    std::ostringstream &out,
-                                    std::string indent) {
+void CustomCEmitter::printFabsOp(comb::FabsOp *fabsOp, std::ostringstream &out,
+                                 std::string indent) {
   out << indent << type2str(fabsOp->getResult()->getType()) << " "
       << getFreshVar(fabsOp->getOperation()) << " = fabs("
       << value2str(fabsOp->value()) << ");\n";
   includes.insert("math.h");
 }
 
-void CustomCEmitter::printExpOp(comb::ExpOp *expOp,
-                                   std::ostringstream &out,
-                                   std::string indent) {
+void CustomCEmitter::printExpOp(comb::ExpOp *expOp, std::ostringstream &out,
+                                std::string indent) {
   out << indent << type2str(expOp->getResult()->getType()) << " "
       << getFreshVar(expOp->getOperation()) << " = exp("
       << value2str(expOp->value()) << ");\n";
   includes.insert("math.h");
 }
 
-void CustomCEmitter::printPowOp(comb:: *powOp,
-                                   std::ostringstream &out,
-                                   std::string indent) {
+void CustomCEmitter::printPowOp(comb::*powOp, std::ostringstream &out,
+                                std::string indent) {
   out << indent << type2str(powOp->getResult()->getType()) << " "
       << getFreshVar(powOp->getOperation()) << " = pow("
       << value2str(powOp->value()) << ", " << value2str(powOp->exponent())
@@ -290,7 +285,7 @@ void CustomCEmitter::printPowOp(comb:: *powOp,
 }
 
 void CustomCEmitter::printReturnOp(Operation *op, std::ostringstream &out,
-                                      std::string indent) {
+                                   std::string indent) {
   if (op->getNumOperands() == 1)
     out << indent << "return " << value2str(op->getOperand(0)) << ";\n";
   if (op->getNumOperands() > 1)
@@ -298,7 +293,7 @@ void CustomCEmitter::printReturnOp(Operation *op, std::ostringstream &out,
 }
 
 void CustomCEmitter::printLoadOp(LoadOp *op, std::ostringstream &out,
-                                    std::string indent) {
+                                 std::string indent) {
   out << indent << type2str(op->getResult()->getType()) << " "
       << getFreshVar(op->getOperation()) << " = ";
   if (op->getNumOperands() == 1 &&
@@ -311,7 +306,7 @@ void CustomCEmitter::printLoadOp(LoadOp *op, std::ostringstream &out,
 }
 
 void CustomCEmitter::printStoreOp(StoreOp *op, std::ostringstream &out,
-                                     std::string indent) {
+                                  std::string indent) {
   out << indent;
   if (auto memRef = op->getOperand(1)->getType().cast<MemRefType>())
     if (op->getNumOperands() == 2 && memRef.getShape().size() > 0)
@@ -323,12 +318,12 @@ void CustomCEmitter::printStoreOp(StoreOp *op, std::ostringstream &out,
 }
 
 void CustomCEmitter::printDeallocOp(DeallocOp *op, std::ostringstream &out,
-                                       std::string indent) {
+                                    std::string indent) {
   out << indent << "delete " << value2str(op->getOperand()) << ";\n";
 }
 
 void CustomCEmitter::printAllocOp(AllocOp *allocOp, std::ostringstream &out,
-                                     std::string indent) {
+                                  std::string indent) {
   auto memref = allocOp->getType().cast<MemRefType>();
   auto shapeSize = memref.getShape().size();
   auto allocVar = getFreshVar(allocOp->getOperation());
@@ -372,7 +367,7 @@ void CustomCEmitter::printAllocOp(AllocOp *allocOp, std::ostringstream &out,
 }
 
 bool CustomCEmitter::printArithmetics(Operation *op, std::ostringstream &out,
-                                         std::string indent) {
+                                      std::string indent) {
   std::string right_side = "";
   if (MulFOp::classof(op)) {
     right_side = bin2str(static_cast<MulFOp>(op), '*');
@@ -446,7 +441,7 @@ static std::string predicate2str(CmpFPredicate predicate) {
 }
 
 void CustomCEmitter::printCmpFOp(CmpFOp *cmpOp, std::ostringstream &out,
-                                    std::string indent) {
+                                 std::string indent) {
   out << indent << type2str(cmpOp->getResult()->getType()) << " "
       << getFreshVar(cmpOp->getOperation()) << " = " << value2str(cmpOp->lhs())
       << " " << predicate2str(cmpOp->getPredicate()) << " "
@@ -454,7 +449,7 @@ void CustomCEmitter::printCmpFOp(CmpFOp *cmpOp, std::ostringstream &out,
 }
 
 void CustomCEmitter::printSelectOp(SelectOp *selOp, std::ostringstream &out,
-                                      std::string indent) {
+                                   std::string indent) {
   out << indent << type2str(selOp->getResult()->getType()) << " "
       << getFreshVar(selOp->getOperation()) << " = "
       << value2str(selOp->condition()) << " ? "
@@ -463,7 +458,7 @@ void CustomCEmitter::printSelectOp(SelectOp *selOp, std::ostringstream &out,
 }
 
 void CustomCEmitter::printIfOp(loop::IfOp ifOp, std::ostringstream &out,
-                                  std::string indent) {
+                               std::string indent) {
   out << indent << "if (" << value2str(ifOp.condition()) << ") {\n";
   for (auto &block : ifOp.thenRegion()) {
     for (auto &op : block)
@@ -477,9 +472,8 @@ void CustomCEmitter::printIfOp(loop::IfOp ifOp, std::ostringstream &out,
   out << indent << "}\n";
 }
 
-void CustomCEmitter::printForLoop(loop::ForOp *forOp,
-                                     std::ostringstream &out,
-                                     std::string indent) {
+void CustomCEmitter::printForLoop(loop::ForOp *forOp, std::ostringstream &out,
+                                  std::string indent) {
   auto var = forOp->getInductionVar();
   auto loopVar = getFreshVar(var);
   auto upperVar = value2str(forOp->upperBound());
@@ -498,7 +492,7 @@ void CustomCEmitter::printForLoop(loop::ForOp *forOp,
 }
 
 void CustomCEmitter::printCallOp(CallOp *callOp, std::ostringstream &out,
-                                    std::string indent) {
+                                 std::string indent) {
   auto results = callOp->getNumResults();
   assert(results <= 1);
   out << indent;
@@ -514,13 +508,13 @@ void CustomCEmitter::printCallOp(CallOp *callOp, std::ostringstream &out,
 }
 
 void CustomCEmitter::printDefaultOp(Operation *op, std::ostringstream &out,
-                                       std::string indent) {
+                                    std::string indent) {
   op->emitWarning("Unsupported");
   llvm_unreachable("Default operation printing reached - UNSUPPORTED");
 }
 
 void CustomCEmitter::printOperation(Operation *op, std::ostringstream &out,
-                                       std::string indent) {
+                                    std::string indent) {
   if (isa<gpu::ReturnOp>(op) || isa<mlir::ReturnOp>(op))
     printReturnOp(op, out, indent);
   else if (auto c = dyn_cast<ConstantOp>(op))
@@ -563,7 +557,7 @@ void CustomCEmitter::printOperation(Operation *op, std::ostringstream &out,
 }
 
 void CustomCEmitter::printFunction(Operation *op, std::ostringstream &out,
-                                      std::string indent) {
+                                   std::string indent) {
   launchFuncDeviceVars.clear();
   auto func_op = static_cast<FuncOp>(op);
   auto nresults = func_op.getType().getNumResults();
@@ -617,7 +611,7 @@ void CustomCEmitter::printFunction(Operation *op, std::ostringstream &out,
     out << indent << "    cudaFree(" << var << ");\n";
   out << "}\n";
 }
-} // namespace gpu
+} // namespace customc
 } // namespace mlir
 
 static TranslateFromMLIRRegistration

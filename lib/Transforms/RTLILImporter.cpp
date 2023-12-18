@@ -6,18 +6,17 @@
 #include <string>
 #include <utility>
 
-
-#include "kernel/rtlil.h"                     // from @at_clifford_yosys
-#include "llvm/ADT/MapVector.h"  // from @llvm-project
-#include "mlir/Dialect/Arith/IR/Arith.h"    // from @llvm-project
-#include "mlir/Dialect/Func/IR/FuncOps.h"   // from @llvm-project
-#include "mlir/Dialect/Tensor/IR/Tensor.h"  // from @llvm-project
-#include "mlir/IR/Builders.h"               // from @llvm-project
-#include "mlir/IR/BuiltinTypes.h"           // from @llvm-project
-#include "mlir/IR/ImplicitLocOpBuilder.h"   // from @llvm-project
-#include "mlir/IR/Operation.h"              // from @llvm-project
-#include "mlir/Support/LLVM.h"              // from @llvm-project
-#include "mlir/Transforms/FoldUtils.h"      // from @llvm-project
+#include "kernel/rtlil.h"                  // from @at_clifford_yosys
+#include "mlir/Dialect/Arith/IR/Arith.h"   // from @llvm-project
+#include "mlir/Dialect/Func/IR/FuncOps.h"  // from @llvm-project
+#include "mlir/Dialect/Tensor/IR/Tensor.h" // from @llvm-project
+#include "mlir/IR/Builders.h"              // from @llvm-project
+#include "mlir/IR/BuiltinTypes.h"          // from @llvm-project
+#include "mlir/IR/ImplicitLocOpBuilder.h"  // from @llvm-project
+#include "mlir/IR/Operation.h"             // from @llvm-project
+#include "mlir/Support/LLVM.h"             // from @llvm-project
+#include "mlir/Transforms/FoldUtils.h"     // from @llvm-project
+#include "llvm/ADT/MapVector.h"            // from @llvm-project
 
 namespace mlir {
 
@@ -38,10 +37,10 @@ Type getTypeForWire(OpBuilder &b, Wire *wire) {
   return RankedTensorType::get({wire->width}, intTy);
 }
 
-}  // namespace
+} // namespace
 
-llvm::SmallVector<std::string, 10> getTopologicalOrder(
-    std::stringstream &torderOutput) {
+llvm::SmallVector<std::string, 10>
+getTopologicalOrder(std::stringstream &torderOutput) {
   llvm::SmallVector<std::string, 10> cells;
   std::string line;
   while (std::getline(torderOutput, line)) {
@@ -110,8 +109,9 @@ void RTLILImporter::addResultBit(
   retBitValues[bit.wire][offset] = result;
 }
 
-func::FuncOp RTLILImporter::importModule(
-    Module *module, const SmallVector<std::string, 10> &cellOrdering) {
+func::FuncOp
+RTLILImporter::importModule(Module *module,
+                            const SmallVector<std::string, 10> &cellOrdering) {
   // Gather input and output wires of the module to match up with the block
   // arguments.
   SmallVector<Type, 4> argTypes;
@@ -154,7 +154,8 @@ func::FuncOp RTLILImporter::importModule(
 
   // Convert cells to Operations according to topological order.
   for (const auto &cellName : cellOrdering) {
-    assert(module->cells_.count("\\" + cellName) != 0 &&"expected cell in RTLIL design");
+    assert(module->cells_.count("\\" + cellName) != 0 &&
+           "expected cell in RTLIL design");
     auto *cell = module->cells_["\\" + cellName];
 
     SmallVector<Value, 4> inputValues;
@@ -209,5 +210,4 @@ func::FuncOp RTLILImporter::importModule(
   return function;
 }
 
-
-}  // namespace mlir
+} // namespace mlir

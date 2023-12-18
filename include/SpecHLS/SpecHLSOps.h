@@ -9,12 +9,12 @@
 #ifndef SpecHLS_SpecHLSOPS_H
 #define SpecHLS_SpecHLSOPS_H
 
+#include "mlir/Bytecode/BytecodeOpInterface.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/Interfaces/InferTypeOpInterface.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
-#include "mlir/Bytecode/BytecodeOpInterface.h"
 
 #define GET_OP_CLASSES
 #include "SpecHLS/SpecHLSOps.h.inc"

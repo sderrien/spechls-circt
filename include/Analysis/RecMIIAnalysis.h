@@ -47,7 +47,7 @@ private:
   DenseMap<Operation *, CyclicProblem> problems;
 };
 
-} // namespace analysis
+} // namespace SpecHLS
 } // namespace circt
 
 #endif // CIRCT_ANALYSIS_SCHEDULING_ANALYSIS_H

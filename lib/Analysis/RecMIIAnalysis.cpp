@@ -10,39 +10,36 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/HW/HWOpInterfaces.h"
 #include "circt/Dialect/HW/HWOps.h"
-#include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/Seq/SeqOps.h"
 
-#include "circt/Dialect/HW/HWOps.h"
-#include "circt/Transforms/Passes.h"
-#include "mlir/Dialect/Arith/IR/Arith.h"
-#include "mlir/Transforms/DialectConversion.h"
-#include "circt/Analysis/DependenceAnalysis.h"
-#include "circt/Scheduling/Problems.h"
-#include "circt/Scheduling/Utilities.h"
-#include "circt/Scheduling/Algorithms.h"
-#include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "mlir/Dialect/MemRef/IR/MemRef.h"
-#include "mlir/Dialect/SCF/IR/SCF.h"
-#include "mlir/IR/BuiltinOps.h"
-#include "mlir/Pass/AnalysisManager.h"
-#include <limits>
 #include "SpecHLS/SpecHLSDialect.h"
 #include "SpecHLS/SpecHLSOps.h"
 #include "SpecHLS/SpecHLSUtils.h"
 #include "Transforms/Passes.h"
+#include "circt/Analysis/DependenceAnalysis.h"
 #include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/HW/HWOpInterfaces.h"
 #include "circt/Dialect/HW/HWOps.h"
+#include "circt/Scheduling/Algorithms.h"
+#include "circt/Scheduling/Problems.h"
+#include "circt/Scheduling/Utilities.h"
+#include "circt/Transforms/Passes.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/Dialect/MemRef/IR/MemRef.h"
+#include "mlir/Dialect/SCF/IR/SCF.h"
+#include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/PatternMatch.h"
+#include "mlir/Pass/AnalysisManager.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+#include <limits>
 
-#include "llvm/ADT/TypeSwitch.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/TypeSwitch.h"
 
 using namespace mlir;
 using namespace circt;
@@ -95,7 +92,8 @@ void recminAnalysis(Operation *op, AnalysisManager &am) {
 //          return success();
 //        })
 //        .Default([&](Operation *op) {
-//          return op->emitError("Unexpected terminator that cannot be handled.");
+//          return op->emitError("Unexpected terminator that cannot be
+//          handled.");
 //        });
 //
 //    SmallVector<AffineForOp> nestedLoops;
@@ -114,7 +112,8 @@ void recminAnalysis(Operation *op, AnalysisManager &am) {
 //    // Insert every operation into the problem.
 //    problem.insertOperation(op);
 //
-//    ArrayRef<MemoryDependence> dependences = memoryAnalysis.getDependences(op); if (dependences.empty())
+//    ArrayRef<MemoryDependence> dependences =
+//    memoryAnalysis.getDependences(op); if (dependences.empty())
 //      return;
 //
 //    for (MemoryDependence memoryDep : dependences) {
@@ -186,7 +185,8 @@ void recminAnalysis(Operation *op, AnalysisManager &am) {
 //  });
 //
 //  // Handle explicitly computed loop-carried values, i.e. excluding the
-//  // induction variable. Insert inter-iteration dependences from the definers of
+//  // induction variable. Insert inter-iteration dependences from the definers
+//  of
 //  // "iter_args" to their users.
 //  if (unsigned nIterArgs = anchor->getNumOperands(); nIterArgs > 0) {
 //    auto iterArgs = forOp.getRegionIterArgs();
@@ -218,4 +218,4 @@ void recminAnalysis(Operation *op, AnalysisManager &am) {
 //  assert(problem != problems.end() && "expected problem to exist");
 //  return problem->second;
 //}
-}
+} // namespace SpecHLS

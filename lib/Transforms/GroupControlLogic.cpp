@@ -16,8 +16,14 @@
 #include "circt/Dialect/SV/SVOps.h"
 #include "mlir/Pass/Pass.h"
 
+#include "SpecHLS/SpecHLSDialect.h"
+#include "SpecHLS/SpecHLSOps.h"
+#include "SpecHLS/SpecHLSUtils.h"
+#include "Transforms/Passes.h"
+#include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/HW/HWAttributes.h"
 #include "circt/Dialect/HW/HWInstanceGraph.h"
+#include "circt/Dialect/HW/HWOpInterfaces.h"
 #include "circt/Dialect/HW/HWOps.h"
 #include "circt/Dialect/HW/HWSymCache.h"
 #include "circt/Dialect/HW/InnerSymbolNamespace.h"
@@ -25,25 +31,13 @@
 #include "circt/Dialect/Seq/SeqDialect.h"
 #include "circt/Dialect/Seq/SeqOps.h"
 #include "circt/Support/Namespace.h"
+#include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/IRMapping.h"
-#include "llvm/ADT/SetVector.h"
-#include "SpecHLS/SpecHLSDialect.h"
-#include "SpecHLS/SpecHLSOps.h"
-#include "SpecHLS/SpecHLSUtils.h"
-#include "Transforms/Passes.h"
-#include "circt/Dialect/Comb/CombOps.h"
-#include "circt/Dialect/HW/HWOpInterfaces.h"
-#include "circt/Dialect/HW/HWOps.h"
-#include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
-#include "SpecHLS/SpecHLSDialect.h"
-#include "SpecHLS/SpecHLSOps.h"
-#include "SpecHLS/SpecHLSUtils.h"
-#include "Transforms/Passes.h"
-#include "circt/Dialect/Comb/CombOps.h"
+#include "llvm/ADT/SetVector.h"
 
 #include <set>
 
@@ -52,8 +46,6 @@ using namespace circt;
 using namespace sv;
 
 using BindTable = DenseMap<StringAttr, SmallDenseMap<StringAttr, sv::BindOp>>;
-
-
 
 //===----------------------------------------------------------------------===//
 // StubExternalModules Helpers
@@ -71,7 +63,7 @@ getBackwardSliceSimple(Operation *rootOp, SetVector<Operation *> &backwardSlice,
   while (!worklist.empty()) {
     Value operand = worklist.pop_back_val();
     Operation *definingOp = operand.getDefiningOp();
-    //definingOp->t
+    // definingOp->t
 
     if (!definingOp ||
         definingOp->hasTrait<mlir::OpTrait::IsIsolatedFromAbove>())
@@ -639,17 +631,16 @@ bool isInDesign(hw::HWSymbolCache &symCache, Operation *op,
 // StubExternalModules Pass
 //===----------------------------------------------------------------------===//
 
-struct GroupControlNodePass : public SpecHLS::impl::GroupControlNodePassBase<GroupControlNodePass> {
+struct GroupControlNodePass
+    : public SpecHLS::impl::GroupControlNodePassBase<GroupControlNodePass> {
 public:
-  void runOnOperation() override {
-  }
+  void runOnOperation() override {}
 };
 
-
-
-struct GroupControlNodeImplPass : public SpecHLS::impl::GroupControlNodePassBase<GroupControlNodeImplPass> {
+struct GroupControlNodeImplPass
+    : public SpecHLS::impl::GroupControlNodePassBase<GroupControlNodeImplPass> {
 public:
-  GroupControlNodeImplPass() ;
+  GroupControlNodeImplPass();
   void runOnOperation() override;
 
 private:
@@ -724,12 +715,10 @@ private:
   hw::InstanceGraph *instanceGraph = nullptr;
 };
 
-
 void GroupControlNodeImplPass::runOnOperation() {
   this->instanceGraph = &getAnalysis<circt::hw::InstanceGraph>();
 
   auto top = getOperation();
-
 
   // It takes extra effort to inline modules which contains inner symbols
   // referred through hierpaths or unknown operations since we have to update
@@ -802,9 +791,7 @@ void GroupControlNodeImplPass::runOnOperation() {
       auto opsInDesign = getBackwardSlice(
           rtlmod,
           /*rootFn=*/
-          [&](Operation *op) {
-            return isInDesign(symCache, op);
-          },
+          [&](Operation *op) { return isInDesign(symCache, op); },
           /*filterFn=*/{});
 
       SmallPtrSet<Operation *, 32> opsToErase;
@@ -838,8 +825,7 @@ void GroupControlNodeImplPass::runOnOperation() {
             // the original module extracted into verification parts so identify
             // such instances by querying to `opsToErase`.
             return isInDesign(symCache, op,
-                              /*disableInstanceExtraction=*/true
-                              ) &&
+                              /*disableInstanceExtraction=*/true) &&
                    !opsToErase.contains(op);
           },
           /*filterFn=*/{});
@@ -880,14 +866,9 @@ void GroupControlNodeImplPass::runOnOperation() {
   markAnalysesPreserved<circt::hw::InstanceGraph>();
 }
 
-
 namespace SpecHLS {
 std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>>
 createGroupControlNodePass() {
   return std::make_unique<GroupControlNodePass>();
 }
-}
-
-
-
-
+} // namespace SpecHLS

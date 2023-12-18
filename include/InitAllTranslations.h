@@ -11,13 +11,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-
 #ifndef CIRCT_INITALLTRANSLATIONS_H
 #define CIRCT_INITALLTRANSLATIONS_H
 
 namespace SpecHLS {
 
-void registerTestPrintNestingPass() ;
+void registerTestPrintNestingPass();
 
 // This function should be called before creating any MLIRContext if one
 // expects all the possible translations to be made available to the context
@@ -29,6 +28,6 @@ inline void registerAllTranslations() {
   }();
   (void)initOnce;
 }
-} // namespace spechls
+} // namespace SpecHLS
 
 #endif // CIRCT_INITALLTRANSLATIONS_H

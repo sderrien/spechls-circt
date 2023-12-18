@@ -10,12 +10,12 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "SpecHLS/SpecHLSDialect.h"
+#include "SpecHLS/SpecHLSOps.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/TopologicalSortUtils.h"
 #include "llvm/ADT/TypeSwitch.h"
-#include "SpecHLS/SpecHLSOps.h"
-#include "SpecHLS/SpecHLSDialect.h"
 
 using namespace mlir;
 
@@ -69,11 +69,7 @@ struct TestPrintNestingPass
     auto indent = pushIndent();
     for (Block &block : region.getBlocks())
       printBlock(block);
-
-
   }
-
-
 
   void printBlock(Block &block) {
     // Print the block intrinsics properties (basically: argument list)
@@ -84,24 +80,19 @@ struct TestPrintNestingPass
         // Note, this `.size()` is traversing a linked-list and is O(n).
         << block.getOperations().size() << " operations\n";
 
-
-    sortTopologically(&block, [](Value a ,  Operation* b) {
-      TypeSwitch<Operation *>(b)
-          .Case<SpecHLS::MuOp>([&](auto op) { return true; });
-//          .Case<SpecHLS::DelayOp>([&](auto op) { return true; });
-//          .Default([&](auto op) {
-            return false;
-          });
-
+    sortTopologically(&block, [](Value a, Operation *b) {
+      TypeSwitch<Operation *>(b).Case<SpecHLS::MuOp>(
+          [&](auto op) { return true; });
+      //          .Case<SpecHLS::DelayOp>([&](auto op) { return true; });
+      //          .Default([&](auto op) {
+      return false;
+    });
 
     // Block main role is to hold a list of Operations: let's recurse.
     auto indent = pushIndent();
     for (Operation &op : block.getOperations()) {
       printOperation(&op);
-
     }
-
-
   }
 
   /// Manages the indentation as we traverse the IR nesting.

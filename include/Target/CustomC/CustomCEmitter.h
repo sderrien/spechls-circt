@@ -89,7 +89,7 @@ private:
       moduleName = module.getName().getValue();
 
     if (auto attr =
-        op->getAttrOfType<StringAttr>(SymbolTable::getSymbolAttrName()))
+            op->getAttrOfType<StringAttr>(SymbolTable::getSymbolAttrName()))
       return appendModulePrefix(attr.getValue().str(), moduleName);
     return appendModulePrefix(op->getName().getStringRef().str(), moduleName);
   }

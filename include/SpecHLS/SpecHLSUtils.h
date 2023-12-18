@@ -6,8 +6,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-
 namespace SpecHLS {
 
-  int getBitWidth(int value);
+int getBitWidth(int value);
 }

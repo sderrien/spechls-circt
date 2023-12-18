@@ -14,20 +14,17 @@
 #ifndef SPECHLS_INITALLDIALECTS_H_
 #define SPECHLS_INITALLDIALECTS_H_
 
-
 #include "/IR/Dialect.h"
 
 namespace SpecHLS {
 
 // Add all the MLIR dialects to the provided registry.
 inline void registerAllDialects(mlir::DialectRegistry &registry) {
-  registry.insert<
-      SpecHLS::SpecHLSDialect
-  >();
+  registry.insert<SpecHLS::SpecHLSDialect>();
   // clang-format off
   // clang-format on
 }
 
-} // namespace spechls
+} // namespace SpecHLS
 
 #endif // SPECHLS_INITALLDIALECTS_H_

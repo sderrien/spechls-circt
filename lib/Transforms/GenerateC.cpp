@@ -10,8 +10,8 @@
 // Contains the definitions of the GenerateC pass.
 //
 //===----------------------------------------------------------------------===//
-//#include "mlir/IR/BuiltinOps.h"
-//#include "mlir/Pass/Pass.h"
+// #include "mlir/IR/BuiltinOps.h"
+// #include "mlir/Pass/Pass.h"
 
 #include "SpecHLS/SpecHLSDialect.h"
 #include "SpecHLS/SpecHLSOps.h"
@@ -19,20 +19,18 @@
 #include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/HW/HWOpInterfaces.h"
 #include "circt/Dialect/HW/HWOps.h"
-#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinDialect.h"
-#include "mlir/Transforms/DialectConversion.h"
 #include "mlir/IR/PatternMatch.h"
+#include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
 using namespace mlir;
 using namespace circt;
 using namespace SpecHLS;
 
-
 namespace SpecHLS {
-
 
 struct GenerateCPass : public impl::GenerateCPassBase<GenerateCPass> {
 
@@ -52,7 +50,6 @@ struct GenerateCPass : public impl::GenerateCPassBase<GenerateCPass> {
     return llvm::outs();
   }
 
-
   void printOperation(Operation *op) {
     // Print the operation itself and some of its properties
     printIndent() << "visiting op: '" << op->getName() << "' with "
@@ -61,9 +58,9 @@ struct GenerateCPass : public impl::GenerateCPassBase<GenerateCPass> {
     // Print the operation attributes
     if (!op->getAttrs().empty()) {
       printIndent() << op->getAttrs().size() << " attributes:\n";
-//      for (NamedAttribute attr : op->getAttrs())
-//        printIndent() << " - '" << attr.first << "' : '" << attr.second
-//                      << "'\n";
+      //      for (NamedAttribute attr : op->getAttrs())
+      //        printIndent() << " - '" << attr.first << "' : '" << attr.second
+      //                      << "'\n";
     }
 
     // Recurse into each of the regions attached to the operation.
@@ -72,9 +69,8 @@ struct GenerateCPass : public impl::GenerateCPassBase<GenerateCPass> {
 
     if (op->getRegions().empty()) {
       TypeSwitch<Operation *>(op)
-        .Case<SpecHLS::MuOp,SpecHLS::GammaOp>([&](auto op) { return true; })
-        .Default([&](auto op) {});
-
+          .Case<SpecHLS::MuOp, SpecHLS::GammaOp>([&](auto op) { return true; })
+          .Default([&](auto op) {});
     }
 
     for (Region &region : op->getRegions())
@@ -89,7 +85,6 @@ struct GenerateCPass : public impl::GenerateCPassBase<GenerateCPass> {
     for (Block &block : region.getBlocks())
       printBlock(block);
   }
-
 
   void printBlock(Block &block) {
     // Print the block intrinsics properties (basically: argument list)
@@ -113,21 +108,21 @@ public:
     //
     //    target.addIllegalDialect<arith::ArithDialect>();
     //    MapArithTypeConverter typeConverter;
-    //RewritePatternSet patterns(ctx);
+    // RewritePatternSet patterns(ctx);
     //
-    //patterns.insert<LookUpMergingPattern>(ctx);
-    //llvm::errs() << "inserted pattern  \n";
+    // patterns.insert<LookUpMergingPattern>(ctx);
+    // llvm::errs() << "inserted pattern  \n";
 
-//    if (failed(applyPatternsAndFoldGreedily(getOperation(),std::move(patterns)))) {
-//      llvm::errs() << "partial conversion failed pattern  \n";
-      signalPassFailure();
-//    }
+    //    if
+    //    (failed(applyPatternsAndFoldGreedily(getOperation(),std::move(patterns))))
+    //    {
+    //      llvm::errs() << "partial conversion failed pattern  \n";
+    signalPassFailure();
+    //    }
   }
 };
 
-
-
-std::unique_ptr<OperationPass<>>  createGenerateCPass() {
+std::unique_ptr<OperationPass<>> createGenerateCPass() {
   return std::make_unique<GenerateCPass>();
 }
 } // namespace SpecHLS

@@ -15,10 +15,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-//#include "mlir/IR/Dialect.h"
+// #include "mlir/IR/Dialect.h"
 
 #include "mlir-c/IR.h"
-
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,6 +28,5 @@ MLIR_DECLARE_CAPI_DIALECT_REGISTRATION(SpecHLS, spechls);
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif // SPECHLS_DIALECT_SPECHLS_H
