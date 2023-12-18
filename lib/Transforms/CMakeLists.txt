@@ -1,6 +1,6 @@
 
 add_compile_definitions(_YOSYS_)
-include_directories("/opt/yosys/share/include/")
+#include_directories("/usr/share/yosys/include/")
 
 #include_directories("./YosysOptimizer")
 #

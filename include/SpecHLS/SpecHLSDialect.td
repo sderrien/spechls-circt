@@ -22,7 +22,7 @@ def SpecHLS_Dialect : Dialect {
         This dialect is tu support speculative pipelining in CIRCT .
     }];
     let cppNamespace = "SpecHLS";
-}
+  }
 
 //===----------------------------------------------------------------------===//
 // Base SpecHLS operation definition.

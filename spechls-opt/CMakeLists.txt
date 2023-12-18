@@ -9,6 +9,7 @@ set(LIBS
         MLIRSpecHLS
         SpecHLSToComb
         SpecHLSTransforms
+        SpecHLSScheduling
         CIRCTSeq
         CIRCTComb
         CIRCTHW
@@ -17,6 +18,7 @@ set(LIBS
         CIRCTHWArith
         CIRCTComb
         CIRCTSeq
+        CIRCTSSP
         CIRCTCombTransforms
         CIRCTFIRRTL
         CIRCTFSM

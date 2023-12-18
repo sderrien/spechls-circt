@@ -4,7 +4,7 @@
 #include "SpecHLS/SpecHLSOps.h"
 
 #include <cassert>
-#include "kernel/rtlil.h"                    // from @at_clifford_yosys
+#include <kernel/rtlil.h>                    // from @at_clifford_yosys
 #include "llvm/ADT/ArrayRef.h"  // from @llvm-project
 #include "llvm/Support/FormatVariadic.h"   // from @llvm-project
 #include "mlir/IR/ImplicitLocOpBuilder.h"  // from @llvm-project

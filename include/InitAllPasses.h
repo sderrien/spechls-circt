@@ -14,6 +14,7 @@
 #ifndef SPECHLS_INITALLPASSES_H_
 #define SPECHLS_INITALLPASSES_H_
 
+#include "Scheduling/Transforms/SchedulePass.h"
 #include "SpecHLS/SpecHLSDialect.h"
 #include "Transforms/Passes.h"
 #include "Conversion/Passes.h"
@@ -32,6 +33,7 @@ inline void registerAllPasses() {
     //registerExportSplitVerilogPass();
     registerYosysOptimizerPipeline();
     //registerYosysOptimizerPass();
+    registerGecosSchedulePass();
     return true;
   }();
   (void)initOnce;
