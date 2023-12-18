@@ -70,6 +70,13 @@ bool fixpointReached(
   return true;
 }
 
+StartTime ceil(StartTime t) {
+  if (t.second == 0.0)
+    return t;
+  else
+    return std::make_pair(t.first + 1, 0.0);
+}
+
 LogicalResult scheduleASAP(GammaMobilityProblem &prob, float cycleTime) {
   std::vector<std::unordered_map<Operation *, StartTime>> scheduled;
   unsigned maxDep = 0;
@@ -101,8 +108,8 @@ LogicalResult scheduleASAP(GammaMobilityProblem &prob, float cycleTime) {
               } else {
                 auto predStartTime =
                     scheduled[iteration - *prob.getDistance(dep)][pred];
-                potentialStartTime = getNextStart(
-                    prob, getEndTime(prob, predStartTime, pred), op, cycleTime);
+                potentialStartTime = ceil(getNextStart(
+                    prob, getEndTime(prob, predStartTime, pred), op, cycleTime));
               }
             } else {
               if (!prob.getStartTime(pred) || !prob.getStartTimeInCycle(pred))
@@ -134,6 +141,7 @@ LogicalResult scheduleASAP(GammaMobilityProblem &prob, float cycleTime) {
     scheduled.push_back(current);
     ++iteration;
   } while (!fixpointReached(prob, scheduled, iteration, maxDep));
+  std::cout << "end" << std::endl;
   auto &last = scheduled.back();
   int minCycle = -1;
   for (auto *op : prob.getOperations()) {
