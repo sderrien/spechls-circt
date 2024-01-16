@@ -41,5 +41,7 @@ add_llvm_executable(circt2verilog circt2verilog.cpp)
 
 llvm_update_compile_flags(circt2verilog)
 target_link_libraries(circt2verilog PRIVATE ${LIBS})
+target_compile_options(circt2verilog PUBLIC -fexceptions)
+
 
 export_executable_symbols_for_plugins(circt2verilog)

@@ -4,7 +4,26 @@
 #include <iostream>
 
 using namespace mlir;
-using StartTime = std::pair<unsigned, float>;
+
+struct StartTime {
+public:
+  unsigned first;
+  float second;
+
+  StartTime() : first(0), second(0.0) {}
+
+  template <typename T1, typename T2>
+  StartTime(std::pair<T1, T2> pair) : first(pair.first), second(pair.second) {}
+
+  template <typename T1, typename T2>
+  StartTime(std::pair<T1, T2> &pair) : first(pair.first), second(pair.second) {}
+
+  friend std::ostream &operator<<(std::ostream &os,
+                                  const StartTime &startTime) {
+    os << "(" << startTime.first << ", " << startTime.second << ")";
+    return os;
+  }
+};
 
 StartTime getEndTime(GammaMobilityProblem &prob, StartTime startTime,
                      Operation *op) {
@@ -73,8 +92,7 @@ bool fixpointReached(
 StartTime ceil(StartTime t) {
   if (t.second == 0.0)
     return t;
-  else
-    return std::make_pair(t.first + 1, 0.0);
+  return std::make_pair(t.first + 1, 0.0);
 }
 
 LogicalResult scheduleASAP(GammaMobilityProblem &prob, float cycleTime) {
@@ -108,8 +126,13 @@ LogicalResult scheduleASAP(GammaMobilityProblem &prob, float cycleTime) {
               } else {
                 auto predStartTime =
                     scheduled[iteration - *prob.getDistance(dep)][pred];
-                potentialStartTime = ceil(getNextStart(
-                    prob, getEndTime(prob, predStartTime, pred), op, cycleTime));
+                auto endTime = getEndTime(prob, predStartTime, pred);
+                auto nextStart = getNextStart(prob, endTime, op, cycleTime);
+                potentialStartTime = ceil(nextStart);
+                potentialStartTime =
+                    max(potentialStartTime,
+                        std::make_pair(scheduled[iteration - 1][pred].first + 1,
+                                       0.0));
               }
             } else {
               if (!prob.getStartTime(pred) || !prob.getStartTimeInCycle(pred))

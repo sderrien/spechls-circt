@@ -32,6 +32,7 @@ add_mlir_library(SpecHLSTransforms
 target_link_libraries(SpecHLSTransforms
 
 		PUBLIC
+		CIRCTExportVerilog
 		CIRCTComb
 		CIRCTHW
 		CIRCTSupport

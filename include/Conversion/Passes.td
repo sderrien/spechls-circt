@@ -14,7 +14,7 @@
 #define CIRCT_CONVERSION_PASSES_TD
 
 include "mlir/Pass/PassBase.td"
-
+include "SpecHLS/SpecHLSDialect.td"
 
 //===----------------------------------------------------------------------===//
 // SpecHLSToComb

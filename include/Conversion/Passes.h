@@ -41,6 +41,8 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassRegistry.h"
 
+#include "SpecHLS/SpecHLSDialect.h"
+
 namespace SpecHLS {
 
 std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>>
