@@ -15,6 +15,7 @@
 
 include "mlir/Pass/PassBase.td"
 include "mlir/Rewrite/PassUtil.td"
+include "SpecHLS/SpecHLSDialect.td"
 
 def MergeGammasPass : Pass<"merge-gammas"> {
   let summary = "Merge connected gamma ops";
