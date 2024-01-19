@@ -2,7 +2,7 @@
 
 add_llvm_library(MLIRTargetCustomCEmit
         CustomC/TestPrintNestingPass.cpp
-        #        CustomC/CustomCEmitter.cpp
+        CustomC/CustomCEmitter.cpp
 
         ADDITIONAL_HEADER_DIRS
         ${MLIR_MAIN_INCLUDE_DIR}/mlir/Target/Verilog

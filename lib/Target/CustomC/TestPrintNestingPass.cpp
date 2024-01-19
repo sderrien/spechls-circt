@@ -22,8 +22,8 @@ using namespace mlir;
 namespace {
 
 /// This pass illustrates the IR nesting through printing.
-struct TestPrintNestingPass
-    : public PassWrapper<TestPrintNestingPass, OperationPass<>> {
+struct TestPrintNestingPass: public PassWrapper<TestPrintNestingPass, OperationPass<>> {
+
   MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(TestPrintNestingPass)
 
   StringRef getArgument() const final { return "test-print-nesting"; }
@@ -114,8 +114,8 @@ struct TestPrintNestingPass
 } // namespace
 
 namespace SpecHLS {
-void registerAllTranslations();
-void registerTestPrintNestingPass() {
-  PassRegistration<TestPrintNestingPass>();
-}
+  void registerAllTranslations();
+  void registerTestPrintNestingPass() {
+    PassRegistration<TestPrintNestingPass>();
+  }
 } // namespace SpecHLS

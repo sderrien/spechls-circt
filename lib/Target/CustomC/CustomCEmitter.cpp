@@ -26,12 +26,17 @@
 
 #include "Target/CustomC/CustomCEmitter.h"
 
+#include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/TypeSwitch.h"
+#include <fstream>
+
+
 using namespace mlir;
+using namespace SpecHLS;
+using namespace mlir::builtin;
 
-namespace mlir {
-namespace customc {
 
-void CustomCEmitter::translateModule(mlir::ModuleOp module,
+void SpecHLS::CustomCEmitter::translateModule(mlir::ModuleOp module,
                                      llvm::raw_ostream &output) {
   std::ostringstream out;
 
@@ -43,22 +48,12 @@ void CustomCEmitter::translateModule(mlir::ModuleOp module,
     output << "#include <" << include << ">\n";
 
   output << "\n";
-  for (auto decl : funcDeclarations)
+  for (auto decl : declarations)
     output << decl << ";\n";
 
   output << "\n" << out.str();
 }
 
-void CustomCEmitter::processModuleOrFunc(Operation *op,
-                                         std::ostringstream &out) {
-  if (auto module = dyn_cast<ModuleOp>(op)) {
-    for (auto &inner_op : *module.getBody()) {
-      processModuleOrFunc(&inner_op, out);
-    }
-  } else if (isa<FuncOp>(op)) {
-    printFunction(op, out, "");
-  }
-}
 
 std::string CustomCEmitter::type2str(Type type) {
   // TODO(limo1996): pointers, char
@@ -97,42 +92,66 @@ std::string CustomCEmitter::type2str(Type type) {
 
 std::string CustomCEmitter::attr2str(Attribute attr) {
   // TODO(limo1996): AffineMapAttr, Dictionary, IntegerSet
-  switch (attr.getKind()) {
-  case StandardAttributes::Kind::Array: {
-    std::string res = "{";
-    auto array = attr.cast<ArrayAttr>();
-    interleave(
-        array.begin(), array.end(), [&](Attribute a) { res += attr2str(a); },
-        [&] { res += ","; });
-    return res + "}";
-  }
-  case StandardAttributes::Kind::Bool:
-    return attr.cast<BoolAttr>().getValue() ? "true" : "false";
-  case StandardAttributes::Kind::Float:
-    return std::to_string(attr.cast<FloatAttr>().getValueAsDouble());
-  case StandardAttributes::Kind::Integer:
-    return std::to_string(attr.cast<IntegerAttr>().getInt());
-  case StandardAttributes::Kind::Opaque:
-    return attr.cast<OpaqueAttr>().getAttrData().str();
-  case StandardAttributes::Kind::String:
-    return attr.cast<StringAttr>().getValue().str();
-  case StandardAttributes::Kind::SymbolRef:
-    return attr.cast<SymbolRefAttr>().getLeafReference().str();
-  case StandardAttributes::Kind::Type:
-    return type2str(attr.cast<TypeAttr>().getValue());
-  case StandardAttributes::Kind::Unit:
-    llvm_unreachable("Unit attribute cannot be translated to CUDA C. Has "
-                     "meaning only by existance.");
-  case StandardAttributes::Kind::DenseElements:
-    // TODO(limo1996): Handle multi dimensiional denses
-    std::string res = "{";
-    auto dense = attr.cast<DenseElementsAttr>();
-    interleave(
-        dense.attr_value_begin(), dense.attr_value_end(),
-        [&](Attribute a) { res += attr2str(a); }, [&] { res += ","; });
-    return res + "}";
-  }
-  llvm_unreachable("Unsupported attribute for CUDA C translation");
+  TypeSwitch<Attribute>(attr)
+      .Case<ArrayAttr>([&](ArrayAttr array ) {
+            std::string res = "{";
+            llvm::interleave(
+                array.begin(), array.end(), [&](Attribute a) { res += attr2str(a); },
+                [&] { res += ","; });
+            return res + "}";
+          })
+      .Case<BoolAttr>([&](BoolAttr t) { return t.getValue()? "true" : "false"; })
+      .Case<FloatAttr>([&](FloatAttr f) { return std::to_string(f.getValueAsDouble()); })
+      .Case<IntegerAttr>([&](IntegerAttr attr) { return std::to_string(attr.cast<IntegerAttr>().getInt());})
+      .Case<StringAttr>([&](StringAttr attr) { return attr.getValue().str(); })
+      .Case<TypeAttr>([&](TypeAttr attr) { return type2str(attr.getValue()); })
+      .Case<SymbolRefAttr>([&](SymbolRefAttr attr) { return attr.getLeafReference().str(); })
+      .Case<DenseElementsAttr>([&](DenseElementsAttr attr) {
+
+        std::string res = "{";
+            auto dense = attr;
+//            interleave(
+//                dense.attr_value_begin(), dense.attr_value_end(),
+//                [&](Attribute a) { res += attr2str(a); }, [&] { res += ","; });
+            return res + "}";
+
+      });
+//  switch (attr.getKind()) {
+//  case StandardAttributes::Kind::Array: {
+//    std::string res = "{";
+//    auto array = attr.cast<ArrayAttr>();
+//    llvm::interleave(
+//        array.begin(), array.end(), [&](Attribute a) { res += attr2str(a); },
+//        [&] { res += ","; });
+//    return res + "}";
+//  }
+//  case StandardAttributes::Kind::Bool:
+//    return attr.cast<BoolAttr>().getValue() ? "true" : "false";
+//  case StandardAttributes::Kind::Float:
+//    return std::to_string(attr.cast<FloatAttr>().getValueAsDouble());
+//  case StandardAttributes::Kind::Integer:
+//    return std::to_string(attr.cast<IntegerAttr>().getInt());
+//  case StandardAttributes::Kind::Opaque:
+//    return attr.cast<OpaqueAttr>().getAttrData().str();
+//  case StandardAttributes::Kind::String:
+//    return attr.cast<OpaqueAttr>().getValue().str();
+//  case StandardAttributes::Kind::SymbolRef:
+//    return attr.cast<SymbolRefAttr>().getLeafReference().str();
+//  case StandardAttributes::Kind::Type:
+//    return type2str(attr.cast<TypeAttr>().getValue());
+//  case StandardAttributes::Kind::Unit:
+//    llvm_unreachable("Unit attribute cannot be translated to CUDA C. Has "
+//                     "meaning only by existance.");
+//  case StandardAttributes::Kind::DenseElements:
+//    // TODO(limo1996): Handle multi dimensiional denses
+//    std::string res = "{";
+//    auto dense = attr.cast<DenseElementsAttr>();
+//    interleave(
+//        dense.attr_value_begin(), dense.attr_value_end(),
+//        [&](Attribute a) { res += attr2str(a); }, [&] { res += ","; });
+//    return res + "}";
+//  }
+   llvm_unreachable("Unsupported attribute ");
 }
 
 template <typename T>
@@ -154,470 +173,304 @@ std::string CustomCEmitter::value2str(Value *v) {
   return "unknown_value";
 }
 
-bool CustomCEmitter::printKernelVar(Operation *op, std::ostringstream &out,
-                                    std::string indent) {
-  std::string op_name = "";
-  if (gpu::ThreadIdOp::classof(op)) {
-    op_name = "threadIdx";
-  } else if (gpu::BlockDimOp::classof(op)) {
-    op_name = "blockDim";
-  } else if (gpu::BlockIdOp::classof(op)) {
-    op_name = "blockIdx";
-  } else if (gpu::GridDimOp::classof(op)) {
-    op_name = "gridDim";
-  } else
-    return false;
 
-  auto dim = static_cast<gpu::BlockIdOp>(op).dimension().str();
-  out << indent << "int " << getFreshVar(op) << " = " << op_name << "." << dim
-      << ";\n";
-  return true;
+
+
+std::string CustomCEmitter::bin2str(Value lhs, char operand, Value rhs) {
+  return this->value2str(&lhs) + " " + operand + " " +
+         this->value2str(&rhs);
 }
 
-void CustomCEmitter::printLaunchFuncOp(gpu::LaunchFuncOp *launchOp,
-                                       std::ostringstream &out,
-                                       std::string indent) {
-  std::vector<std::vector<std::string>> operands;
-  auto kernel_name = appendModulePrefix(launchOp->kernel().str(),
-                                        launchOp->getKernelModuleName().str());
-  auto stencilFunc = launchOp->getParentOfType<FuncOp>();
-  assert(stencilFunc && "expected parent function operation");
-  for (unsigned int i = 0; i < launchOp->getNumKernelOperands(); i++) {
-    auto operand = launchOp->getKernelOperand(i);
-    auto op_name = value2str(operand);
-    auto type = operand->getType();
-    std::string size = "";
-    if (MemRefType::classof(type)) {
-      op_name += "_device";
-      auto memref = type.cast<MemRefType>();
-      if (memref.getShape().size() == 0)
-        size = "1*sizeof(" + type2str(memref.getElementType()) + ")";
-      else {
-        auto isize = stencilFunc.getArgument(0);
-        auto jsize = stencilFunc.getArgument(1);
-        auto ksize = stencilFunc.getArgument(2);
-        size = value2str(isize) + "*" + value2str(jsize) + "*" +
-               value2str(ksize) + "*sizeof(" +
-               type2str(memref.getElementType()) + ")";
-      }
-      if (launchFuncDeviceVars.find(op_name) == launchFuncDeviceVars.end()) {
-        launchFuncDeviceVars.insert(op_name);
-        out << indent << type2str(type) << " " << op_name << ";\n";
-        out << indent << "cudaMalloc((void **)&" << op_name << ", ";
-        out << size + ");\n";
-      }
-
-      out << indent << "cudaMemcpy(" << op_name << ", " << value2str(operand)
-          << ", " << size << ", cudaMemcpyHostToDevice);\n";
-    }
-    operands.push_back({op_name, value2str(operand), size});
-  }
-
-  out << indent << kernel_name << "<<<dim3("
-      << dim2str(launchOp->getGridSizeOperandValues()) << "),dim3("
-      << dim2str(launchOp->getBlockSizeOperandValues()) << ")>>>"
-      << "(";
-  for (unsigned int i = 0; i < launchOp->getNumKernelOperands(); i++) {
-    out << (i == 0 ? "" : ", ") << operands[i][0];
-  }
-  out << ");\n";
-  for (unsigned int i = 0; i < launchOp->getNumKernelOperands(); i++) {
-    if (operands[i][2] == "")
-      continue;
-    out << indent << "cudaMemcpy(" << operands[i][1] << ", " << operands[i][0]
-        << ", " << operands[i][2] << ", cudaMemcpyDeviceToHost);\n";
-  }
-}
-
-void CustomCEmitter::printConstantOp(ConstantOp *cop, std::ostringstream &out,
-                                     std::string indent) {
-  out << indent << type2str(cop->getType()) << " "
-      << getFreshVar(cop->getOperation()) << " = "
-      << attr2str(cop->getAttr("value")) << ";\n";
-}
-
-void CustomCEmitter::printSIToFPOp(SIToFPOp *fpOp, std::ostringstream &out,
-                                   std::string indent) {
-  auto type = type2str(fpOp->getResult()->getType());
-  out << indent << type << " " << getFreshVar(fpOp->getOperation()) << " = ("
-      << type << ")" << value2str(fpOp->in()) << ";\n";
-}
-
-void CustomCEmitter::printMemRefCastOp(MemRefCastOp *memCastOp,
-                                       std::ostringstream &out,
-                                       std::string indent) {
-  auto type = type2str(memCastOp->getResult()->getType());
-  out << indent << type << " " << getFreshVar(memCastOp->getOperation())
-      << " = (" << type << ")" << value2str(memCastOp->source()) << ";\n";
-}
-
-void CustomCEmitter::printSqrtfOp(comb::SqrtfOp *sqrtOp,
-                                  std::ostringstream &out, std::string indent) {
-  out << indent << type2str(sqrtOp->getResult()->getType()) << " "
-      << getFreshVar(sqrtOp->getOperation()) << " = sqrt("
-      << value2str(sqrtOp->value()) << ");\n";
-  includes.insert("math.h");
-}
-
-void CustomCEmitter::printFabsOp(comb::FabsOp *fabsOp, std::ostringstream &out,
-                                 std::string indent) {
-  out << indent << type2str(fabsOp->getResult()->getType()) << " "
-      << getFreshVar(fabsOp->getOperation()) << " = fabs("
-      << value2str(fabsOp->value()) << ");\n";
-  includes.insert("math.h");
-}
-
-void CustomCEmitter::printExpOp(comb::ExpOp *expOp, std::ostringstream &out,
-                                std::string indent) {
-  out << indent << type2str(expOp->getResult()->getType()) << " "
-      << getFreshVar(expOp->getOperation()) << " = exp("
-      << value2str(expOp->value()) << ");\n";
-  includes.insert("math.h");
-}
-
-void CustomCEmitter::printPowOp(comb::*powOp, std::ostringstream &out,
-                                std::string indent) {
-  out << indent << type2str(powOp->getResult()->getType()) << " "
-      << getFreshVar(powOp->getOperation()) << " = pow("
-      << value2str(powOp->value()) << ", " << value2str(powOp->exponent())
-      << ");\n";
-  includes.insert("math.h");
-}
-
-void CustomCEmitter::printReturnOp(Operation *op, std::ostringstream &out,
-                                   std::string indent) {
-  if (op->getNumOperands() == 1)
-    out << indent << "return " << value2str(op->getOperand(0)) << ";\n";
-  if (op->getNumOperands() > 1)
-    llvm_unreachable("multi-return is not supported in CUDA C translation");
-}
-
-void CustomCEmitter::printLoadOp(LoadOp *op, std::ostringstream &out,
-                                 std::string indent) {
-  out << indent << type2str(op->getResult()->getType()) << " "
-      << getFreshVar(op->getOperation()) << " = ";
-  if (op->getNumOperands() == 1 &&
-      op->getMemRef()->getType().cast<MemRefType>().getShape().size() > 0)
-    out << "*";
-  out << value2str(op->getOperand(0));
-  for (unsigned int i = 1; i < op->getNumOperands(); i++)
-    out << "[" << value2str(op->getOperand(i)) << "]";
-  out << ";" << std::endl;
-}
-
-void CustomCEmitter::printStoreOp(StoreOp *op, std::ostringstream &out,
-                                  std::string indent) {
-  out << indent;
-  if (auto memRef = op->getOperand(1)->getType().cast<MemRefType>())
-    if (op->getNumOperands() == 2 && memRef.getShape().size() > 0)
-      out << "*";
-  out << value2str(op->getOperand(1));
-  for (unsigned int i = 2; i < op->getNumOperands(); i++)
-    out << "[" << value2str(op->getOperand(i)) << "]";
-  out << " = " << value2str(op->getOperand(0)) << ";" << std::endl;
-}
-
-void CustomCEmitter::printDeallocOp(DeallocOp *op, std::ostringstream &out,
-                                    std::string indent) {
-  out << indent << "delete " << value2str(op->getOperand()) << ";\n";
-}
-
-void CustomCEmitter::printAllocOp(AllocOp *allocOp, std::ostringstream &out,
-                                  std::string indent) {
-  auto memref = allocOp->getType().cast<MemRefType>();
-  auto shapeSize = memref.getShape().size();
-  auto allocVar = getFreshVar(allocOp->getOperation());
-
-  out << indent;
-
-  if (shapeSize == 0)
-    out << type2str(allocOp->getResult()->getType()) << " " << allocVar
-        << ";\n";
-  else if (isStaticArray(memref)) { // size known at compile time
-    out << type2str(memref.getElementType()) << " " << allocVar;
-    for (auto s : memref.getShape())
-      out << "[" << s << "]";
-    out << ";\n";
-  } else { // dynamic allocation
-    out << type2str(allocOp->getResult()->getType()) << " ";
-    std::vector<std::string> loopVars;
-    std::string curr_indent = indent;
-
-    for (unsigned int i = 0; i < shapeSize; i++) {
-      out << (i == 0 ? "" : curr_indent) << allocVar;
-      for (auto lvar : loopVars)
-        out << "[" << lvar << "]";
-      out << " = new " << getPointer(memref, i + 1, 0) << "["
-          << getShapeAt(allocOp, i) << "];" << std::endl;
-      if (i == shapeSize - 1)
-        continue; // in most inner loop only emit alloc
-      auto loopVar = getFreshVar(static_cast<Operation *>(nullptr));
-      loopVars.push_back(loopVar);
-      out << curr_indent << "for (int " << loopVar << " = 0; " << loopVar
-          << " < " << getShapeAt(allocOp, i) << "; " << loopVar << "++) {"
-          << std::endl;
-      curr_indent += "    ";
-    }
-
-    for (unsigned long i = 0; i < loopVars.size(); i++) {
-      curr_indent = curr_indent.substr(0, curr_indent.size() - 4);
-      out << curr_indent << "}" << std::endl;
-    }
-  }
-}
-
-bool CustomCEmitter::printArithmetics(Operation *op, std::ostringstream &out,
-                                      std::string indent) {
-  std::string right_side = "";
-  if (MulFOp::classof(op)) {
-    right_side = bin2str(static_cast<MulFOp>(op), '*');
-  } else if (MulIOp::classof(op)) {
-    right_side = bin2str(static_cast<MulIOp>(op), '*');
-  } else if (AddFOp::classof(op)) {
-    right_side = bin2str(static_cast<AddFOp>(op), '+');
-  } else if (AddIOp::classof(op)) {
-    right_side = bin2str(static_cast<AddIOp>(op), '+');
-  } else if (DivFOp::classof(op)) {
-    right_side = bin2str(static_cast<DivFOp>(op), '/');
-  } else if (DivISOp::classof(op)) {
-    right_side = bin2str(static_cast<DivISOp>(op), '/');
-  } else if (DivIUOp::classof(op)) {
-    right_side = bin2str(static_cast<DivIUOp>(op), '/');
-  } else if (RemFOp::classof(op)) {
-    right_side = bin2str(static_cast<RemFOp>(op), '%');
-  } else if (RemISOp::classof(op)) {
-    right_side = bin2str(static_cast<RemISOp>(op), '%');
-  } else if (RemIUOp::classof(op)) {
-    right_side = bin2str(static_cast<RemIUOp>(op), '%');
-  } else if (ExpOp::classof(op)) {
-    llvm_unreachable("TODO e^n");
-  } else if (AndOp::classof(op)) {
-    right_side = bin2str(static_cast<AndOp>(op), '&');
-  } else if (OrOp::classof(op)) {
-    right_side = bin2str(static_cast<OrOp>(op), '|');
-  } else if (SubFOp::classof(op)) {
-    right_side = bin2str(static_cast<SubFOp>(op), '-');
-  } else if (SubIOp::classof(op)) {
-    right_side = bin2str(static_cast<SubIOp>(op), '-');
-  } else if (XOrOp::classof(op)) {
-    right_side = bin2str(static_cast<XOrOp>(op), '^');
-  } else {
-    return false;
-  }
-
-  out << indent << type2str(op->getResult(0)->getType()) << " "
-      << getFreshVar(op) << " = " << right_side << ";\n";
-  return true;
-}
-
-static std::string predicate2str(CmpFPredicate predicate) {
+static std::string predicate2str(circt::comb::ICmpPredicate predicate) {
   switch (predicate) {
-  case CmpFPredicate::ULT:
+  case circt::comb::ICmpPredicate::slt:
     return "<";
-  case CmpFPredicate::UGT:
+  case circt::comb::ICmpPredicate::sgt:
     return ">";
-  case CmpFPredicate::ULE:
+  case circt::comb::ICmpPredicate::sge:
     return "<=";
-  case CmpFPredicate::UGE:
+  case circt::comb::ICmpPredicate::ult:
+    return "<";
+  case circt::comb::ICmpPredicate::ugt:
+    return ">";
+  case circt::comb::ICmpPredicate::uge:
+    return "<=";
+  case circt::comb::ICmpPredicate::sle:
     return ">=";
-  case CmpFPredicate::UEQ:
+  case circt::comb::ICmpPredicate::eq:
     return "==";
-  case CmpFPredicate::UNE:
+  case circt::comb::ICmpPredicate::ne:
     return "!=";
-  case CmpFPredicate::FirstValidValue:
-  case CmpFPredicate::OEQ:
-  case CmpFPredicate::OGT:
-  case CmpFPredicate::OGE:
-  case CmpFPredicate::OLT:
-  case CmpFPredicate::OLE:
-  case CmpFPredicate::ONE:
-  case CmpFPredicate::ORD:
-  case CmpFPredicate::UNO:
-  case CmpFPredicate::AlwaysTrue:
-  case CmpFPredicate::NumPredicates:
-    llvm_unreachable("Unsupported CmpFPredicate");
+  default:
+
+    llvm_unreachable("Unsupported ICmpPredicate");
   }
   llvm_unreachable("This should be never reached!");
 }
 
-void CustomCEmitter::printCmpFOp(CmpFOp *cmpOp, std::ostringstream &out,
-                                 std::string indent) {
-  out << indent << type2str(cmpOp->getResult()->getType()) << " "
-      << getFreshVar(cmpOp->getOperation()) << " = " << value2str(cmpOp->lhs())
-      << " " << predicate2str(cmpOp->getPredicate()) << " "
-      << value2str(cmpOp->rhs()) << ";\n";
-}
+//  std::string right_side = "";
+//
+//  auto pattern = R"(
+//                if ({{expr}}) {
+//                    {}
+//                } else {
+//                    {}
+//                )";
+//
+//  std::string str = replace_all(replace_all(replace_all(pattern,
+//                                                        "{{first_name}}", "Homer"),
+//                                            "{{last_name}}", "Simpson"),"{{location}}", "Springfield");
 
-void CustomCEmitter::printSelectOp(SelectOp *selOp, std::ostringstream &out,
-                                   std::string indent) {
-  out << indent << type2str(selOp->getResult()->getType()) << " "
-      << getFreshVar(selOp->getOperation()) << " = "
-      << value2str(selOp->condition()) << " ? "
-      << value2str(selOp->true_value()) << " : "
-      << value2str(selOp->false_value()) << ";\n";
-}
-
-void CustomCEmitter::printIfOp(loop::IfOp ifOp, std::ostringstream &out,
-                               std::string indent) {
-  out << indent << "if (" << value2str(ifOp.condition()) << ") {\n";
-  for (auto &block : ifOp.thenRegion()) {
-    for (auto &op : block)
-      printOperation(&op, out, indent + "    ");
+std::string CustomCEmitter::valueList(OperandRange range, std::string sep) {
+  std::string res = "";
+  if (range.size()>0) {
+    auto arrayVar =  range[0];
+    res = value2str(&arrayVar);
+    for (size_t i=1;i<range.size(); i++) {
+      auto var = range[i];
+      res = res +  sep + value2str(&var) ;
+      return "";
+    }
   }
-  out << indent << "}\n" << indent << "else {\n";
-  for (auto &block : ifOp.elseRegion()) {
-    for (auto &op : block)
-      printOperation(&op, out, indent + "    ");
+  return res;
+}
+
+std::string CustomCEmitter::argList(OperandRange range, std::string sep) {
+  std::string res = "";
+  if (range.size()>0) {
+    auto arrayVar =  range[0];
+    res = value2str(&arrayVar);
+    for (size_t i=1;i<range.size(); i++) {
+      auto var = range[i];
+      res = res + type2str(var.getType())+ " " + value2str(&var) + ";\n";
+      return "";
+    }
   }
-  out << indent << "}\n";
+  return res;
 }
 
-void CustomCEmitter::printForLoop(loop::ForOp *forOp, std::ostringstream &out,
-                                  std::string indent) {
-  auto var = forOp->getInductionVar();
-  auto loopVar = getFreshVar(var);
-  auto upperVar = value2str(forOp->upperBound());
-  auto lowerVar = value2str(forOp->lowerBound());
-  auto step = value2str(forOp->step());
+void CustomCEmitter::printBinaryOp(Operation* op, std::string c) {
 
-  out << indent << "for (" << type2str(var->getType()) << " " << loopVar
-      << " = " << lowerVar << "; " << loopVar << " < " << upperVar << "; "
-      << loopVar << " += " << step << ") {\n";
-
-  for (auto &iop : *forOp->getBody()) {
-    printOperation(&iop, out, indent + "    ");
+  if (op->getNumOperands()==2 and op->getNumResults()==1) {
+    auto res = op->getResult(0);
+    auto rhs= op->getOperand(0);
+    auto lhs= op->getOperand(1);
+    this->combUpdate.push_back("\t"+ value2str(&res)+"="+ value2str(&rhs) + " "+c+" " + value2str(&lhs) + ";\n");
+  } else {
+    llvm::errs() << "Operation " << op << " is not a binary op\n";
   }
 
-  out << indent << "}\n";
 }
 
-void CustomCEmitter::printCallOp(CallOp *callOp, std::ostringstream &out,
-                                 std::string indent) {
-  auto results = callOp->getNumResults();
-  assert(results <= 1);
-  out << indent;
-  if (results == 1) {
-    out << type2str(callOp->getResult(0)->getType()) << " "
-        << getFreshVar(callOp->getOperation()) << " = ";
+
+
+void  CustomCEmitter::printAlpha(SpecHLS::AlphaOp op) {
+    auto arrayType = type2str(op->getResultTypes()[0]);
+    //auto arrayType = type2str(op->getOperand(0).getType());
+
+    this->globals.push_back(arrayType+" update_"+op.getNameAttrName().str()+"(" + argList(op->getOperands(), ",") + ");\n");
+    this->combUpdate.push_back("\tupdate_"+op.getNameAttrName().str()+"(" + valueList(op->getOperands(), ",") + ");\n");
+}
+
+void  CustomCEmitter::printDelay(SpecHLS::DelayOp op) {
+  auto res = op.getResult();
+  auto type = type2str(op->getResultTypes()[0]);
+  this->globals.push_back("DelayLine <"+type+","+std::to_string(op.getDepth())+"> "+ getId(op)+ ";\n");
+
+  this->syncUpdate.push_back(getId(op)+".pop();\n");
+  this->combUpdate.push_back(getId(op)+".push(" + valueList(op->getOperands(), ",") + ");\n");
+}
+
+void  CustomCEmitter::printLUT(SpecHLS::LookUpTableOp op) {
+  auto res = op.getResult();
+  this->combUpdate.push_back("\t"+ value2str(&res)+"=LUT_[" + valueList(op->getOperands(), "][") + "];\n");
+}
+
+
+void  CustomCEmitter::printGamma(SpecHLS::GammaOp op) {
+  auto control = op->getOperand(0);
+  this->combUpdate.push_back("switch("+value2str(&control)+") {\n");
+  uint32_t item =0;
+  auto res = op.getResult();
+  for (auto data : op->getOperands().drop_front(1)) {
+    this->combUpdate.push_back( "case " + std::to_string(item++) + ": "+ value2str(&res)+"="+ value2str(&data)+  "; break; ");
   }
-  out << callOp->callee().str() << "(";
-  interleave(
-      callOp->operands().begin(), callOp->operands().end(),
-      [&](Value *operand) { out << value2str(operand); }, [&] { out << ","; });
-  out << ");\n";
+  auto default_value= op->getOperands().back();
+  this->combUpdate.push_back( "default : "+ value2str(&res)+"="+ value2str(&default_value)+  "; break; ");
+  this->combUpdate.push_back("}\n");
 }
 
-void CustomCEmitter::printDefaultOp(Operation *op, std::ostringstream &out,
-                                    std::string indent) {
-  op->emitWarning("Unsupported");
-  llvm_unreachable("Default operation printing reached - UNSUPPORTED");
+void  CustomCEmitter::printArrayRead(SpecHLS::ArrayReadOp op) {
+  auto res = op.getResult();
+  auto type = type2str(op->getResultTypes()[0]);
+
+  this->globals.push_back("SpecRead<"+type+",0,0> "+ getId(op)+ ";\n");
+
+  this->combUpdate.push_back(getId(op)+ " read(" + valueList(op->getOperands(), ",") + ");\n");
 }
 
-void CustomCEmitter::printOperation(Operation *op, std::ostringstream &out,
-                                    std::string indent) {
-  if (isa<gpu::ReturnOp>(op) || isa<mlir::ReturnOp>(op))
-    printReturnOp(op, out, indent);
-  else if (auto c = dyn_cast<ConstantOp>(op))
-    printConstantOp(&c, out, indent);
-  else if (auto fpOp = dyn_cast<SIToFPOp>(op))
-    printSIToFPOp(&fpOp, out, indent);
-  else if (auto castOp = dyn_cast<MemRefCastOp>(op))
-    printMemRefCastOp(&castOp, out, indent);
-  else if (auto cmpOp = dyn_cast<CmpFOp>(op))
-    printCmpFOp(&cmpOp, out, indent);
-  else if (auto selOp = dyn_cast<SelectOp>(op))
-    printSelectOp(&selOp, out, indent);
-  else if (auto sqrt = dyn_cast<comb::SqrtfOp>(op))
-    printSqrtfOp(&sqrt, out, indent);
-  else if (auto fabs = dyn_cast<comb::FabsOp>(op))
-    printFabsOp(&fabs, out, indent);
-  else if (auto exp = dyn_cast<comb::ExpOp>(op))
-    printExpOp(&exp, out, indent);
-  else if (auto pow = dyn_cast<comb::PowOp>(op))
-    printPowOp(&pow, out, indent);
-  else if (auto ifOp = dyn_cast<loop::IfOp>(op))
-    printIfOp(ifOp, out, indent);
-  else if (auto launchFunc = dyn_cast<gpu::LaunchFuncOp>(op))
-    printLaunchFuncOp(&launchFunc, out, indent);
-  else if (auto allocOp = dyn_cast<AllocOp>(op))
-    printAllocOp(&allocOp, out, indent);
-  else if (auto deallocOp = dyn_cast<DeallocOp>(op))
-    printDeallocOp(&deallocOp, out, indent);
-  else if (auto storeOp = dyn_cast<StoreOp>(op))
-    printStoreOp(&storeOp, out, indent);
-  else if (auto loadOp = dyn_cast<LoadOp>(op))
-    printLoadOp(&loadOp, out, indent);
-  else if (auto forOp = dyn_cast<loop::ForOp>(op))
-    printForLoop(&forOp, out, indent);
-  else if (auto callOp = dyn_cast<CallOp>(op))
-    printCallOp(&callOp, out, indent);
-  else if (!printKernelVar(op, out, indent) &&
-           !printArithmetics(op, out, indent) && !isa<loop::TerminatorOp>(op))
-    printDefaultOp(op, out, indent);
+void  CustomCEmitter::printMu(SpecHLS::MuOp op) {
+  auto res = op.getResult();
+  auto next = op.getNext();
+  auto init = op.getInit();
+  this->init.push_back("\t"+ value2str(&res)+"= "+value2str(&init)+"();\n");
+  this->syncUpdate.push_back("\t"+ value2str(&res)+"= "+value2str(&next)+"();\n");
 }
 
-void CustomCEmitter::printFunction(Operation *op, std::ostringstream &out,
-                                   std::string indent) {
-  launchFuncDeviceVars.clear();
-  auto func_op = static_cast<FuncOp>(op);
-  auto nresults = func_op.getType().getNumResults();
+void  CustomCEmitter::printExit(SpecHLS::ExitOp op) {
+  auto in = op->getOperand(0);
+  this->combUpdate.push_back("\texit = " +value2str(&in)+";\n");
 
-  if (nresults > 1) {
-    llvm_unreachable("Function has more than 1 result.");
+}
+
+void CustomCEmitter::printCast(mlir::UnrealizedConversionCastOp op) {
+  auto res = op.getResult(0);
+  auto in = op->getOperand(0);
+  auto type =  op.getResultTypes()[0];
+  this->combUpdate.push_back("\t"+ value2str(&res)+"= ("+type2str(type)+") "+value2str(&in)+";\n");
+}
+
+void  CustomCEmitter::printInstance(circt::hw::InstanceOp op) {
+
+}
+
+void  CustomCEmitter::printConstant(circt::hw::ConstantOp op) {
+  auto res = op.getResult();
+  if (op.getType().isSignedInteger()) {
+    this->init.push_back("\t"+ value2str(&res)+"= "+std::to_string(op.getValue().getSExtValue())+";\n");
+  } else {
+    this->init.push_back("\t"+ value2str(&res)+"= "+std::to_string(op.getValue().getZExtValue())+";\n");
   }
+}
+void  CustomCEmitter::printOutput(circt::hw::OutputOp op)  {
+  this->init.push_back("return {"+valueList(op->getOperands(),",")+"}");
+}
+void  CustomCEmitter::printHWModule(circt::hw::HWModuleOp op)  {
+  auto hwop = static_cast<circt::hw::HWModuleOp>(op);
 
   auto funcName = getFuncName(op);
 
-  out << indent;
+
+
+
+  using namespace std;
+
+
   std::string declaration;
-  if (isKernelFunc(op))
-    declaration += "__global__ ";
 
-  if (isHostFunc(op))
-    declaration += "__host__ ";
-
-  if (nresults == 0) {
+  if (hwop->getNumResults() == 0) {
     declaration += "void ";
   } else {
-    declaration += type2str(func_op.getType().getResult(0)) + " ";
+    declaration += type2str(hwop->getResult(0).getType()) + " ";
   }
 
   declaration += funcName + "(";
 
-  for (unsigned int i = 0; i < func_op.getNumArguments(); i++) {
+  for (unsigned int i = 0; i < hwop->getNumOperands(); i++) {
     Type arg_type;
     std::string arg_name = "arg" + std::to_string(i);
-    if (!func_op.getBody().getBlocks().empty()) {
-      Value *a = func_op.getArgument(i);
-      argToName[a] = arg_name;
-      arg_type = a->getType();
+    if (!hwop.getBody().getBlocks().empty()) {
+      auto a = hwop.getBody().getArguments()[i];
+      //argToName[a] = arg_name;
+      arg_type = a.getType();
     } else {
-      arg_type = func_op.getType().getInput(i);
+      arg_type = hwop->getOperands()[i].getType();
     }
     declaration += (i == 0 ? "" : ", ") + type2str(arg_type) + " " + arg_name;
   }
   declaration += ")";
-  funcDeclarations.push_back(declaration);
-  out << declaration << " {\n";
+  this->declarations.push_back(declaration);
 
-  for (auto &block : func_op.getBody()) {
+  llvm::outs() << declaration << " {\n";
+
+  for (auto &block : hwop.getBody()) {
     for (auto &inner_op : block.getOperations()) {
       if (op == &inner_op)
         return;
-      printOperation(&inner_op, out, indent + "    ");
+      printOperation(&inner_op);
     }
   }
-  for (auto var : launchFuncDeviceVars)
-    out << indent << "    cudaFree(" << var << ");\n";
-  out << "}\n";
-}
-} // namespace customc
-} // namespace mlir
 
-static TranslateFromMLIRRegistration
-    registration("mlir-to-cudac",
-                 [](ModuleOp module, llvm::raw_ostream &output) {
-                   auto translation = new gpu::CustomCEmitter();
-                   translation->translateModule(module, output);
-                   return success();
-                 });
+  ofstream oFile;
+  oFile.open(funcName+".cpp");
+
+  for (auto &i : includes)
+    oFile << i;
+
+  for (auto &g : globals)
+    oFile << g;
+
+  for (auto &d : declarations)
+    oFile << d;
+  oFile << "bool exit;";
+  for (auto &i : init)
+    oFile << i;
+
+  oFile << "do {";
+  for (auto &c : combUpdate)
+    oFile << c;
+  for (auto &s : syncUpdate)
+    oFile << s;
+  oFile << "while (!exit);";
+  oFile << "}";
+
+}
+void  CustomCEmitter::printExtern(circt::hw::HWModuleExternOp op)  {}
+
+void CustomCEmitter::printDefault(Operation *op) {
+  op->emitWarning("Unsupported");
+  llvm_unreachable("Default operation printing reached - UNSUPPORTED");
+}
+
+
+void printUnaryOp(Operation args, std::string op) ;
+
+
+void CustomCEmitter::printOperation(Operation *op) {
+
+  TypeSwitch<Operation *>(op)
+
+
+      //  .Case<SpecHLS::InitOp>([&](auto op) {printInit(op);})
+      .Case<circt::hw::ConstantOp>([&](auto op) {printConstant(op);})
+      .Case<SpecHLS::MuOp>([&](auto op) {printMu(op);})
+      .Case<circt::hw::InstanceOp>([&](auto op) {printInstance(op);})
+      .Case<circt::hw::OutputOp>([&](auto op) {printOutput(op);})
+
+      .Case<SpecHLS::DelayOp>([&](auto op) {printDelay(op);})
+      .Case<SpecHLS::GammaOp>([&](auto op) {printGamma(op);})
+      .Case<SpecHLS::RollbackOp>([&](auto op) {printRollback(op);})
+      .Case<SpecHLS::AlphaOp>([&](auto op) {printAlpha(op);})
+      .Case<SpecHLS::ArrayReadOp>([&](auto op)  {printArrayRead(op);})
+      .Case<SpecHLS::EncoderOp>([&](auto op)  {printEncoder(op);})
+      .Case<SpecHLS::DecoderOp>([&](auto op)  {printDecoder(op);})
+
+      .Case<circt::comb::MulOp>([&](auto op) {printBinaryOp(op,"*");})
+      .Case<circt::comb::AddOp>([&](auto op) {printBinaryOp(op,"+");})
+      .Case<circt::comb::SubOp>([&](auto op) {printBinaryOp(op,"-");})
+      .Case<circt::comb::AndOp>([&](auto op) {printBinaryOp(op,"&");})
+      .Case<circt::comb::OrOp >([&](auto op)   {printBinaryOp(op,"|");})
+      .Case<circt::comb::XorOp>([&](auto op) {printBinaryOp(op,"^");})
+      .Case<circt::comb::DivSOp>([&](auto op) {printBinaryOp(op,"/");})
+      .Case<circt::comb::DivUOp>([&](auto op) {printBinaryOp(op,"/");})
+      .Case<circt::comb::ModSOp>([&](auto op) {printBinaryOp(op,"%");})
+      .Case<circt::comb::ModUOp>([&](auto op) {printBinaryOp(op,"%");})
+      .Case<circt::comb::ShrUOp>([&](auto op) {printBinaryOp(op,">>");})
+      .Case<circt::comb::ShrSOp>([&](auto op) {printBinaryOp(op,">>");})
+      .Case<circt::comb::ShlOp >([&](auto op)   {printBinaryOp(op,"<<");})
+
+      .Case<mlir::UnrealizedConversionCastOp>([&](auto op) {printCast(op);})
+
+      .Case<circt::comb::ConcatOp>([&](circt::comb::ConcatOp op) {printConcat(op);})
+      .Case<circt::comb::ExtractOp>([&](circt::comb::ExtractOp op) {printExtract(op);})
+      .Case<circt::comb::ICmpOp>([&](auto op) {printCompare(op);})
+      .Case<circt::comb::MuxOp>([&](auto op) {printMux(op);})
+
+      .Case<SpecHLS::PrintOp>([&](auto op)  {printPrint(op);})
+      .Case<SpecHLS::ExitOp>([&](auto op) {printExit(op);})
+
+      .Default([&](auto op) {
+        llvm::outs() << " default filter  " << *op << "\n";
+        return std::string (" ");
+      });
+}
