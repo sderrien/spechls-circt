@@ -38,7 +38,6 @@ std::unique_ptr<mlir::OperationPass<>> createMergeLookUpTablesPass();
 std::unique_ptr<mlir::OperationPass<>> createFactorGammaInputsPass();
 std::unique_ptr<mlir::OperationPass<>> createGenerateCPass();
 std::unique_ptr<mlir::Pass> createYosysOptimizer();
-std::unique_ptr<mlir::Pass> createGecosSchedulePass();
 
 std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>>
 createGroupControlNodePass();
@@ -57,7 +56,6 @@ void registerYosysOptimizerPipeline();
 #define GEN_PASS_DEF_GROUPCONTROLNODEPASS
 #define GEN_PASS_DEF_GENERATECPASS
 #define GEN_PASS_DEF_YOSYSOPTIMIZER
-#define GEN_PASS_DECL_GECOSSCHEDULEPASS
 
 #include "Transforms/Passes.h.inc"
 

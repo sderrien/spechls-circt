@@ -1,9 +1,14 @@
 #include "Scheduling/Algorithms.h"
 #include "circt/Dialect/SSP/Utilities.h"
 #include "circt/Scheduling/Utilities.h"
+#include "mlir/IR/Builders.h"
 #include <iostream>
+#include <map>
 
 using namespace mlir;
+using namespace SpecHLS;
+
+static constexpr bool debug = false;
 
 struct StartTime {
 public:
@@ -24,6 +29,20 @@ public:
     return os;
   }
 };
+
+void put(std::map<Operation *, unsigned> &map, Operation *key, unsigned value) {
+  auto oldValue = map[key];
+  map[key] = (oldValue > value) ? oldValue : value;
+}
+
+unsigned getSumDistance(GammaMobilityProblem &prob) {
+  unsigned distance = 0;
+  for (auto *op : prob.getOperations())
+    for (auto &dep : prob.getDependences(op))
+      if (dep.isAuxiliary())
+        distance += *prob.getDistance(dep);
+  return distance;
+}
 
 StartTime getEndTime(GammaMobilityProblem &prob, StartTime startTime,
                      Operation *op) {
@@ -75,17 +94,36 @@ bool fixpointReached(
     GammaMobilityProblem &prob,
     std::vector<std::unordered_map<Operation *, StartTime>> &scheduled,
     unsigned iteration, unsigned maxDep) {
+  if (debug) {
+    std::cerr << "computing fixpoint for iteration " << iteration << "."
+              << std::endl;
+    for (auto *op : prob.getOperations()) {
+      op->dump();
+      std::cerr << scheduled[iteration - 1][op] << std::endl;
+    }
+  }
   if ((iteration < maxDep) || (iteration < 3))
     return false;
   for (auto *op : prob.getOperations()) {
     auto t1 = scheduled[iteration - 3][op];
     auto t2 = scheduled[iteration - 2][op];
     auto t3 = scheduled[iteration - 1][op];
-    if (t2.second != t3.second)
+    if (t2.second != t3.second) {
+      if (debug)
+        std::cerr << "iteration " << iteration << ": fixpoint not reached."
+                  << std::endl;
       return false;
-    if ((t3.first - t2.first) != (t2.first - t1.first))
+    }
+    if ((t3.first - t2.first) != (t2.first - t1.first)) {
+      if (debug)
+        std::cerr << "iteration " << iteration << ": fixpoint not reached."
+                  << std::endl;
       return false;
+    }
   }
+  if (debug)
+    std::cerr << "iteration " << iteration << ": fixpoint reached."
+              << std::endl;
   return true;
 }
 
@@ -95,7 +133,8 @@ StartTime ceil(StartTime t) {
   return std::make_pair(t.first + 1, 0.0);
 }
 
-LogicalResult scheduleASAP(GammaMobilityProblem &prob, float cycleTime) {
+LogicalResult SpecHLS::scheduleASAP(GammaMobilityProblem &prob,
+                                    float cycleTime) {
   std::vector<std::unordered_map<Operation *, StartTime>> scheduled;
   unsigned maxDep = 0;
   for (auto *op : prob.getOperations())
@@ -103,8 +142,9 @@ LogicalResult scheduleASAP(GammaMobilityProblem &prob, float cycleTime) {
       if (dep.isAuxiliary())
         maxDep = std::max(maxDep, *prob.getDistance(dep));
     }
-  unsigned iteration = 0;
-  do {
+  unsigned iteration;
+  unsigned sumDistance = getSumDistance(prob);
+  for (iteration = 0; iteration < 2 * sumDistance; ++iteration) {
     if (failed(handleOperationsInTopologicalOrder(prob, [&](Operation *op) {
           if (prob.getDependences(op).empty()) {
             prob.setStartTimeInCycle(op, 0.0);
@@ -162,23 +202,22 @@ LogicalResult scheduleASAP(GammaMobilityProblem &prob, float cycleTime) {
                                          *prob.getStartTimeInCycle(op)));
     }
     scheduled.push_back(current);
-    ++iteration;
-  } while (!fixpointReached(prob, scheduled, iteration, maxDep));
-  std::cout << "end" << std::endl;
-  auto &last = scheduled.back();
-  int minCycle = -1;
-  for (auto *op : prob.getOperations()) {
-    if (minCycle < 0)
-      minCycle = last[op].first;
-    else
-      minCycle = std::min((unsigned)minCycle, last[op].first);
   }
-  for (auto *op : prob.getOperations()) {
-    prob.setStartTime(op, last[op].first - minCycle);
-    prob.setStartTimeInCycle(op, last[op].second);
-  }
-  auto *op = prob.getOperations().front();
-  prob.setInitiationInterval(scheduled[iteration - 1][op].first -
-                             scheduled[iteration - 2][op].first);
+
+  for (auto *op : prob.getOperations())
+    if (op->hasAttr("SpecHLS.gamma")) {
+      unsigned minPosition = UINT_MAX;
+      for (unsigned iteration = sumDistance; iteration < 2 * sumDistance;
+           ++iteration)
+        minPosition =
+            std::min(minPosition, scheduled[iteration][op].first -
+                                      scheduled[iteration - 1][op].first);
+      prob.setMinPosition(op, minPosition);
+      op->dump();
+      if (debug) {
+        op->dump();
+        std::cerr << "min position: " << minPosition << std::endl;
+      }
+    }
   return success();
 }

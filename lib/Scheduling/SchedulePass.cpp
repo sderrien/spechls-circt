@@ -1,7 +1,8 @@
 #include "Scheduling/Transforms/SchedulePass.h"
 #include "Scheduling/Algorithms.h"
 #include "Scheduling/Problems.h"
-#include "Transforms/Passes.h"
+#include "Scheduling/SchedulingProperty.h"
+#include "Scheduling/Transforms/Passes.h"
 #include "circt/Dialect/SSP/SSPOps.h"
 #include "circt/Dialect/SSP/Utilities.h"
 #include "circt/Scheduling/Problems.h"
@@ -11,32 +12,33 @@
 using namespace mlir;
 using namespace circt;
 using namespace ssp;
-
-namespace circt {
-namespace ssp {
 template <>
-struct Default<GammaMobilityProblem> {
-  static constexpr auto operationProperties =
-      Default<scheduling::ChainingCyclicProblem>::operationProperties;
-  static constexpr auto operatorTypeProperties =
-      Default<scheduling::ChainingCyclicProblem>::operatorTypeProperties;
-  static constexpr auto dependenceProperties =
-      Default<scheduling::ChainingCyclicProblem>::dependenceProperties;
-  static constexpr auto instanceProperties =
-      Default<scheduling::ChainingCyclicProblem>::instanceProperties;
+struct circt::ssp::Default<SpecHLS::GammaMobilityProblem> {
+  static constexpr auto operationProperties = std::tuple_cat(
+      circt::ssp::Default<
+          scheduling::ChainingCyclicProblem>::operationProperties,
+      std::make_tuple(SpecHLS::MinPositionAttr()));
+  static constexpr auto operatorTypeProperties = circt::ssp::Default<
+      scheduling::ChainingCyclicProblem>::operatorTypeProperties;
+  static constexpr auto dependenceProperties = circt::ssp::Default<
+      scheduling::ChainingCyclicProblem>::dependenceProperties;
+  static constexpr auto instanceProperties = circt::ssp::Default<
+      scheduling::ChainingCyclicProblem>::instanceProperties;
 };
-} // namespace ssp
-} // namespace circt
 
 namespace SpecHLS {
 
-static std::optional<float> getCycleTime(StringRef options) {
+namespace {
+
+std::optional<float> getCycleTime(StringRef options) {
   for (StringRef option : llvm::split(options, ',')) {
     if (option.consume_front("cycle-time="))
       return std::stof(option.str());
   }
   return std::nullopt;
 }
+
+} // namespace
 
 struct GecosSchedulePass
     : public impl::GecosSchedulePassBase<GecosSchedulePass> {
