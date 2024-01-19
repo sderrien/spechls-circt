@@ -30,6 +30,18 @@ using namespace mlir;
 using namespace circt;
 using namespace SpecHLS;
 
+std::string replace_all(std::string str, const std::string &remove, const std::string &insert)
+{
+  std::string::size_type pos = 0;
+  while ((pos = str.find(remove, pos)) != std::string::npos)
+  {
+    str.replace(pos, remove.size(), insert);
+    pos++;
+  }
+
+  return str;
+}
+
 namespace SpecHLS {
 
 struct GenerateCPass : public impl::GenerateCPassBase<GenerateCPass> {
@@ -105,6 +117,48 @@ struct GenerateCPass : public impl::GenerateCPassBase<GenerateCPass> {
 public:
   void runOnOperation() override {
     auto *ctx = &getContext();
+    auto op = getOperation();
+
+    bool res =
+        TypeSwitch<Operation *, bool>(op)
+            .Case<circt::comb::AndOp>([&](auto op) {
+              llvm::outs() << " found and " << *op << "\n";
+              return true;
+            })
+            .Case<circt::comb::OrOp>([&](auto op) {
+              return true;
+            })
+            .Case<circt::comb::XorOp>([&](auto op) {
+              return true;
+            })
+            .Case<circt::comb::ExtractOp>([&](circt::comb::ExtractOp extract) {
+              auto pattern = R"(
+                if ({{expr}}) {
+                    {}
+                } else {
+                    {}
+                )";
+
+              std::string str = replace_all(replace_all(replace_all(pattern,
+                       "{{first_name}}", "Homer"),
+                       "{{last_name}}", "Simpson"),"{{location}}", "Springfield");
+                return true;
+                  ;
+            })
+            .Case<circt::comb::ConcatOp>(
+                [&](auto op) { return true; })
+            .Case<circt::comb::MuxOp>([&](auto op) { return true; })
+            .Case<circt::comb::TruthTableOp>(
+                [&](auto op) { return true; })
+            .Case<SpecHLS::LookUpTableOp>(
+                [&](auto op) { return true; })
+            .Default([&](auto op) {
+              llvm::outs() << " default filter  " << *op << "\n";
+              return false;
+            });
+    llvm::outs() << " res " << res << "\n";
+
+
     //
     //    target.addIllegalDialect<arith::ArithDialect>();
     //    MapArithTypeConverter typeConverter;
@@ -118,7 +172,7 @@ public:
     //    {
     //      llvm::errs() << "partial conversion failed pattern  \n";
     signalPassFailure();
-    //    }
+
   }
 };
 
