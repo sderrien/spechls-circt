@@ -28,12 +28,13 @@ def SpecHLSToComb : Pass<"lower-spechls-to-comb", "mlir::ModuleOp"> {
   ];
 }
 
-def SpecHLSToArc : Pass<"lower-spechls-to-comb", "mlir::ModuleOp"> {
-  let summary = "Lower SPECHLS to arc";
-  let constructor = "createConvertSpecHLSToArcPass()";
+def SpecHLSLUTToComb : Pass<"lower-SpecHLSLUT-to-comb", "SpecHLS::LookUpTableOp"> {
+  let summary = "Lower SPECHLS to comb";
+  let constructor = "createConvertSpecHLSLUTToCombPass()";
   let dependentDialects = [
-    "circt::hw::HWDialect,circt::arc::ArcDialect,circt::seq::SeqDialect,SpecHLS::SpecHLSDialect"
+    "circt::hw::HWDialect,circt::comb::CombDialect,SpecHLS::SpecHLSDialect"
   ];
 }
+
 
 #endif // CIRCT_CONVERSION_PASSES_TD
