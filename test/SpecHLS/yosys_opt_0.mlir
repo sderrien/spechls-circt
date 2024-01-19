@@ -1,3 +1,4 @@
+// RUN: spechls-opt --yosys-optimizer="replace-with-optimized-module=true" %s | spechls-opt | FileCheck %s
 // /opt/circt-prefix/bin/circt-opt --yosys-optimizer="replace-with-optimized-module=true"  test_verilog.mlir
 module {
 
