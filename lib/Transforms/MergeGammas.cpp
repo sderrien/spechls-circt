@@ -113,7 +113,7 @@ struct GammaMergingPattern : OpRewritePattern<GammaOp> {
                 op.getLoc(), addrType, concatOp.getResult(),
                 rewriter.getI32ArrayAttr(content));
 
-            rewriter.replaceOpWithNewOp<GammaOp>(op, op->getResultTypes(),
+            rewriter.replaceOpWithNewOp<GammaOp>(op, op->getResultTypes(),op.getName(),
                                                  lutSelect.getResult(),
                                                  ValueRange(muxOperands));
 
