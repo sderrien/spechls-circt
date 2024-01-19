@@ -6,6 +6,21 @@
 #include <string>
 #include <utility>
 
+#include "SpecHLS/SpecHLSDialect.h"
+#include "SpecHLS/SpecHLSOps.h"
+#include "SpecHLS/SpecHLSUtils.h"
+#include "Transforms/Passes.h"
+#include "circt/Dialect/Comb/CombOps.h"
+#include "circt/Dialect/HW/HWAttributes.h"
+#include "circt/Dialect/HW/HWInstanceGraph.h"
+#include "circt/Dialect/HW/HWOpInterfaces.h"
+#include "circt/Dialect/HW/HWOps.h"
+#include "circt/Dialect/HW/HWSymCache.h"
+#include "circt/Dialect/HW/InnerSymbolNamespace.h"
+#include "circt/Dialect/SV/SVPasses.h"
+#include "circt/Dialect/Seq/SeqDialect.h"
+#include "circt/Dialect/Seq/SeqOps.h"
+#include "circt/Support/Namespace.h"
 #include "kernel/rtlil.h"                  // from @at_clifford_yosys
 #include "mlir/Dialect/Arith/IR/Arith.h"   // from @llvm-project
 #include "mlir/Dialect/Func/IR/FuncOps.h"  // from @llvm-project
@@ -17,7 +32,6 @@
 #include "mlir/Support/LLVM.h"             // from @llvm-project
 #include "mlir/Transforms/FoldUtils.h"     // from @llvm-project
 #include "llvm/ADT/MapVector.h"            // from @llvm-project
-
 namespace mlir {
 
 using ::Yosys::RTLIL::Module;
@@ -69,6 +83,9 @@ Value RTLILImporter::getBit(
   // removed redundant wire-wire mappings, the cell's inputs must be a bit
   // of an input wire, in the map of already defined wires (which are
   // bits), or a constant bit.
+  if (!(conn.is_wire() || conn.is_fully_const() || conn.is_bit())) {
+    llvm::outs() << " connection " << conn.as_string() << "\n";
+  }
   assert(conn.is_wire() || conn.is_fully_const() || conn.is_bit());
   if (conn.is_wire()) {
     auto name = conn.as_wire()->name.str();
@@ -106,12 +123,12 @@ void RTLILImporter::addResultBit(
   auto bit = conn.as_bit();
   assert(bit.is_wire() && retBitValues.contains(bit.wire));
   auto offset = retBitValues[bit.wire].size() - bit.offset - 1;
+  llvm::outs() << "retBitValues[" << bit.wire << "][" << offset
+               << "] =" << result << "\n";
   retBitValues[bit.wire][offset] = result;
 }
 
-func::FuncOp
-RTLILImporter::importModule(Module *module,
-                            const SmallVector<std::string, 10> &cellOrdering) {
+circt::hw::HWModuleOp RTLILImporter::importModule(Module *module, const SmallVector<std::string, 10> &cellOrdering) {
   // Gather input and output wires of the module to match up with the block
   // arguments.
   SmallVector<Type, 4> argTypes;
@@ -136,33 +153,64 @@ RTLILImporter::importModule(Module *module,
     }
   }
 
-  // Build function.
-  // TODO(https://github.com/google/heir/issues/111): Pass in data to fix
-  // function location.
-  FunctionType funcType = builder.getFunctionType(argTypes, retTypes);
-  auto function = func::FuncOp::create(
-      builder.getUnknownLoc(), module->name.str().replace(0, 1, ""), funcType);
-  function.setPrivate();
+  SmallVector<circt::hw::PortInfo> ports;
+  size_t id = 0;
+  int label_id = 0;
+  for (auto argtype : argTypes) {
+    // auto port = ;
+    auto portName = builder.getStringAttr("in" + std::to_string(label_id));
+    ports.push_back(
+        {{portName, argtype, circt::hw::ModulePort::Direction::Input}, id});
+    label_id++;
+    id++;
+  }
+  label_id = 0;
+  id = 0;
+  for (auto restype : retTypes) {
+    auto portName = builder.getStringAttr("out" + std::to_string(label_id));
+    ports.push_back(
+        {{portName, restype, circt::hw::ModulePort::Direction::Output}, id});
+    label_id++;
+    id++;
+  }
+  StringAttr nameAttr =
+      builder.getStringAttr(module->name.str().replace(0, 1, "")+std::string("_opt"));
 
-  auto *block = function.addEntryBlock();
-  auto b = ImplicitLocOpBuilder::atBlockBegin(function.getLoc(), block);
 
+  auto submodule = builder.create<circt::hw::HWModuleOp>(builder.getUnknownLoc(), nameAttr, ports);
+
+
+  mlir::Block *block = submodule.getBodyBlock();
   // Map the RTLIL wires to the block arguments' Values.
   for (auto i = 0; i < wireArgs.size(); i++) {
     addWireValue(wireArgs[i], block->getArgument(i));
   }
+  auto b = ImplicitLocOpBuilder::atBlockBegin(submodule.getLoc(), block);
+
+  auto ctcx = b.getContext();
 
   // Convert cells to Operations according to topological order.
   for (const auto &cellName : cellOrdering) {
-    assert(module->cells_.count("\\" + cellName) != 0 &&
+
+    assert(module->cells_.count(cellName) != 0 &&
            "expected cell in RTLIL design");
-    auto *cell = module->cells_["\\" + cellName];
+    auto *cell = module->cells_[cellName];
 
     SmallVector<Value, 4> inputValues;
+
     for (const auto &conn : getInputs(cell)) {
-      inputValues.push_back(getBit(conn, b, retBitValues));
+      if (conn.is_wire()) {
+        auto wire = conn.as_wire();
+        auto name = wire->name.str();
+        auto bit = getBit(conn, b, retBitValues);
+        inputValues.push_back(bit);
+      } else {
+        auto bit = getBit(conn, b, retBitValues);
+        inputValues.push_back(bit);
+      }
     }
     auto *op = createOp(cell, inputValues, b);
+    llvm::outs() << "op created " << *op << "\n";
     auto resultConn = getOutput(cell);
     addResultBit(resultConn, op->getResult(0), retBitValues);
   }
@@ -201,13 +249,19 @@ RTLILImporter::importModule(Module *module,
     } else {
       // We are in a multi-bit scenario.
       assert(retBits.size() > 1);
-      auto concatOp = b.create<tensor::FromElementsOp>(retBits);
+      auto concatOp = b.create<circt::comb::ConcatOp>(retBits);
       returnValues.push_back(concatOp.getResult());
     }
   }
-  b.create<func::ReturnOp>(returnValues);
 
-  return function;
+
+  circt::hw::OutputOp outOp = cast<circt::hw::OutputOp>(block->getTerminator());
+
+  for (auto retVal : llvm::enumerate(returnValues)) {
+    //llvm::outs() << "out_" + std::to_string(retVal.index()) << " " << retVal.value() << "\n";
+    outOp->insertOperands(retVal.index(),retVal.value());
+  }
+  return submodule;
 }
 
 } // namespace mlir

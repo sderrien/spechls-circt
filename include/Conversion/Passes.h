@@ -40,20 +40,23 @@
 #include "mlir/IR/DialectRegistry.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassRegistry.h"
+#include "SpecHLS/SpecHLSDialect.h"
 
 #include "SpecHLS/SpecHLSDialect.h"
 
 namespace SpecHLS {
 
-std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>>
-createConvertSpecHLSToCombPass();
-std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>>
-createConvertSpecHLSToArcPass();
+std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>> createConvertSpecHLSToCombPass();
+std::unique_ptr<mlir::OperationPass<SpecHLS::LookUpTableOp>> createConvertSpecHLSLUTToCombPass();
 
 // Generate the code for registering conversion passes.
 #define GEN_PASS_REGISTRATION
 #define GEN_PASS_DEF_MERGEGAMMASPASS
-#define GEN_PASS_DEF_SPECHLSTOARC
+#define GEN_PASS_DEF_SPECHLSTOCOMB
+#define GEN_PASS_DEF_SPECHLSLUTTOCOMB
+#define GEN_PASS_DECL_MERGEGAMMASPASS
+#define GEN_PASS_DECL_SPECHLSTOCOMB
+#define GEN_PASS_DECL_SPECHLSLUTTOCOMB
 
 #include "Conversion/Passes.h.inc"
 

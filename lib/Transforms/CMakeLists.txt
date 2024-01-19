@@ -13,6 +13,7 @@ add_mlir_library(SpecHLSTransforms
 		LUTImporter.cpp
 		RTLILImporter.cpp
 		FactorGammaInputs.cpp
+		InlineOptimizedModules.cpp
 		MergeGammas.cpp
 		MergeLUTs.cpp
 		GenerateC.cpp
@@ -29,6 +30,8 @@ add_mlir_library(SpecHLSTransforms
 		MLIRSpecHLS
 		MLIRTransforms
 		)
+target_compile_options(SpecHLSTransforms PUBLIC -fexceptions)
+
 target_link_libraries(SpecHLSTransforms
 
 		PUBLIC

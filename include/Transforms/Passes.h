@@ -14,8 +14,13 @@
 #define SPECHLS_TRANSFORMS_PASSES_H
 
 #include "circt/Dialect/HW/HWOpInterfaces.h"
+#include "circt/Dialect/SV/SVDialect.h"
+#include "circt/Dialect/SSP/SSPDialect.h"
+#include "circt/Dialect/SSP/SSPDialect.h"
 #include "circt/Dialect/Seq/SeqDialect.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
+
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassRegistry.h"
@@ -39,6 +44,7 @@ std::unique_ptr<mlir::OperationPass<>> createFactorGammaInputsPass();
 std::unique_ptr<mlir::OperationPass<>> createGenerateCPass();
 std::unique_ptr<mlir::Pass> createYosysOptimizer();
 std::unique_ptr<mlir::Pass> createGecosSchedulePass();
+std::unique_ptr<mlir::Pass> createInlineModulesPass();
 
 std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>>
 createGroupControlNodePass();
@@ -56,9 +62,13 @@ void registerYosysOptimizerPipeline();
 #define GEN_PASS_DEF_FACTORGAMMAINPUTSPASS
 #define GEN_PASS_DEF_GROUPCONTROLNODEPASS
 #define GEN_PASS_DEF_GENERATECPASS
+#define GEN_PASS_DECL_YOSYSOPTIMIZER
 #define GEN_PASS_DEF_YOSYSOPTIMIZER
 #define GEN_PASS_DECL_GECOSSCHEDULEPASS
-
+#define GEN_PASS_DEF_GECOSSCHEDULEPASS
+#define GEN_PASS_DEF_YOSYSOPTIMIZER
+#define GEN_PASS_DEF_INLINEMODULES
+#define GEN_PASS_DECL_INLINEMODULES
 #include "Transforms/Passes.h.inc"
 
 } // namespace SpecHLS

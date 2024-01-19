@@ -68,10 +68,11 @@ def SpecHLS_GammaOp : SpecHLSOp<"gamma", [Pure]> {
         ```
     }];
 
-    let arguments = (ins SignlessIntegerLike:$select, Variadic<AnyType>:$inputs);
+    let arguments = (ins StrAttr:$name, SignlessIntegerLike:$select, Variadic<AnyType>:$inputs);
     let results = (outs AnyType:$res);
 
- 
+    let hasCanonicalizer = 1;
+
     let hasCustomAssemblyFormat = 1;
     //let assemblyFormat = "attr-dict  `(` $select `:` type($select) `,` ($inputs^ `:` type($inputs))? `)` `:`  type($res)";
 }
@@ -147,6 +148,21 @@ def SpecHLS_RollbackOp : SpecHLSOp<"rollback", [Pure,
 
 }
 
+def SpecHLS_PrintOp : SpecHLSOp<"ioprintf", [Pure]> {
+    let summary = "Rollback operation.";
+    let description = [{}];
+
+   let arguments = (ins StrAttr:$format,  I1:$state, I1:$enable,Variadic<AnyType>:$items);
+   let results = (outs I1:$newstate);
+
+//   let hasCustomAssemblyFormat =1;
+
+ let assemblyFormat = [{
+    $format `(` $items `:` type($items) `)` `from` $state `when` $enable attr-dict
+ }];
+
+}
+
 def SpecHLS_EncoderOp : SpecHLSOp<"encode", [Pure
 //,
 //    TypesMatchWith<"data and result type must match'",
@@ -165,7 +181,30 @@ def SpecHLS_EncoderOp : SpecHLSOp<"encode", [Pure
 
 
  let assemblyFormat = [{
-    $data `:` type($data) `as` type($result)  attr-dict
+    $data `:` type($data) `into` type($result)  attr-dict
+ }];
+
+}
+
+def SpecHLS_DecoderOp : SpecHLSOp<"decode", [Pure
+//,
+//    TypesMatchWith<"data and result type must match'",
+//                     "data", "result",
+//                     "::llvm::cast<mlir::MemRefType>($_self).getElementType()
+//                     std::ceil(std::log2(($_self).getWidth()))
+//                     "
+//                     >
+]> {
+    let summary = "encoder operation.";
+    let description = [{}];
+
+   let arguments = (ins AnyInteger:$data);
+   let results = (outs AnyInteger:$result);
+
+
+
+ let assemblyFormat = [{
+    $data `:` type($data) `into` type($result)  attr-dict
  }];
 
 }
@@ -195,8 +234,8 @@ def SpecHLS_LookUpTableOp : SpecHLSOp<"lookUpTable", [Pure]> {
    let arguments = (ins AnySignlessInteger:$input, I32ArrayAttr:$content);
    let results = (outs AnyInteger:$result);
 
-//  let hasCanonicalizer = 1;
-//  let hasFolder = 1;
+  let hasCanonicalizer = 1;
+  let hasFolder = 1;
    let hasCustomAssemblyFormat =1;
 }
 

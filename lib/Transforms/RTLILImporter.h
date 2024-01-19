@@ -11,6 +11,17 @@
 #include "mlir/Support/LLVM.h"            // from @llvm-project
 #include "llvm/ADT/MapVector.h"           // from @llvm-project
 #include "llvm/ADT/StringMap.h"           // from @llvm-project
+#include "circt/Dialect/Comb/CombOps.h"
+#include "circt/Dialect/HW/HWAttributes.h"
+#include "circt/Dialect/HW/HWInstanceGraph.h"
+#include "circt/Dialect/HW/HWOpInterfaces.h"
+#include "circt/Dialect/HW/HWOps.h"
+#include "circt/Dialect/HW/HWSymCache.h"
+#include "circt/Dialect/HW/InnerSymbolNamespace.h"
+#include "circt/Dialect/SV/SVPasses.h"
+#include "circt/Dialect/Seq/SeqDialect.h"
+#include "circt/Dialect/Seq/SeqOps.h"
+#include "circt/Support/Namespace.h"
 
 namespace mlir {
 // namespace heir {
@@ -36,9 +47,8 @@ public:
   // importModule imports an RTLIL module to an MLIR function using the provided
   // config. cellOrdering is a topologically sorted list of cells that can be
   // used to sequentially create the MLIR representation.
-  mlir::func::FuncOp
-  importModule(Yosys::RTLIL::Module *module,
-               const llvm::SmallVector<std::string, 10> &cellOrdering);
+  circt::hw::HWModuleOp
+  importModule(Yosys::RTLIL::Module *module, const llvm::SmallVector<std::string, 10> &cellOrdering);
 
 protected:
   // cellToOp converts an RTLIL cell to an MLIR operation.
@@ -57,6 +67,7 @@ private:
   mlir::MLIRContext *context;
 
   llvm::StringMap<mlir::Value> wireNameToValue;
+
   mlir::Value getWireValue(Yosys::RTLIL::Wire *wire);
   void addWireValue(Yosys::RTLIL::Wire *wire, mlir::Value value);
 
