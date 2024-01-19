@@ -3,6 +3,7 @@ ssp.instance @mobility of "GammaMobilityProblem" {
     operator_type @_mu [latency<1>, incDelay<0.0>, outDelay<0.0>]
     operator_type @_compute [latency<1>, incDelay<0.0>, outDelay<0.0>]
     operator_type @_gamma [latency<1>, incDelay<0.0>, outDelay<0.0>]
+    operator_type @_delay [latency<0>, incDelay<0.0>, outDelay<0.0>]
   }
   graph {
     %0 = operation<@_mu> @mu1(@op1 [dist<1>])
@@ -12,6 +13,8 @@ ssp.instance @mobility of "GammaMobilityProblem" {
     %4 = operation<@_compute> @op3(%3)
     %5 = operation<@_compute> @op4(%1)
     %6 = operation<@_compute> @op5(%5)
-    %7 = operation<@_gamma> @gamma(%4, %6) {"SpecHLS.gamma"}
+    %8 = operation<@_delay> @op6(@op3 [dist<1>])
+    %9 = operation<@_delay> @op7(@op5 [dist<1>])
+    %7 = operation<@_gamma> @gamma(%8, %9) {"SpecHLS.gamma"}
   }
 }

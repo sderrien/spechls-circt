@@ -3,6 +3,10 @@
 
 #include "Scheduling/Problems.h"
 
+namespace SpecHLS {
+
 mlir::LogicalResult scheduleASAP(GammaMobilityProblem &prob, float cycleTime);
+
+} // namespace SpecHLS
 
 #endif // SPECHLS_DIALECT_ALGORITHMS_H

@@ -21,6 +21,7 @@ def SpecHLS_Dialect : Dialect {
     let description = [{
         This dialect is tu support speculative pipelining in CIRCT .
     }];
+    let useDefaultAttributePrinterParser = true;
     let cppNamespace = "SpecHLS";
   }
 

@@ -35,7 +35,7 @@ set(LIBS
         CIRCTSeqTransforms
         CIRCTCAPISeq
 
-#        CIRCTComb
+        #        CIRCTComb
         CIRCTCAPIComb
 
         CIRCTSV
@@ -64,56 +64,56 @@ set(LIBS
         CIRCTVerifToSV
 
         #        CIRCTSV
-#        CIRCTSVTransforms
+        #        CIRCTSVTransforms
         CIRCTSSP
         CIRCTSSPTransforms
         CIRCTScheduling
         CIRCTSchedulingAnalysis
-#        CIRCTSeqTransforms
-#
-#        CIRCTHWArith
+        #        CIRCTSeqTransforms
+        #
+        #        CIRCTHWArith
         MLIRCAPIArith
-#        MLIRCAPIAsync
-#        MLIRCAPIControlFlow
-#        MLIRCAPIConversion
-#        MLIRCAPIDebug
-#        MLIRCAPIExecutionEngine
-#        MLIRCAPIInterfaces
-#        MLIRCAPILLVM
-#        MLIRCAPIMLProgram
-#        MLIRCAPIPDL
-#        MLIRCAPIQuant
-#        MLIRCAPIAMDGPU
-#        MLIRCAPIArith
-#        MLIRCAPIAsync
+        #        MLIRCAPIAsync
+        #        MLIRCAPIControlFlow
+        #        MLIRCAPIConversion
+        #        MLIRCAPIDebug
+        #        MLIRCAPIExecutionEngine
+        #        MLIRCAPIInterfaces
+        #        MLIRCAPILLVM
+        #        MLIRCAPIMLProgram
+        #        MLIRCAPIPDL
+        #        MLIRCAPIQuant
+        #        MLIRCAPIAMDGPU
+        #        MLIRCAPIArith
+        #        MLIRCAPIAsync
         MLIRCAPIControlFlow
         MLIRCAPIConversion
         MLIRCAPIDebug
         MLIRCAPIExecutionEngine
         MLIRCAPIFunc
-#        MLIRCAPIGPU
+        #        MLIRCAPIGPU
         MLIRCAPIIR
         MLIRCAPIInterfaces
-#        MLIRCAPILLVM
-#        MLIRCAPILinalg
-#        MLIRCAPIMLProgram
-#        MLIRCAPIMath
+        #        MLIRCAPILLVM
+        #        MLIRCAPILinalg
+        #        MLIRCAPIMLProgram
+        #        MLIRCAPIMath
         MLIRCAPIMemRef
-#        MLIRCAPINVGPU
-#        MLIRCAPINVVM
-#        MLIRCAPIOpenMP
-#        MLIRCAPIPDL
-#        MLIRCAPIQuant
-#        MLIRCAPIROCDL
-#        MLIRCAPIRegisterEverything
-#        MLIRCAPIShape
-#        MLIRCAPISparseTensor
-#        MLIRCAPITensor
+        #        MLIRCAPINVGPU
+        #        MLIRCAPINVVM
+        #        MLIRCAPIOpenMP
+        #        MLIRCAPIPDL
+        #        MLIRCAPIQuant
+        #        MLIRCAPIROCDL
+        #        MLIRCAPIRegisterEverything
+        #        MLIRCAPIShape
+        #        MLIRCAPISparseTensor
+        #        MLIRCAPITensor
         MLIRCAPITransformDialect
         MLIRCAPITransforms
-#        MLIRCAPIVector
+        #        MLIRCAPIVector
         MLIRCAPISCF
-        )
+)
 
 
 add_library(gecosapi SHARED
@@ -124,17 +124,16 @@ add_library(gecosapi SHARED
         BuiltinTypes.cpp
 
 )
-        #../lib/Analysis/RecMIIAnalysis.cpp) )
+#../lib/Analysis/RecMIIAnalysis.cpp) )
 
 #llvm_update_compile_flags(gecosapi)
 
 target_link_libraries(gecosapi PUBLIC ${LIBS})
 #target_link_libraries(gecosapi PUBLIC "-Wl,--whole-archive ${LIBSp} -Wl,--no-whole-archive"  ${LIBS})
 
+install(TARGETS gecosapi DESTINATION GecosAPI)
 
 set_target_properties(gecosapi PROPERTIES
         VERSION 1
         SOVERSION 1
         PUBLIC_HEADER include/CAPI/gecosapi.h)
-
-

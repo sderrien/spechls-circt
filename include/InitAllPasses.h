@@ -16,6 +16,7 @@
 
 #include "SpecHLS/SpecHLSDialect.h"
 #include "Conversion/Passes.h"
+#include "Scheduling/Transforms/Passes.h"
 #include "Scheduling/Transforms/SchedulePass.h"
 #include "Transforms/Passes.h"
 #include "circt/Transforms/Passes.h"
