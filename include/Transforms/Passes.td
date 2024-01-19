@@ -83,34 +83,61 @@ def YosysOptimizer : Pass<"yosys-optimizer"> {
   let summary = "Invoke Yosys to perform circuit optimization.";
 
   let constructor = "SpecHLS::createYosysOptimizer()";
-//  let constructor = "SpecHLS::createYosysOptimizer()";
 
-  let dependentDialects = ["circt::hw::HWDialect, mlir::arith::ArithDialect, circt::comb::CombDialect,circt::seq::SeqDialect,SpecHLS::SpecHLSDialect"];
 
-/*  let options = [
-    Option<"yosysFilesPath", "yosys-files-path", "std::string",
-           "\"?\"", "Yosys file path">,
-    Option<"abcPath", "abc-path", "std::string",
-           "\"?\"", "ABC file path">,
+  let options = [
+    Option<"replace", "replace-with-optimized-module", "bool",
+           "false", "Disable inlining modules that only feed test code">,
+    Option<"abc", "use-abc", "bool",
+           "false", "Enable ABC synthesis">
   ];
-*/
+
+  let description = [{ }];
+
+   let dependentDialects = ["circt::hw::HWDialect, circt::sv::SVDialect,SpecHLS::SpecHLSDialect, mlir::arith::ArithDialect, circt::comb::CombDialect,circt::seq::SeqDialect"];
+
+}
+
+def InlineModules : Pass<"inline-opt-modules", "mlir::ModuleOp"> {
+  let summary = "Inline Yosys optimized modules";
   let description = [{
-    This pass invokes Yosys to convert an arithmetic circuit to an optimized
-    boolean circuit that uses the arith and comb dialects.
 
-    Note that booleanization changes the function signature: multi-bit integers
-    are transformed to a tensor of booleans, for example, an `i8` is converted
-    to `tensor<8xi1>`.
   }];
-
-  let dependentDialects = [
-    "mlir::arith::ArithDialect",
-    "circt::comb::CombDialect",
-    "SpecHLS::SpecHLSDialect"
-  ];
+   let dependentDialects = [
+      "mlir::arith::ArithDialect",
+      "circt::comb::CombDialect",
+      "SpecHLS::SpecHLSDialect"
+    ];
+  let constructor = "SpecHLS::createInlineModulesPass()";
 }
 
 
+
+def GecosSchedulePass : Pass<"gecos-schedule", "mlir::ModuleOp"> {
+  let summary = "Schedule GammaMobilityProblem with ASAP.";
+  let description = [{
+    Schedule GammaMobilityProblem with ASAP.
+  }];
+
+let options = [
+    Option<"schedulerOptions", "options", "std::string", "",
+               "Scheduler-specific options.">
+  ];
+
+  let constructor = "SpecHLS::createGecosSchedulePass()";
+  let dependentDialects = ["circt::ssp::SSPDialect"];
+}
+
+def ExportVitisHLS : Pass<"export-vitis-hls"> {
+  let summary = "Export C code for Vitis HLS.";
+
+  let constructor = "SpecHLS::exportVitisHLS()";
+
+  let description = [{ }];
+
+   let dependentDialects = ["circt::hw::HWDialect, circt::sv::SVDialect,SpecHLS::SpecHLSDialect, mlir::arith::ArithDialect, circt::comb::CombDialect,circt::seq::SeqDialect"];
+
+}
 
 
 #endif // SPECHLS_TRANSFORMS_PASSES
