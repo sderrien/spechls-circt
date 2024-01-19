@@ -10,6 +10,9 @@
 #include "SpecHLS/SpecHLSOps.h"
 #include "SpecHLS/SpecHLSUtils.h"
 #include "Transforms/Passes.h"
+
+#include "mlir/Dialect/Func/IR/FuncOps.h"
+
 // #include "circt/Dialect/Comb/CombOps.h"
 // #include "circt/Dialect/HW/HWOpInterfaces.h"
 // #include "circt/Dialect/HW/HWOps.h"

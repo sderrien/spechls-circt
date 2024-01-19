@@ -31,7 +31,7 @@ void pass(const char *mlir);
 extern "C" {
 #endif
 
-* /
+
     // Registration for the entire group
     MLIR_CAPI_EXPORTED void createSchedulePass(void);
 MLIR_CAPI_EXPORTED void registerSchedulePass(void);
