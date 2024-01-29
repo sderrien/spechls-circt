@@ -2,9 +2,9 @@
 // Created by Steven on 19/01/2024.
 //
 
-#include "Conversion/SpecHLSConversion.h"
 #include "SpecHLS/SpecHLSDialect.h"
 #include "SpecHLS/SpecHLSOps.h"
+#include "Transforms/SpecHLSConversion.h"
 #include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/Seq/SeqOps.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
@@ -16,16 +16,16 @@ LogicalResult LookUpTableToTruthTableOpConversion::matchAndRewrite(LookUpTableOp
   auto content = op.getContent();
 
   SmallVector<Attribute> newContent[op.getType().getWidth()];
-  for (int i = 0; i < content.size(); i++) {
+  for (unsigned int i = 0; i < content.size(); i++) {
     auto innerValue = cast<IntegerAttr>(content[i]).getInt();
 
-    for (int k = 0; k < op.getType().getWidth(); k++) {
+    for (unsigned int k = 0; k < op.getType().getWidth(); k++) {
       newContent[k].push_back(rewriter.getBoolAttr((innerValue >> k) & 0x1));
     }
   }
   Operation *res = NULL;
-  for (int k = 0; k < op.getType().getWidth(); k++) {
-    for (int i = 0; i < content.size(); i++) {
+  for (unsigned int k = 0; k < op.getType().getWidth(); k++) {
+    for (unsigned int i = 0; i < content.size(); i++) {
       auto concat = rewriter.create<circt::comb::ExtractOp>(
           op.getLoc(), op->getOperand(0), k, 1);
       auto ttable = rewriter.create<circt::comb::TruthTableOp>(

@@ -94,7 +94,7 @@ Value RTLILImporter::getBit(
   }
   if (conn.is_fully_const()) {
     auto bit = conn.as_const();
-    auto constantOp = b.createOrFold<arith::ConstantOp>(
+    auto constantOp = b.createOrFold<circt::hw::ConstantOp>(
         b.getIntegerAttr(b.getIntegerType(1), bit.as_int()));
     return constantOp;
   }
@@ -106,8 +106,8 @@ Value RTLILImporter::getBit(
     return retBitValues[bit.wire][offset];
   }
   auto argA = getWireValue(bit.wire);
-  auto extractOp = b.create<tensor::ExtractOp>(
-      argA, b.create<arith::ConstantIndexOp>(bit.offset).getResult());
+  auto extractOp = b.create<circt::comb::ExtractOp>(
+      argA, bit.offset,1);
   return extractOp;
 }
 
