@@ -90,14 +90,14 @@ def YosysOptimizer : Pass<"yosys-optimizer","mlir::ModuleOp"> {
    let dependentDialects = ["circt::hw::HWDialect, circt::sv::SVDialect,SpecHLS::SpecHLSDialect, mlir::arith::ArithDialect, circt::comb::CombDialect,circt::seq::SeqDialect"];
 
 }
-
+/*
 def ControlOptimizer : Pass<"control-optimizer","circt::hw::HWModuleOp"> {
   let summary = "Invoke Yosys to perform circuit optimization.";
   let constructor = "SpecHLS::createControlOptimizer()";
   let description = [{ }];
   let dependentDialects = ["circt::hw::HWDialect, circt::sv::SVDialect,SpecHLS::SpecHLSDialect, mlir::arith::ArithDialect, circt::comb::CombDialect,circt::seq::SeqDialect"];
 }
-
+*/
 
 def InlineModules : Pass<"inline-opt-modules", "circt::hw::HWModuleOp"> {
   let summary = "Inline Yosys optimized modules";

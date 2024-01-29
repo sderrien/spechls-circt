@@ -30,6 +30,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+
+
 #include "mlir-c/Conversion.h"
 #include "mlir-c/Dialect/Func.h"
 #include "mlir-c/IR.h"
@@ -73,29 +75,30 @@
 #include <stdlib.h>
 #include <string.h>
 
+
 // FIXME move into include file
 MlirPass mlirCreateSchedulePass(void);
+MlirPass mlirCreateExportVitisHLS(void);
 
-#define DEFINE_GECOS_API_PASS(name, pass )                                     \
-MlirModule name (MlirModule module) {\
-  {\
-    MlirContext ctx = mlirModuleGetContext(module);\
-    MlirOperation op = mlirModuleGetOperation(module);\
-    MlirPassManager pm = mlirPassManagerCreate(ctx);\
-    MlirPass p = mlirCreate ## pass();\
-    mlirPassManagerAddOwnedPass(pm, p);\
-    MlirLogicalResult success = mlirPassManagerRunOnOp(pm, op);\
-    if (mlirLogicalResultIsFailure(success)) {\
-      fprintf(stderr, "Unexpected failure running pass manager.\n");\
-      exit(EXIT_FAILURE);\
-    }\
-    mlirPassManagerDestroy(pm);\
-  }\
-  return module;\
-  }
+#define DEFINE_GECOS_API_PASS(name, pass)                                     \
+MlirModule name(MlirModule module) { \
+  MlirContext ctx = mlirModuleGetContext(module); \
+  MlirOperation op = mlirModuleGetOperation(module); \
+  MlirPassManager pm = mlirPassManagerCreate(ctx); \
+  MlirPass p = mlirCreate##pass(); \
+  mlirPassManagerAddOwnedPass(pm, p); \
+  MlirLogicalResult success = mlirPassManagerRunOnOp(pm, op); \
+  if (mlirLogicalResultIsFailure(success)) { \
+    fprintf(stderr, "Unexpected failure running pass manager.\n"); \
+    exit(EXIT_FAILURE); \
+  } \
+  mlirPassManagerDestroy(pm); \
+  return module; \
+}
+
 
 DEFINE_GECOS_API_PASS(schedule,SchedulePass);
 DEFINE_GECOS_API_PASS(canonicalizeMLIR,TransformsCanonicalizer);
 
-DEFINE_GECOS_API_PASS(extractControl,Pass);
-DEFINE_GECOS_API_PASS(canonicalizeMLIR,TransformsCanonicalizer);
+DEFINE_GECOS_API_PASS(exportVitisHLS,ExportVitisHLS);
+//DEFINE_GECOS_API_PASS(extractControl,ExportVitis);
