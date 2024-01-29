@@ -68,7 +68,7 @@ def SpecHLS_GammaOp : SpecHLSOp<"gamma", [Pure]> {
         ```
     }];
 
-    let arguments = (ins StrAttr:$name, SignlessIntegerLike:$select, Variadic<AnyType>:$inputs);
+    let arguments = (ins FlatSymbolRefAttr:$name, SignlessIntegerLike:$select, Variadic<AnyType>:$inputs);
     let results = (outs AnyType:$res);
 
     let hasCanonicalizer = 1;
@@ -88,7 +88,7 @@ def SpecHLS_AlphaOp : SpecHLSOp<"alpha", [Pure,AttrSizedOperandSegments,
     let summary = "Array update operation.";
     let description = [{}];
 
-    let arguments = (ins StrAttr:$name, Arg<AnyMemRef, "the reference to update",[MemRead]>:$memref,
+    let arguments = (ins FlatSymbolRefAttr:$name, Arg<AnyMemRef, "the reference to update",[MemRead]>:$memref,
                         AnyType:$value,
                         Variadic<Index>:$indices, Optional<I1>:$we);
     let results = (outs AnyMemRef:$result);
@@ -121,7 +121,7 @@ def SpecHLS_MuOp : SpecHLSOp<"mu", [Pure,SameOperandsAndResultType,
     let summary = "Array update operation.";
     let description = [{}];
 
-   let arguments = (ins StrAttr:$name,AnyType:$next,AnyType:$init);
+   let arguments = (ins FlatSymbolRefAttr:$name,AnyType:$next,AnyType:$init);
    let results = (outs AnyType:$result);
 
  let assemblyFormat = [{
@@ -262,7 +262,7 @@ def SpecHLS_ExitOp : SpecHLSOp<"exit", []> {
    let arguments = (ins I1:$finished, Variadic<AnyType>:$liveout);
    let results = (outs I1:$end );
 
-     let hasCustomAssemblyFormat =1;
+   let hasCustomAssemblyFormat =1;
 }
 
   
@@ -298,7 +298,7 @@ def SpecHLS_InitOp : SpecHLSOp<"init", [Pure]> {
     let summary = "Init.";
     let description = [{}];
 
-   let arguments = (ins StrAttr:$name);
+   let arguments = (ins FlatSymbolRefAttr:$name);
    let results = (outs AnyType:$result );
 
   // let hasCustomAssemblyFormat =1;
@@ -315,7 +315,7 @@ def SpecHLS_DefOp : SpecHLSOp<"def", [
     let summary = "Def.";
     let description = [{}];
 
-   let arguments = (ins AnyType:$data, StrAttr:$name);
+   let arguments = (ins AnyType:$data, FlatSymbolRefAttr:$name);
    let results = (outs AnyType:$result );
 
   // let hasCustomAssemblyFormat =1;

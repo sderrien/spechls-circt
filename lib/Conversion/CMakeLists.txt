@@ -1,2 +1,2 @@
-add_subdirectory(SpecHLSToComb)
-add_subdirectory(SpecHLSToArc)
+add_subdirectory(../Transforms/SpecHLSToComb)
+add_subdirectory(../Transforms/SpecHLSToArc)

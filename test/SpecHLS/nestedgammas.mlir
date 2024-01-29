@@ -8,8 +8,8 @@
 
 module {
 func.func @bar(%a: i2,%b: i2 ,%c: i32,%d: i32, %e:i32,%f:i32) -> i32  {
-        %res = SpecHLS.gamma %a ? %c, %d, %e :i32
-        %res2 = SpecHLS.gamma %b ? %res, %c, %e :i32
+        %res = SpecHLS.gamma @x %a ? %c, %d, %e :i32
+        %res2 = SpecHLS.gamma @y %b ? %res, %c, %e :i32
         return %res2 : i32
 }
 }

@@ -9,7 +9,7 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
 
-#include "Conversion/SpecHLSConversion.h"
+#include "Transforms/SpecHLSConversion.h"
 
 LogicalResult
 GammaToMuxOpConversion::matchAndRewrite(GammaOp op, OpAdaptor adaptor, ConversionPatternRewriter &rewriter) {

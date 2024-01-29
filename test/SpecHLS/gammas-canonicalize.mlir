@@ -6,7 +6,7 @@
 module {
     func.func @bar(%a: i32,%b: i32,%c: i32,%d: i32) -> i32  {
             %0 = hw.constant 0x1 :i2
-            %res = SpecHLS.gamma "x"  %0 ? %a , %b, %c, %d :i32
+            %res = SpecHLS.gamma @x  %0 ? %a , %b, %c, %d :i32
             return %res : i32
     }
 }

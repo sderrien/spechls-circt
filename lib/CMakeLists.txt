@@ -1,7 +1,4 @@
 add_subdirectory(SpecHLS)
-add_subdirectory(Analysis)
 add_subdirectory(CAPI)
-add_subdirectory(Conversion)
 add_subdirectory(Transforms)
-add_subdirectory(Target)
 add_subdirectory(Scheduling)

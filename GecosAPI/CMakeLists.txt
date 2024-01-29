@@ -21,10 +21,8 @@ set(LIBS
         ${mlir_conversion_libs}
         MLIROptLib
         MLIRSpecHLS
-        MLIRTargetCustomCEmit
         MLIRTransforms
         MLIRCAPIIR
-        SpecHLSToComb
         SpecHLSTransforms
         SpecHLSCAPI
         CIRCTCAPIFSM
@@ -65,6 +63,7 @@ set(LIBS
 
         #        CIRCTSV
         #        CIRCTSVTransforms
+
         CIRCTSSP
         CIRCTSSPTransforms
         CIRCTScheduling

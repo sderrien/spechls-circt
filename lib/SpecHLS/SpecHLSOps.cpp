@@ -36,7 +36,7 @@ namespace SpecHLS {
 /// strings, attributes, operands, types, etc.
 void GammaOp::print(mlir::OpAsmPrinter &printer) {
   //         %res = SpecHLS.gamma [i32 -> i32] %a ? %b:%c:%d
-  printer << "\"" << this->getName() << "\"";
+  printer << " @" << this->getName() ;
   printer << " " << this->getSelect() << " ? ";
   printer.printOptionalAttrDict(this->getOperation()->getAttrs());
   int size = this->getInputs().size();
@@ -204,12 +204,17 @@ mlir::ParseResult GammaOp::parse(mlir::OpAsmParser &parser,
   mlir::Type dataType;
   // llvm::errs() << "hello\n" ;
   MLIRContext *ctx = result.getContext();
-  std::string id = "undef";
-  ParseResult nok = parser.parseOptionalString(&id);
+  StringAttr id = parser.getBuilder().getStringAttr("\"undef\"");
+  llvm::errs() << "hello "<< id.str() <<"\n" ;
+
+  ParseResult nok = parser.parseOptionalSymbolName(id);
+
+  FlatSymbolRefAttr symbolAttr = FlatSymbolRefAttr::get(id);
+
   if (nok) {
-    id = "undef";
+    //id = "undef";
   }
-  result.addAttribute("name",parser.getBuilder().getStringAttr(id));
+  result.addAttribute("name",symbolAttr);
 
   nok = parser.parseOperand(selectOperand);
   if (nok)

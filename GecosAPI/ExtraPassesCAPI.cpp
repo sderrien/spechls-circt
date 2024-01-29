@@ -20,7 +20,22 @@ MlirPass mlirCreateSchedulePass(void) {
   return wrap(circt::ssp::createSchedulePass().release());
 }
 
+MlirPass mlirCreateControlOptimizer(void) {
+  return wrap(SpecHLS::createControlOptimizer().release());
+}
+
+MlirPass mlirCreateGroupControlNode(void) {
+  return wrap(SpecHLS::createGroupControlNodePass().release());
+}
+
+MlirPass mlirCreateExportVitisHLS(void) {
+  return wrap(SpecHLS::createExportVitisHLS().release());
+}
+
 void mlirRegisterSchedulePass(void) { circt::ssp::registerSchedulePass(); }
+void mlirExportVitisHLS(void) { SpecHLS::registerExportVitisHLS(); }
+void mlirGroupControlNode(void) { SpecHLS::registerGroupControlNodePass(); }
+void mlirControlOptimizer(void) { SpecHLS::registerControlOptimizer(); }
 
 // mlir::Operation testpass(mlir::Operation op) {
 //   {

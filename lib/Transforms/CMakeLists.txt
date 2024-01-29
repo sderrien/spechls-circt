@@ -9,15 +9,22 @@ add_compile_definitions(_YOSYS_)
 #
 # RTLILImporter.cpp
 add_mlir_library(SpecHLSTransforms
-		YosysOptimizer.cpp
-		LUTImporter.cpp
-		RTLILImporter.cpp
-		FactorGammaInputs.cpp
-		InlineOptimizedModules.cpp
-		MergeGammas.cpp
-		MergeLUTs.cpp
-		GenerateC.cpp
-		GroupControlLogic.cpp
+		Simplifier/YosysOptimizer.cpp
+		Simplifier/LUTImporter.cpp
+		Simplifier/RTLILImporter.cpp
+		Simplifier/FactorGammaInputs.cpp
+		Simplifier/InlineOptimizedModules.cpp
+		Simplifier/MergeGammas.cpp
+		Simplifier/MergeLUTs.cpp
+		SpecHLSToComb/SpecHLSToComb.cpp
+		SpecHLSToComb/SpecHLSLUTToComb.cpp
+		SpecHLSToComb/GammaConversion.cpp
+		SpecHLSToComb/LUTConversion.cpp
+		VitisExport/CFileContent.cpp
+		VitisExport/PrintOperations.cpp
+		VitisExport/PrintUtils.cpp
+        VitisExport/ExportVitisHLS.cpp
+		Simplifier/GroupControlLogic.cpp
 		DEPENDS
 
 		MLIRSpecHLSOpsIncGen

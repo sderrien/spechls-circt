@@ -1,6 +1,10 @@
 add_mlir_library(SpecHLSToComb
         SpecHLSToComb.cpp
-
+        EncoderToComb.cpp
+        LUTConversion.cpp
+        GammaConversion.cpp
+        SpecHLSLUTToComb.cpp
+        SpecHLSToComb.cpp
         DEPENDS
 
         MLIRSpecHLSOpsIncGen

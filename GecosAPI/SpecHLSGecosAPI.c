@@ -20,8 +20,10 @@
 #include <circt-c/Dialect/HWArith.h>
 #include <circt-c/Dialect/FSM.h>
 
+
 #include <CAPI/SpecHLS.h>
 
+#include <CAPI/SSP.h>
 
 #include <mlir-c/IntegerSet.h>
 #include <mlir-c/RegisterEverything.h>
@@ -50,6 +52,7 @@ void registerAllUpstreamDialects(MlirContext ctx) {
     mlirDialectHandleRegisterDialect(mlirGetDialectHandle__sv__(), ctx);
     mlirDialectHandleRegisterDialect(mlirGetDialectHandle__hwarith__(), ctx);
     mlirDialectHandleRegisterDialect(mlirGetDialectHandle__scf__(), ctx);
+    mlirDialectHandleRegisterDialect(mlirGetDialectHandle__ssp__(), ctx);
 
     mlirContextAppendDialectRegistry(ctx, registry);
     mlirDialectRegistryDestroy(registry);
@@ -83,7 +86,7 @@ char* getCStringDataFromMlirStringRef(MlirStringRef ident) {
 }
 
 int getCStringSizeFromMlirStringRef(MlirStringRef ident) {
-  printf("size =%d",ident.length);
+  printf("size =%lu",ident.length);
   return ident.length;
 }
 
@@ -243,56 +246,65 @@ int traverseModule( MlirModule m) {
 
 
  void traverseOp(MlirOperation op) {
-  MlirIdentifier ident = mlirOperationGetName(op);
-  printf("Operation %s\n",getCStringDataFromMlirIdentifier(ident));
-  //printMlirIdentifier(ident);
-//  mlirOperationToString(op);
-  printf("\n");
-  int num = mlirOperationGetNumRegions(op);
-  for (int i=0;i<num;i++) {
-    MlirRegion  region = mlirOperationGetRegion(op, i);
-    traverseRegion(region);
-  }
-  fflush(stdout);
+   if (op.ptr!=NULL) {
+     MlirIdentifier ident = mlirOperationGetName(op);
+     if (ident.ptr!=NULL) {
+       printf("Operation %s\n",getCStringDataFromMlirIdentifier(ident));
+       //printMlirIdentifier(ident);
+       //  mlirOperationToString(op);
+       printf("\n");
+     }
+
+     int num = mlirOperationGetNumRegions(op);
+     for (int i=0;i<num;i++) {
+       MlirRegion  region = mlirOperationGetRegion(op, i);
+       traverseRegion(region);
+     }
+     fflush(stdout);
+   } else {
+     printf("null op\n");
+   }
 
 }
 
  void traverseRegion(MlirRegion region) {
-  printf("regions \n");
+  if (region.ptr!=NULL) {
+    printf("regions \n");
+    MlirBlock block = mlirRegionGetFirstBlock(region);
+    while (block.ptr !=NULL) {
+      traverseBlock(block);
+      block = mlirBlockGetNextInRegion(block);
+    }
+    fflush(stdout);
 
-  MlirBlock block = mlirRegionGetFirstBlock(region);
-  while (block.ptr !=NULL) {
-    traverseBlock(block);
-    block = mlirBlockGetNextInRegion(block);
   }
-  fflush(stdout);
 }
 
 void traverseBlock(MlirBlock block) {
-  printf("Block \n");
-  MlirOperation op = mlirBlockGetFirstOperation(block);
-  while (op.ptr !=NULL) {
-    traverseOp(op);
-    op = mlirOperationGetNextInBlock(op);
+  if (block.ptr!=NULL) {
+    printf("Block \n");
+    MlirOperation op = mlirBlockGetFirstOperation(block);
+    while (op.ptr !=NULL) {
+      traverseOp(op);
+      op = mlirOperationGetNextInBlock(op);
+    }
+    fflush(stdout);
   }
-  fflush(stdout);
 }
 
-
-void traverseRegionLegacy( MlirRegion region) {
-  //printf("traverse region %p\n",region.ptr);
+void traverseRegionLegacy(MlirRegion region) {
 
   if (region.ptr!=NULL) {
     MlirBlock block = mlirRegionGetFirstBlock(region);
-    //printf("block %p\n",block.ptr);
+    printf("block %p\n",block.ptr);
     while (block.ptr !=NULL) {
       MlirOperation op = mlirBlockGetFirstOperation(block);
-      //printf("operation %p\n",op.ptr);
+      printf("operation %p\n",op.ptr);
       while (op.ptr !=NULL) {
         MlirIdentifier ident = mlirOperationGetName(op);
-        //printf("ident %p\n",ident.ptr);
+        printf("ident %p\n",ident.ptr);
         printMlirIdentifier(ident);
-        //printf("\n");
+        printf("\n");
         int num = mlirOperationGetNumRegions(op);
         for (int i=0;i<num;i++) {
           region = mlirOperationGetRegion(op, i);
@@ -301,7 +313,7 @@ void traverseRegionLegacy( MlirRegion region) {
         op = mlirOperationGetNextInBlock(op);
       }
       block = mlirBlockGetNextInRegion(block);
-      //printf("next block %p\n",block.ptr);
+      printf("next block %p\n",block.ptr);
     }
   }
 

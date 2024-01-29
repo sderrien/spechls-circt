@@ -15,7 +15,6 @@
 #define SPECHLS_INITALLPASSES_H_
 
 #include "SpecHLS/SpecHLSDialect.h"
-#include "Conversion/Passes.h"
 #include "Scheduling/Transforms/Passes.h"
 #include "Scheduling/Transforms/SchedulePass.h"
 #include "Transforms/Passes.h"
@@ -27,6 +26,7 @@ inline void registerAllPasses() {
 
   static bool initOnce = []() {
     registerSpecHLSToCombPass();
+    registerSpecHLSLUTToComb();
     registerMergeGammasPass();
     registerMergeLookUpTablesPass();
     registerFactorGammaInputsPass();
@@ -34,6 +34,8 @@ inline void registerAllPasses() {
     registerInlineModules();
     registerYosysOptimizerPass();
     registerGecosSchedulePass();
+    registerExportVitisHLS();
+
     return true;
   }();
   (void)initOnce;

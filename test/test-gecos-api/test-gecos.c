@@ -18,7 +18,7 @@
 #include <circt-c/Dialect/HWArith.h>
 #include <circt-c/Dialect/FSM.h>
 
-#include <CAPI/SpecHLS.h>
+#include "CAPI/SpecHLS.h"
 
 #include <mlir-c/IntegerSet.h>
 #include <mlir-c/RegisterEverything.h>
@@ -71,7 +71,7 @@ void traverseMLIROperation(MlirOperation op) {
 
     MlirStringRef identStr = mlirIdentifierStr(mlirOperationGetName(op));
     printf("Hello %s\n",identStr.data);
-    printf("Numattributes = %d\n",mlirOperationGetNumAttributes(op));
+    printf("Numattributes = %ld\n",mlirOperationGetNumAttributes(op));
 
     for (int i=0;i< mlirOperationGetNumAttributes(op);i++) {
       MlirNamedAttribute namedAttr = mlirOperationGetAttribute(op,i);
