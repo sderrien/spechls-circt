@@ -6,7 +6,12 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "mlir/IR/Operation.h"
+
 namespace SpecHLS {
 
-int getBitWidth(int value);
+  bool isControlLogicOperation(mlir::Operation *op);
+
+  std::string getPragma(mlir::Operation *op) ;
+
 }

@@ -27,8 +27,74 @@
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+#include "mlir/IR/Operation.h"
+#include "mlir/IR/PatternMatch.h"
 
+#include "mlir/IR/Builders.h"
+#include "mlir/IR/SymbolTable.h"
+#include "mlir/Pass/Pass.h"
+#include "mlir/Pass/PassManager.h"
+#include "mlir/Support/LogicalResult.h"
+
+using namespace mlir;
 namespace SpecHLS {
-int getBitWidth(int value) { return int(ceil(log(value) / log(2))); }
 
-} // namespace SpecHLS
+// Define a pass to find the corresponding hwOp from a CallOp
+circt::hw::HWModuleOp *findHWModuleForInstanceOp(Operation op) {
+  circt::hw::HWModuleOp *res;
+  op.walk([&res](circt::hw::InstanceOp callOp) {
+    // Get the callee symbol reference
+    FlatSymbolRefAttr calleeSymbolRef = callOp.getModuleNameAttr();
+
+    // Find the operation with the given symbol reference in the parent operations
+    Operation *symbolDefOp =
+        SymbolTable::lookupNearestSymbolFrom(callOp, calleeSymbolRef);
+
+    // Check if the found operation is a hwOp
+    if (circt::hw::HWModuleOp hwOp =
+            dyn_cast<circt::hw::HWModuleOp>(symbolDefOp)) {
+      // Do something with the corresponding hwOp
+      llvm::errs() << "Found corresponding HWModuleOp: " << hwOp.getName()
+                   << "\n";
+      res = &hwOp;
+    } else {
+      llvm::errs() << "Did not find corresponding HWModuleOp for CallOp.\n";
+      res = NULL;
+    }
+  });
+}
+
+std::string getPragma(Operation *op) {
+  auto attr = op->getAttr(StringRef("#pragma"));
+  if (attr != NULL) {
+    if (auto strAttr = attr.dyn_cast<mlir::StringAttr>()) {
+      return strAttr.getValue().str();
+    }
+  }
+  return NULL;
+}
+
+bool isControlLogicOperation(Operation* op) {
+  return TypeSwitch<Operation *, bool>(op)
+      .Case<circt::comb::AddOp>([&](auto op) { return true; })
+      .Case<circt::comb::SubOp>([&](auto op) { return true; })
+      .Case<circt::comb::AndOp>([&](auto op) { return true; })
+      .Case<circt::comb::ShlOp>([&](auto op) { return true; })
+      .Case<circt::comb::ShrUOp>([&](auto op) { return true; })
+      .Case<circt::comb::ReplicateOp>([&](auto op) { return true; })
+      .Case<circt::comb::OrOp>([&](auto op) { return true; })
+      .Case<circt::comb::TruthTableOp>([&](auto op) { return true; })
+      .Case<circt::comb::ExtractOp>([&](auto op) { return true; })
+      .Case<circt::hw::OutputOp>([&](auto op) { return true; })
+      .Case<circt::comb::XorOp>([&](auto op) { return true; })
+      .Case<circt::comb::ConcatOp>([&](auto op) { return true; })
+      .Case<circt::comb::ICmpOp>([&](auto op) { return true; })
+      .Default([&](auto op) {
+        llvm::outs() << "Operation " << *op  << "is not synthesizable\n";
+        return false;
+      });
+}
+
+
+}
+
