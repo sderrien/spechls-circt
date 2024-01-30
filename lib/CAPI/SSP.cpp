@@ -6,7 +6,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "circt-c/Dialect/SSP.h"
+#include "CAPI/SSP.h"
 #include "circt/Dialect/SSP/SSPDialect.h"
 #include "circt/Dialect/SSP/SSPPasses.h"
 
@@ -20,8 +20,4 @@ extern "C" {
 
 MLIR_DEFINE_CAPI_DIALECT_REGISTRATION(Scheduling, ssp, circt::ssp::SSPDialect)
 void registerSSPPasses() { circt::ssp::registerPasses(); }
-
 }
-
-
-

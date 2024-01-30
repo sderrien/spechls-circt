@@ -3,6 +3,7 @@
 #include <cassert>
 #include <chrono>
 #include <cstdio>
+#include <filesystem>
 #include <iostream>
 #include <memory>
 #include <sstream>
@@ -118,7 +119,6 @@ void listHWModuleOps(mlir::ModuleOp module) {
   });
 }
 
-
 bool hasConstantOutputs(circt::hw::HWModuleOp op) {
   for (auto &_innerop : op.getBodyBlock()->getOperations()) {
     bool ok = TypeSwitch<Operation *, bool>(&_innerop)
@@ -211,15 +211,15 @@ SmallVector<circt::hw::InstanceOp> listAllInstances(mlir::ModuleOp module,
                                                     circt::hw::HWModuleOp op) {
   SmallVector<circt::hw::InstanceOp> instances;
 
-  auto result = module->walk([&instances,&op](circt::hw::HWModuleOp hwop) {
+  auto result = module->walk([&instances, &op](circt::hw::HWModuleOp hwop) {
     llvm::outs() << "in " << hwop.getName() << "\n";
-     hwop->walk([&instances,&op](circt::hw::InstanceOp inst) {
-        llvm::outs() << "   - found instance  " << inst << "\n";
-        if (inst.getModuleName()==op.getModuleName()) {
-          llvm::outs() << "     - save instance  " << inst << "\n";
-          instances.push_back(inst);
-        }
-        return WalkResult::advance();
+    hwop->walk([&instances, &op](circt::hw::InstanceOp inst) {
+      llvm::outs() << "   - found instance  " << inst << "\n";
+      if (inst.getModuleName() == op.getModuleName()) {
+        llvm::outs() << "     - save instance  " << inst << "\n";
+        instances.push_back(inst);
+      }
+      return WalkResult::advance();
     });
     return WalkResult::advance();
   });
@@ -258,18 +258,19 @@ LogicalResult replaceAndInline(circt::hw::HWModuleOp old,
   auto newSym = _new.getSymNameAttr();
   auto module = dyn_cast<ModuleOp>(old->getParentOp());
 
-  if (module==NULL) {
+  if (module == NULL) {
     llvm::errs() << "Cannot extract module op for   " << old << "\n";
     return failure();
   }
 
   auto instances = listAllInstances(module, old);
-  llvm::outs() <<"Found "<< instances.size() << " instances of " << old.getName() << "\n";
+  llvm::outs() << "Found " << instances.size() << " instances of "
+               << old.getName() << "\n";
   auto isConstant = hasConstantOutputs(_new);
 
   for (auto inst : instances) {
     // Check if the operation is a CallOp
-    llvm::outs() <<"instance "<< inst << "\n";
+    llvm::outs() << "instance " << inst << "\n";
     auto instName = inst.getModuleNameAttr().getValue();
     llvm::outs() << " - replace instance : " << inst;
     if (instName == oldSym) {
@@ -282,17 +283,16 @@ LogicalResult replaceAndInline(circt::hw::HWModuleOp old,
     if (isConstant) {
       auto parent = dyn_cast<circt::hw::HWModuleOp>(inst->getParentOp());
       if (parent == NULL) {
-        llvm::outs() << "Error inlining HWModule "<<_new << "\n";
+        llvm::outs() << "Error inlining HWModule " << _new << "\n";
         return failure();
       }
       PrefixingInliner inliner(_new->getContext(), instName);
       auto body = module.getBody();
 
-      llvm::outs() << "Inlining instance "<< inst << "\n";
+      llvm::outs() << "Inlining instance " << inst << "\n";
       // Inline the instance using the correct approach.
-      //OperationInlineResult result = inlineOperation(inst, old.getBody()->getOperations());
-
-
+      // OperationInlineResult result = inlineOperation(inst,
+      // old.getBody()->getOperations());
 
       if (failed(mlir::inlineRegion(inliner, &parent.getBody(), inst,
                                     inst.getOperands(), inst.getResults(),
@@ -331,7 +331,7 @@ void YosysOptimizer::runOnOperation() {
     signalPassFailure();
   }
 
-  DenseMap<circt::hw::HWModuleOp,circt::hw::HWModuleOp> cloneMap;
+  DenseMap<circt::hw::HWModuleOp, circt::hw::HWModuleOp> cloneMap;
 
   // supprime les HWModule qui ne seront pas optimisés via Yosys
   clone->walk([&](circt::hw::HWModuleOp op) {
@@ -358,13 +358,12 @@ void YosysOptimizer::runOnOperation() {
 
   clone->walk([&](circt::hw::HWModuleOp cloneop) {
     module->walk([&](circt::hw::HWModuleOp op) {
-      if (cloneop.getSymName()==op.getSymName()) {
+      if (cloneop.getSymName() == op.getSymName()) {
         llvm::outs() << " match " << op.getName() << "\n";
-        cloneMap[cloneop]=op;
+        cloneMap[cloneop] = op;
       }
     });
   });
-
 
   // applique Yosys sur tout les HWModules restants
   auto result = clone->walk([&](circt::hw::HWModuleOp op) {
@@ -379,16 +378,18 @@ void YosysOptimizer::runOnOperation() {
       optimizedModules.push_back(op.getSymName().str());
       module.push_back(optimized);
 
-      //listHWModuleOps(module);
-        // FIXME : name hasConstantOutputs sucks
+      // listHWModuleOps(module);
+      //  FIXME : name hasConstantOutputs sucks
       if (replace) {
-        llvm::outs() << "replacing " << op.getName() << " by " << optimized.getName() <<"\n";
-        auto originalOp= cloneMap[op];
-        if (originalOp==NULL) {
-          op.emitError("error  " + op.getName() + " by " + optimized.getName() +"\n");
+        llvm::outs() << "replacing " << op.getName() << " by "
+                     << optimized.getName() << "\n";
+        auto originalOp = cloneMap[op];
+        if (originalOp == NULL) {
+          op.emitError("error  " + op.getName() + " by " + optimized.getName() +
+                       "\n");
           return WalkResult::interrupt();
         }
-        replaceAndInline(originalOp,optimized);
+        replaceAndInline(originalOp, optimized);
       }
     }
     return WalkResult::advance();
@@ -406,7 +407,6 @@ namespace SpecHLS {
 std::unique_ptr<mlir::Pass> createYosysOptimizer() {
   return std::make_unique<mlir::YosysOptimizer>();
 }
-
 
 //}  // namespace heir
 } // namespace SpecHLS
