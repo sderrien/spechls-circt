@@ -143,7 +143,7 @@ struct YosysOptimizer
   YosysOptimizer(SpecHLS::YosysOptimizerOptions &options) {
     replace = options.replace;
   }
-  YosysOptimizer()
+  YosysOptimizer(string yosysFilesPath, string abcPath, bool abcFast)
       : yosysFilesPath(yosysFilesPath), abcPath(abcPath), abcFast(abcFast) {}
 
   void runOnOperation() override;
