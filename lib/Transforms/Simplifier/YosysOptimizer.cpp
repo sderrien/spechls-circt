@@ -197,7 +197,7 @@ circt::hw::HWModuleOp yosysBackend(MLIRContext *context,
       lutImporter.importModule(design->top_module(), topologicalOrder);
 
   Yosys::yosys_shutdown();
-  auto duration = duration_cast<std::chrono::milliseconds>(stop - start);
+  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
 
   llvm::outs() << "Yosys synthesis successfull for " << op.getSymName() << " ("
                << duration.count() << " ms) \n";
