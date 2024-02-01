@@ -14,10 +14,12 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules")
 
 find_package(MLIR REQUIRED CONFIG)
 find_package(CIRCT REQUIRED CONFIG)
+find_package(Yosys REQUIRED)
 
 message(STATUS "Using MLIRConfig.cmake in: ${MLIR_DIR}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 message(STATUS "Using CIRCTConfig.cmake in: ${CIRCT_DIR}")
+message(STATUS "Using Yosys includes at ${YOSYS_INCLUDE_DIR}, and library at ${YOSYS_LIBRARY_DIR}")
 
 macro(set_alternate_linker linker)
   find_program(LINKER_EXECUTABLE ${linker} ${linker})
@@ -57,10 +59,12 @@ include_directories(${LLVM_INCLUDE_DIRS})
 include_directories(${YOSYS_INCLUDE_DIRS})
 include_directories(${MLIR_INCLUDE_DIRS})
 include_directories(${CIRCT_INCLUDE_DIRS})
+include_directories(${YOSYS_INCLUDE_DIR})
 include_directories(${PROJECT_SOURCE_DIR}/include)
 include_directories(${PROJECT_BINARY_DIR}/include)
 
 link_directories(${CIRCT_LIBRARY_DIRS})
+link_directories(${YOSYS_LIBRARY_DIR})
 
 add_definitions(${LLVM_DEFINITIONS})
 
