@@ -35,7 +35,8 @@ bool CFileContent::save() {
   oFile.close();
   return 0;
 }
-inline template <typename T>
+
+template <typename T>
 string op2str(T *v) {
   std::string s;
   llvm::raw_string_ostream r(s);
