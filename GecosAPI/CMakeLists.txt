@@ -24,6 +24,7 @@ set(LIBS
         MLIRTransforms
         MLIRCAPIIR
         SpecHLSTransforms
+        SpecHLSScheduling
         SpecHLSCAPI
         CIRCTCAPIFSM
         CIRCTCAPIHW

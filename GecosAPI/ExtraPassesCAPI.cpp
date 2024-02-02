@@ -1,6 +1,8 @@
 
 #include "circt/Dialect/SSP/SSPPasses.h"
 
+#include "Scheduling/Transforms/MobilityPass.h"
+#include "Scheduling/Transforms/Passes.h"
 #include "Transforms/Passes.h"
 #include "mlir/CAPI/Pass.h"
 
@@ -11,6 +13,9 @@ extern "C" {
 
 MlirPass mlirCreateSchedulePass(void);
 void mlirRegisterSchedulePass(void);
+
+MlirPass mlirCreateMobilityPass(void);
+void mlirRegisterMobilityPass(void);
 
 MlirPass mlirCreateExportVitisHLS(void);
 void mlirRegisterExportVitisHLS(void);
@@ -23,25 +28,29 @@ MlirPass mlirCreateSchedulePass(void) {
   return wrap(circt::ssp::createSchedulePass().release());
 }
 
-void mlirRegisterSchedulePass(void) {
-  circt::ssp::registerSchedulePass();
+void mlirRegisterSchedulePass(void) { circt::ssp::registerSchedulePass(); }
+
+MlirPass mlirCreateMobilityPass(void) {
+  return wrap(SpecHLS::createMobilityPass().release());
 }
 
-//MlirPass mlirCreateControlOptimizer(void) {
-//  return wrap(SpecHLS::createControlOptimizer().release());
-//}
+void mlirRegisterMobilityPass(void) { SpecHLS::registerMobilityPass(); }
 
-//MlirPass mlirCreateGroupControlNode(void) {
-//  return wrap(SpecHLS::createGroupControlNodePass().release());
-//}
+// MlirPass mlirCreateControlOptimizer(void) {
+//   return wrap(SpecHLS::createControlOptimizer().release());
+// }
+
+// MlirPass mlirCreateGroupControlNode(void) {
+//   return wrap(SpecHLS::createGroupControlNodePass().release());
+// }
 //
 MlirPass mlirCreateExportVitisHLS(void) {
   return wrap(SpecHLS::createExportVitisHLS().release());
 }
 
 void mlirExportVitisHLS(void) { SpecHLS::registerExportVitisHLS(); }
-//void mlirGroupControlNode(void) { SpecHLS::registerGroupControlNodePass(); }
-//void mlirControlOptimizer(void) { SpecHLS::registerControlOptimizer(); }
+// void mlirGroupControlNode(void) { SpecHLS::registerGroupControlNodePass(); }
+// void mlirControlOptimizer(void) { SpecHLS::registerControlOptimizer(); }
 
 // mlir::Operation testpass(mlir::Operation op) {
 //   {

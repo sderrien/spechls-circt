@@ -131,7 +131,7 @@ public:
     mlir::MLIRContext *context = ptr->getContext();
     mlir::Attribute mobilityAttr =
         mlir::IntegerAttr::get(mlir::IntegerType::get(context, 32), mobility);
-    ptr->setAttr("mobility", mobilityAttr);
+    ptr->setAttr("SpecHLS.mobility", mobilityAttr);
   }
 
   void dumpTrace(unsigned iterations) {
@@ -245,6 +245,15 @@ struct MobilityPass : public impl::MobilityPassBase<MobilityPass> {
 
     llvm::SmallVector<circt::ssp::InstanceOp> instanceOps;
     for (auto instOp : moduleOp.getOps<circt::ssp::InstanceOp>()) {
+      float period;
+      if (mlir::FloatAttr periodAttr =
+              instOp->getAttrOfType<mlir::FloatAttr>("SpecHLS.period")) {
+        period = periodAttr.getValue().convertToFloat();
+      } else {
+        llvm::errs() << "Error: ssp instance must have a 'period' attribute.\n";
+        exit(1);
+      }
+
       llvm::SmallVector<Operator *> operators;
       llvm::SmallVector<Operation *> operations;
       llvm::SmallVector<Operation *> gammas;

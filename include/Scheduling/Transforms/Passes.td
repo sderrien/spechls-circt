@@ -11,11 +11,6 @@ def MobilityPass : Pass<"mobility", "mlir::ModuleOp"> {
     Compute mobility informations.
   }];
 
-let options = [
-    Option<"period", "period", "float", "",
-               "clock period time.">
-  ];
-
   let constructor = "SpecHLS::createMobilityPass()";
   let dependentDialects = ["circt::ssp::SSPDialect"];
 }
