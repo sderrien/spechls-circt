@@ -1,9 +1,10 @@
-#include "Scheduling/Algorithms.h"
 #include "circt/Dialect/SSP/Utilities.h"
 #include "circt/Scheduling/Utilities.h"
 #include "mlir/IR/Builders.h"
 #include <iostream>
 #include <map>
+
+#if 0
 
 using namespace mlir;
 using namespace SpecHLS;
@@ -160,19 +161,24 @@ LogicalResult SpecHLS::scheduleASAP(GammaMobilityProblem &prob,
             auto *pred = dep.getSource();
             StartTime potentialStartTime;
             if (dep.isAuxiliary()) {
-              if (iteration < prob.getDistance(dep)) {
+              if (iteration < *prob.getDistance(dep)) {
                 potentialStartTime = std::make_pair(0, 0.0);
 
               } else {
                 auto predStartTime =
                     scheduled[iteration - *prob.getDistance(dep)][pred];
                 auto endTime = getEndTime(prob, predStartTime, pred);
-                auto nextStart = getNextStart(prob, endTime, op, cycleTime);
-                potentialStartTime = ceil(nextStart);
-                potentialStartTime =
-                    max(potentialStartTime,
-                        std::make_pair(scheduled[iteration - 1][pred].first + 1,
-                                       0.0));
+                if (endTime.second == 0.0) {
+                  potentialStartTime = std::make_pair(endTime.first + 1, 0.0);
+                } else {
+                  auto nextStart = getNextStart(prob, endTime, op, cycleTime);
+                  potentialStartTime = ceil(nextStart);
+                  // potentialStartTime =
+                  //     max(potentialStartTime,
+                  //         std::make_pair(
+                  //             scheduled[iteration - 1][pred].first + 1,
+                  //             0.0));
+                }
               }
             } else {
               if (!prob.getStartTime(pred) || !prob.getStartTimeInCycle(pred))
@@ -213,27 +219,18 @@ LogicalResult SpecHLS::scheduleASAP(GammaMobilityProblem &prob,
       std::cout << std::endl;
     }
   }
-  unsigned delta[sumDistance];
-  for (unsigned iteration = sumDistance; iteration < 2 * sumDistance;
-       ++iteration) {
-    bool first = true;
-    for (auto *op : prob.getOperations()) {
-      if (first) {
-        first = false;
-        delta[iteration - sumDistance] = scheduled[iteration][op].first;
-      } else {
-        delta[iteration - sumDistance] = std::min(
-            scheduled[iteration][op].first, delta[iteration - sumDistance]);
-      }
-    }
-  }
   for (auto *op : prob.getOperations())
     if (op->hasAttr("SpecHLS.gamma")) {
       unsigned minPosition = UINT_MAX;
+      op->dump();
       for (unsigned iteration = sumDistance; iteration < 2 * sumDistance;
-           ++iteration)
-        minPosition = std::min(minPosition, scheduled[iteration][op].first -
-                                                delta[iteration - sumDistance]);
+           ++iteration) {
+        minPosition =
+            std::min(minPosition, scheduled[iteration][op].first -
+                                      scheduled[iteration - 1][op].first);
+      }
+      std::cerr << minPosition << std::endl;
+      std::cerr << "---------------" << std::endl;
       prob.setMinPosition(op, minPosition);
       op->dump();
       if (debug) {
@@ -243,3 +240,5 @@ LogicalResult SpecHLS::scheduleASAP(GammaMobilityProblem &prob,
     }
   return success();
 }
+
+#endif

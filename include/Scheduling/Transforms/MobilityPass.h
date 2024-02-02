@@ -10,31 +10,27 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SPECHLS_SCHEDULING_PASSES_H
-#define SPECHLS_SCHEDULING_PASSES_H
+#ifndef SPECHLS_MOBILITY_PASS_H
+#define SPECHLS_MOBILITY_PASS_H
 
 #include "circt/Dialect/SSP/SSPOps.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Pass/Pass.h"
 
-namespace Scheduling {
-
-//===----------------------------------------------------------------------===//
-// Passes
-//===----------------------------------------------------------------------===//
-
-std::unique_ptr<mlir::OperationPass<>> createGecosSchedulePass();
+namespace SpecHLS {
 
 //===----------------------------------------------------------------------===//
 // Registration
 //===----------------------------------------------------------------------===//
 
 /// Generate the code for registering passes.
-#define GEN_PASS_REGISTRATION
-#define GEN_PASS_DEF_GECOSSCHEDULEPASS
+[[maybe_unused]] std::unique_ptr<mlir::Pass> createMobilityPass();
 
-// #include "Scheduling/Transforms/Scheduling.h.inc"
+#define GEN_PASS_DECL_MOBILITYPASS
+#define GEN_PASS_DEF_MOBILITYPASS
 
-} // namespace Scheduling
+#include "Scheduling/Transforms/Passes.h.inc"
 
-#endif // SPECHLS_SCHEDULING_PASSES_H
+} // namespace SpecHLS
+
+#endif // SPECHLS_MOBILITY_PASS_H

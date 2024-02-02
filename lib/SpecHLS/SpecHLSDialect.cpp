@@ -7,7 +7,6 @@
 //===----------------------------------------------------------------------===//
 
 #include "SpecHLS/SpecHLSDialect.h"
-#include "Scheduling/SchedulingProperty.h"
 #include "SpecHLS/SpecHLSOps.h"
 #include "mlir/IR/DialectImplementation.h"
 
@@ -18,17 +17,9 @@ using namespace SpecHLS;
 // SpecHLS dialect.
 //===----------------------------------------------------------------------===//
 
-#define GET_ATTRDEF_CLASSES
-#include "Scheduling/SchedulingProperty.cpp.inc"
-#undef GET_ATTRDEF_CLASSES
-
 void SpecHLSDialect::initialize() {
   addOperations<
 #define GET_OP_LIST
 #include "SpecHLS/SpecHLSOps.cpp.inc"
-      >();
-  addAttributes<
-#define GET_ATTRDEF_LIST
-#include "Scheduling/SchedulingProperty.cpp.inc"
       >();
 }

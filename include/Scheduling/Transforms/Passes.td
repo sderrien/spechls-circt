@@ -1,22 +1,22 @@
-#ifndef SPECHLS_SCHEDULE_PASSES
-#define SPECHLS_SCHEDULE_PASSES
+#ifndef SPECHLS_SCHEDULING_PASSES
+#define SPECHLS_SCHEDULING_PASSES
 
 include "mlir/Pass/PassBase.td"
 include "mlir/Rewrite/PassUtil.td"
 include "SpecHLS/SpecHLSDialect.td"
 
-def GecosSchedulePass : Pass<"gecos-schedule", "mlir::ModuleOp"> {
-  let summary = "Schedule GammaMobilityProblem with ASAP.";
+def MobilityPass : Pass<"mobility", "mlir::ModuleOp"> {
+  let summary = "Compute mobility informations.";
   let description = [{
-    Schedule GammaMobilityProblem with ASAP.
+    Compute mobility informations.
   }];
 
 let options = [
-    Option<"schedulerOptions", "options", "std::string", "",
-               "Scheduler-specific options.">
+    Option<"period", "period", "float", "",
+               "clock period time.">
   ];
 
-  let constructor = "SpecHLS::createGecosSchedulePass()";
+  let constructor = "SpecHLS::createMobilityPass()";
   let dependentDialects = ["circt::ssp::SSPDialect"];
 }
-#endif // SPECHLS_TRANSFORMS_PASSES
+#endif // SPECHLS_SCHEDULING_PASSES

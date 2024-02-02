@@ -14,9 +14,8 @@
 #ifndef SPECHLS_INITALLPASSES_H_
 #define SPECHLS_INITALLPASSES_H_
 
-#include "SpecHLS/SpecHLSDialect.h"
 #include "Scheduling/Transforms/Passes.h"
-#include "Scheduling/Transforms/SchedulePass.h"
+#include "SpecHLS/SpecHLSDialect.h"
 #include "Transforms/Passes.h"
 #include "circt/Transforms/Passes.h"
 
@@ -33,7 +32,7 @@ inline void registerAllPasses() {
     registerGroupControlNodePass();
     registerInlineModules();
     registerYosysOptimizerPass();
-    registerGecosSchedulePass();
+    registerMobilityPass();
     registerExportVitisHLS();
 
     return true;
