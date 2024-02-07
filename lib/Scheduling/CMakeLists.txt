@@ -1,5 +1,4 @@
 add_mlir_library(SpecHLSScheduling
-        ASAPScheduler.cpp
         MobilityPass.cpp
         DEPENDS
         SpecHLSSchedulingTransformsPassIncGen
