@@ -78,9 +78,9 @@ char *getCStringDataFromMlirStringRef(MlirStringRef ident) {
   return ident.data;
 }
 
-int getCStringSizeFromMlirStringRef(MlirStringRef ident) {
+size_t getCStringSizeFromMlirStringRef(MlirStringRef ident) {
   printf("size =%lu", ident.length);
-  return (int)ident.length;
+  return ident.length;
 }
 
 MlirIdentifier mlirNamedAttributeGetName(MlirNamedAttribute p) {
