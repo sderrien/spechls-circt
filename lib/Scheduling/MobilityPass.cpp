@@ -39,6 +39,7 @@ private:
   float incDelay;
   float outDelay;
   llvm::DenseMap<Operation *, unsigned> dependences;
+  Operation *controlPredecessor = nullptr;
   bool gamma;
   unsigned mobility = 0;
   mlir::Operation *ptr = nullptr;
@@ -59,6 +60,10 @@ public:
     alapCycle.resize(2 * sumDistance);
     alapTimeInCycle.resize(2 * sumDistance);
   }
+
+  void setControl(Operation *op) { controlPredecessor = op; }
+
+  Operation *getControl(void) { return controlPredecessor; }
 
   void addDependences(Operation *op) { dependences[op] = 0; }
 
@@ -197,10 +202,10 @@ void compare(unsigned &aCycle, float &aTimeInCycle, unsigned bCycle,
   }*/
 }
 
-void computeNext(unsigned &nextAsapCycle, float &nextAsapTimeInCycle,
-                 unsigned &nextAlapCycle, float &nextAlapTimeInCycle,
-                 Operation *pred, bool first, bool gamma, unsigned iteration,
-                 unsigned distance, float period) {
+void computeNext(Operation *op, unsigned &nextAsapCycle,
+                 float &nextAsapTimeInCycle, unsigned &nextAlapCycle,
+                 float &nextAlapTimeInCycle, Operation *pred, bool gamma,
+                 unsigned iteration, unsigned distance, float period) {
   if (iteration < distance) {
     nextAsapCycle = 0;
     nextAsapTimeInCycle = 0.0f;
@@ -223,17 +228,14 @@ void computeNext(unsigned &nextAsapCycle, float &nextAsapTimeInCycle,
           nextStartTimeInCycle, false);
 
   // ASAP
-  nextStartCycle = 0;
-  nextStartTimeInCycle = 0.0f;
-  pred->getAsap(iteration - distance, predStartCycle, predStartTimeInCycle);
-  computeEnd(nextStartCycle, nextStartTimeInCycle, predStartCycle,
-             predStartTimeInCycle, lat, outDelay);
-  computeNextStart(nextStartCycle, nextStartTimeInCycle, incDelay, distance,
-                   period);
-  if (first) {
-    nextAsapCycle = nextStartCycle;
-    nextAsapTimeInCycle = nextStartTimeInCycle;
-  } else {
+  if (pred != op->getControl()) {
+    nextStartCycle = 0;
+    nextStartTimeInCycle = 0.0f;
+    pred->getAsap(iteration - distance, predStartCycle, predStartTimeInCycle);
+    computeEnd(nextStartCycle, nextStartTimeInCycle, predStartCycle,
+               predStartTimeInCycle, lat, outDelay);
+    computeNextStart(nextStartCycle, nextStartTimeInCycle, incDelay, distance,
+                     period);
     compare(nextAsapCycle, nextAsapTimeInCycle, nextStartCycle,
             nextStartTimeInCycle, gamma);
   }
@@ -289,7 +291,8 @@ struct MobilityPass : public impl::MobilityPassBase<MobilityPass> {
         mlir::StringAttr nameAttr =
             operation.getAttrOfType<mlir::StringAttr>("sym_name");
         llvm::StringRef name = nameAttr.getValue();
-        bool isGamma = operation.hasAttr("SpecHLS.gamma");
+        bool isGamma =
+            operation.hasAttrOfType<mlir::ArrayAttr>("SpecHLS.gamma");
         auto properties =
             operation.getAttrOfType<mlir::ArrayAttr>("sspProperties");
         unsigned lat = 0;
@@ -320,6 +323,20 @@ struct MobilityPass : public impl::MobilityPassBase<MobilityPass> {
       unsigned sumDistances = 0;
       for (auto *operation : operations) {
         auto *mlirOperation = operation->getMlirOperation();
+        mlir::ArrayAttr controlNodeArray =
+            mlirOperation->getAttrOfType<mlir::ArrayAttr>("SpecHLS.gamma");
+        if (controlNodeArray) {
+          for (mlir::Attribute attr : controlNodeArray) {
+            if (auto control = llvm::dyn_cast<mlir::SymbolRefAttr>(attr)) {
+              mlir::Operation *mlirControlOperation =
+                  instOp.getDependenceGraph().lookupSymbol(control);
+              Operation *controlOperation =
+                  translationOperation.lookup(mlirControlOperation);
+              operation->setControl(controlOperation);
+            }
+          }
+        }
+
         if (auto dependences =
                 mlirOperation->getAttrOfType<mlir::ArrayAttr>("dependences")) {
           for (auto depAttr : dependences) {
@@ -349,18 +366,17 @@ struct MobilityPass : public impl::MobilityPassBase<MobilityPass> {
 
       for (unsigned iteration = 0; iteration < 2 * sumDistances; ++iteration)
         for (Operation *op : operations) {
-          unsigned nextAsapCycle = 0;
+          unsigned nextAsapCycle =
+              op->isGamma() ? std::numeric_limits<unsigned>::max() : 0;
           float nextAsapTimeInCycle = 0.0f;
           unsigned nextAlapCycle = 0;
           float nextAlapTimeInCycle = 0.0f;
-          bool first = true;
           for (auto dep : op->getDependences()) {
             Operation *pred = dep.first;
             unsigned dist = dep.second;
-            computeNext(nextAsapCycle, nextAsapTimeInCycle, nextAlapCycle,
-                        nextAlapTimeInCycle, pred, first, op->isGamma(),
-                        iteration, dist, period);
-            first = false;
+            computeNext(op, nextAsapCycle, nextAsapTimeInCycle, nextAlapCycle,
+                        nextAlapTimeInCycle, pred, op->isGamma(), iteration,
+                        dist, period);
           }
           op->setAsapCycle(iteration, nextAsapCycle);
           op->setAsapTimeInCycle(iteration, nextAsapTimeInCycle);
