@@ -156,6 +156,10 @@ def SpecHLSLUTToComb : Pass<"lower-SpecHLSLUT-to-comb", "SpecHLS::LookUpTableOp"
   ];
 }
 
-
+def MobilityPass : Pass<"mobility", "mlir::ModuleOp"> {
+  let summary = "Compute mobility informations.";
+  let constructor = "SpecHLS::createMobilityPass()";
+  let dependentDialects = ["circt::ssp::SSPDialect"];
+}
 
 #endif // SPECHLS_TRANSFORMS_PASSES

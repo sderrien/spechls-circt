@@ -1,8 +1,8 @@
 
 #include "circt/Dialect/SSP/SSPPasses.h"
 
-#include "Scheduling/Transforms/MobilityPass.h"
 #include "Scheduling/Transforms/Passes.h"
+#include "Transforms/MobilityPass.h"
 #include "Transforms/Passes.h"
 #include "mlir/CAPI/Pass.h"
 

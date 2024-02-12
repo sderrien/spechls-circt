@@ -79,7 +79,6 @@ char *getCStringDataFromMlirStringRef(MlirStringRef ident) {
 }
 
 size_t getCStringSizeFromMlirStringRef(MlirStringRef ident) {
-  printf("size =%lu", ident.length);
   return ident.length;
 }
 
@@ -192,10 +191,8 @@ MlirModule parseMLIR(const char *mlir) {
   // printf("Input %s", mlir);
 
   MlirStringRef str = mlirStringRefCreateFromCString(mlir);
-  printf("C side : str %p,%d -> %s\n", str.data, str.length, str.data);
 
   MlirModule module = mlirModuleCreateParse(ctx, str);
-  printf(stderr, "C side : module %p\n", module.ptr);
 
   return module;
 }
@@ -216,10 +213,8 @@ void traverseRegion(MlirRegion region);
 int traverseModule(MlirModule m) {
   // Assuming we are given a module, go to the first operation of the first
   // function.
-  printf("start of TraverseModule \n ");
   MlirOperation op = mlirModuleGetOperation(m);
   traverseOp(op);
-  printf("end of TraverseModule \n ");
 
   return 0;
 }
@@ -228,10 +223,8 @@ void traverseOp(MlirOperation op) {
   if (op.ptr != NULL) {
     MlirIdentifier ident = mlirOperationGetName(op);
     if (ident.ptr != NULL) {
-      printf("Operation %s\n", getCStringDataFromMlirIdentifier(ident));
       // printMlirIdentifier(ident);
       //   mlirOperationToString(op);
-      printf("\n");
     }
 
     int num = mlirOperationGetNumRegions(op);
@@ -239,15 +232,11 @@ void traverseOp(MlirOperation op) {
       MlirRegion region = mlirOperationGetRegion(op, i);
       traverseRegion(region);
     }
-    fflush(stdout);
-  } else {
-    printf("null op\n");
   }
 }
 
 void traverseRegion(MlirRegion region) {
   if (region.ptr != NULL) {
-    printf("regions \n");
     MlirBlock block = mlirRegionGetFirstBlock(region);
     while (block.ptr != NULL) {
       traverseBlock(block);
@@ -259,7 +248,6 @@ void traverseRegion(MlirRegion region) {
 
 void traverseBlock(MlirBlock block) {
   if (block.ptr != NULL) {
-    printf("Block \n");
     MlirOperation op = mlirBlockGetFirstOperation(block);
     while (op.ptr != NULL) {
       traverseOp(op);
@@ -273,15 +261,11 @@ void traverseRegionLegacy(MlirRegion region) {
 
   if (region.ptr != NULL) {
     MlirBlock block = mlirRegionGetFirstBlock(region);
-    printf("block %p\n", block.ptr);
     while (block.ptr != NULL) {
       MlirOperation op = mlirBlockGetFirstOperation(block);
-      printf("operation %p\n", op.ptr);
       while (op.ptr != NULL) {
         MlirIdentifier ident = mlirOperationGetName(op);
-        printf("ident %p\n", ident.ptr);
         printMlirIdentifier(ident);
-        printf("\n");
         int num = mlirOperationGetNumRegions(op);
         for (int i = 0; i < num; i++) {
           region = mlirOperationGetRegion(op, i);
@@ -290,7 +274,6 @@ void traverseRegionLegacy(MlirRegion region) {
         op = mlirOperationGetNextInBlock(op);
       }
       block = mlirBlockGetNextInRegion(block);
-      printf("next block %p\n", block.ptr);
     }
   }
 }

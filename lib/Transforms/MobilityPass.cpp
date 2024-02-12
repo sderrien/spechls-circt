@@ -1,4 +1,4 @@
-#include "Scheduling/Transforms/MobilityPass.h"
+#include "Transforms/Passes.h"
 #include "circt/Dialect/SSP/SSPOps.h"
 #include "circt/Scheduling/Problems.h"
 #include "mlir/IR/Builders.h"
@@ -192,14 +192,6 @@ void compare(unsigned &aCycle, float &aTimeInCycle, unsigned bCycle,
       aTimeInCycle = std::max(aTimeInCycle, bTimeInCycle);
     }
   }
-  /*
-  if (min ? (aCycle > bCycle) : (aCycle < bCycle)) {
-    aCycle = bCycle;
-    aTimeInCycle = bTimeInCycle;
-  } else if (aCycle == bCycle) {
-    aTimeInCycle = min ? std::min(aTimeInCycle, bTimeInCycle)
-                       : std::max(aTimeInCycle, bTimeInCycle);
-  }*/
 }
 
 void computeNext(Operation *op, unsigned &nextAsapCycle,
