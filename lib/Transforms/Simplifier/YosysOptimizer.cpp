@@ -159,6 +159,8 @@ private:
 
 circt::hw::HWModuleOp yosysBackend(MLIRContext *context,
                                    circt::hw::HWModuleOp op, bool replace) {
+  delete Yosys::yosys_design;
+  Yosys::yosys_design = new Yosys::RTLIL::Design;
 
   string filename = string(op.getName().str()) + ".sv";
   if (!std::filesystem::exists(filename)) {
@@ -168,7 +170,6 @@ circt::hw::HWModuleOp yosysBackend(MLIRContext *context,
 
   string toplevel = string(op.getName().str());
 
-  Yosys::yosys_setup();
   Yosys::log_error_stderr = true;
   LLVM_DEBUG(Yosys::log_streams.push_back(&std::cout));
 
@@ -178,10 +179,10 @@ circt::hw::HWModuleOp yosysBackend(MLIRContext *context,
   Yosys::run_pass("dump;   ");
   Yosys::run_pass("proc; flatten;   ");
   Yosys::run_pass("opt -full;   ");
-#ifdef USE_YOSYS_ABC
+//#ifdef USE_YOSYS_ABC
   Yosys::run_pass("synth -noabc ;  ");
-#endif
-  Yosys::run_pass("abc -exe \"/opt/yosys/yosys-abc\" -g AND,OR,XOR");
+//#endif
+  Yosys::run_pass("abc -exe \"/opt/yosys/yosys-abc\" -g AND,OR");
   Yosys::run_pass("write_verilog " + string(op.getName().str()) + "_yosys.sv");
   Yosys::run_pass("hierarchy -generate * o:Y i:*; opt; opt_clean -purge");
   Yosys::run_pass("clean -purge");
@@ -198,7 +199,6 @@ circt::hw::HWModuleOp yosysBackend(MLIRContext *context,
   circt::hw::HWModuleOp submodule =
       lutImporter.importModule(design->top_module(), topologicalOrder);
 
-  Yosys::yosys_shutdown();
   auto duration =
       std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
 
@@ -370,7 +370,7 @@ void YosysOptimizer::runOnOperation() {
       }
     });
   });
-
+  Yosys::yosys_setup();
   // applique Yosys sur tout les HWModules restants
   auto result = clone->walk([&](circt::hw::HWModuleOp op) {
     llvm::outs() << "Optimizing module " << op.getName() << "\n";
@@ -401,6 +401,7 @@ void YosysOptimizer::runOnOperation() {
     }
     return WalkResult::advance();
   });
+  Yosys::yosys_shutdown();
 
   if (result.wasInterrupted()) {
     llvm::outs() << "Yosys pass failed \n";
