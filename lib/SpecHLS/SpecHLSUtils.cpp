@@ -86,6 +86,8 @@ bool isControlLogicOperation(Operation* op) {
       .Case<circt::comb::TruthTableOp>([&](auto op) { return true; })
       .Case<circt::comb::ExtractOp>([&](auto op) { return true; })
       .Case<circt::hw::OutputOp>([&](auto op) { return true; })
+      .Case<circt::hw::ConstantOp>([&](auto op) { return true; })
+      .Case<circt::comb::MuxOp>([&](auto op) { return true; })
       .Case<circt::comb::XorOp>([&](auto op) { return true; })
       .Case<circt::comb::ConcatOp>([&](auto op) { return true; })
       .Case<circt::comb::ICmpOp>([&](auto op) { return true; })

@@ -9,8 +9,11 @@
 
 
 module {
-func.func @bar(%a: i3) -> i32 {
-        %res = SpecHLS.lookUpTable [%a]:i32 = {0,3,5,6,8,3334,4564,45}
-        return %res : i32
+
+    hw.module @SCC_0(in %in_0 : i3, out out_0 : i32) {
+        %res = SpecHLS.lookUpTable [%in_0]:i32 = {0,3,5,6,8,3334,4564,45}
+        hw.output %res : i32
+    }
+
 }
-}
+

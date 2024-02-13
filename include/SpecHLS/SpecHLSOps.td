@@ -234,8 +234,8 @@ def SpecHLS_LookUpTableOp : SpecHLSOp<"lookUpTable", [Pure]> {
    let arguments = (ins AnySignlessInteger:$input, I32ArrayAttr:$content);
    let results = (outs AnyInteger:$result);
 
-  let hasCanonicalizer = 1;
-  let hasFolder = 1;
+  //let hasCanonicalizer = 1;
+  //let hasFolder = 1;
    let hasCustomAssemblyFormat =1;
 }
 

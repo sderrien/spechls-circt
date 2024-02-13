@@ -38,8 +38,7 @@ struct ConvertSpecHLSLUTToCombPass : public SpecHLS::impl::SpecHLSLUTToCombBase<
 
 void populateSpecHLSLUTToCombConversionPatterns(
     TypeConverter &converter, mlir::RewritePatternSet &patterns) {
-  patterns.add<LookUpTableToTruthTableOpConversion>(
-      converter, patterns.getContext());
+  patterns.add<LookUpTableToTruthTableOpConversion>(patterns.getContext());
 }
 
 void ConvertSpecHLSLUTToCombPass::runOnOperation() {
@@ -57,8 +56,9 @@ void ConvertSpecHLSLUTToCombPass::runOnOperation() {
 
   populateSpecHLSLUTToCombConversionPatterns(converter, patterns);
 
-  if (failed(mlir::applyPartialConversion(getOperation(), target,
-                                          std::move(patterns))))
+
+
+  if (failed(mlir::applyPartialConversion(getOperation(), target,std::move(patterns))))
     signalPassFailure();
 }
 

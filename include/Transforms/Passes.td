@@ -99,7 +99,7 @@ def ControlOptimizer : Pass<"control-optimizer","circt::hw::HWModuleOp"> {
 }
 */
 
-def InlineModules : Pass<"inline-opt-modules", "circt::hw::HWModuleOp"> {
+def InlineModules : Pass<"inline-opt-modules", "mlir::ModuleOp"> {
   let summary = "Inline Yosys optimized modules";
   let description = [{
 
@@ -140,7 +140,7 @@ def ExportVitisHLS : Pass<"export-vitis-hls", "mlir::ModuleOp"> {
 
 }
 
-def SpecHLSToComb : Pass<"lower-spechls-to-comb", "mlir::ModuleOp"> {
+def SpecHLSToComb : Pass<"lower-spechls-to-comb", "circt::hw::HWModuleOp"> {
   let summary = "Lower SPECHLS to comb";
   let constructor = "createConvertSpecHLSToCombPass()";
   let dependentDialects = [

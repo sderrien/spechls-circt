@@ -368,6 +368,7 @@ void GroupControlNodePass::runOnOperation() {
             gamma.setOperand(0, inst.getResult(0));
 
             newModule->setAttr(b.getStringAttr("#pragma"), b.getStringAttr("CONTROL_NODE"));
+
             //
             //  Register the newly created module in the instance graph.
             // instanceGraph->addHWModule(newModule);

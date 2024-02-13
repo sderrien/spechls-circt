@@ -20,16 +20,14 @@ using namespace mlir;
 using namespace SpecHLS;
 
 
-struct LookUpTableToTruthTableOpConversion : OpConversionPattern<LookUpTableOp> {
-  using OpConversionPattern<LookUpTableOp>::OpConversionPattern;
-  bool match(const Value seed, const Value candidate) ;
-  LogicalResult matchAndRewrite(LookUpTableOp op, OpAdaptor adaptor, ConversionPatternRewriter &rewriter);
+struct LookUpTableToTruthTableOpConversion : OpRewritePattern<LookUpTableOp> {
+  using OpRewritePattern<LookUpTableOp>::OpRewritePattern;
+  LogicalResult matchAndRewrite(LookUpTableOp op,  PatternRewriter &rewriter) const override;
 };
 
-struct GammaToMuxOpConversion : OpConversionPattern<GammaOp> {
-  using OpConversionPattern<GammaOp>::OpConversionPattern;
-  bool match(const Value seed, const Value candidate) ;
-   LogicalResult matchAndRewrite(GammaOp op, OpAdaptor adaptor, ConversionPatternRewriter &rewriter);
+struct GammaToMuxOpConversion : OpRewritePattern<GammaOp> {
+  using OpRewritePattern<GammaOp>::OpRewritePattern;
+   LogicalResult matchAndRewrite(GammaOp op, PatternRewriter &rewriter) const override;
 };
 
 #endif // SPECHLS_DIALECT_SPECHLSCONVERSION_H

@@ -9,13 +9,14 @@
 
 #include "SpecHLS/SpecHLSDialect.h"
 #include "SpecHLS/SpecHLSOps.h"
+#include "Transforms/Passes.h"
 #include "Transforms/SpecHLSConversion.h"
 #include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/Seq/SeqOps.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
-#include "Transforms/Passes.h"
+#include <mlir/Transforms/GreedyPatternRewriteDriver.h>
 
 //===----------------------------------------------------------------------===//
 // Convert Comb to Arith pass
@@ -31,35 +32,29 @@ struct ConvertSpecHLSToCombPass : public SpecHLS::impl::SpecHLSToCombBase<Conver
 };
 } // namespace
 
-void populateSpecHLSToCombConversionPatterns(
-    TypeConverter &converter, mlir::RewritePatternSet &patterns) {
-  patterns.add<GammaToMuxOpConversion>( converter, patterns.getContext());
-  patterns.add<LookUpTableToTruthTableOpConversion>( converter, patterns.getContext());
-}
+//void populateSpecHLSToCombConversionPatterns(
+//    TypeConverter &converter, mlir::RewritePatternSet &patterns) {
+// // patterns.add<GammaToMuxOpConversion>( converter, patterns.getContext());
+//  patterns.add<LookUpTableToTruthTableOpConversion>( converter, patterns.getContext());
+//}
 
 void ConvertSpecHLSToCombPass::runOnOperation() {
-  ConversionTarget target(getContext());
 
-  target.addLegalDialect<SpecHLSDialect>();
-  target.addLegalDialect<CombDialect>();
-  target.addIllegalOp<SpecHLS::GammaOp>();
-  target.addIllegalOp<SpecHLS::LookUpTableOp>();
+  auto op = getOperation();
 
-  RewritePatternSet patterns(&getContext());
-  TypeConverter converter;
+  mlir::RewritePatternSet patterns(&getContext());
+  patterns.insert<LookUpTableToTruthTableOpConversion>(&getContext());
+  patterns.insert<GammaToMuxOpConversion>(&getContext());
 
-  converter.addConversion([](Type type) { return type; });
-
-  populateSpecHLSToCombConversionPatterns(converter, patterns);
-
-  if (failed(mlir::applyPartialConversion(getOperation(), target,
-                                          std::move(patterns))))
+  if (failed( applyPatternsAndFoldGreedily(op,std::move(patterns)))) {
     signalPassFailure();
+  }
+
 }
 
 namespace SpecHLS {
 
-std::unique_ptr<OperationPass<ModuleOp>> createConvertSpecHLSToCombPass() {
+std::unique_ptr<OperationPass<circt::hw::HWModuleOp>> createConvertSpecHLSToCombPass() {
   return std::make_unique<ConvertSpecHLSToCombPass>();
 }
 

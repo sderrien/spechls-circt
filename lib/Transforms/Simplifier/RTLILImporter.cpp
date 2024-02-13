@@ -106,8 +106,7 @@ Value RTLILImporter::getBit(
     return retBitValues[bit.wire][offset];
   }
   auto argA = getWireValue(bit.wire);
-  auto extractOp = b.create<circt::comb::ExtractOp>(
-      argA, bit.offset,1);
+  auto extractOp = b.create<circt::comb::ExtractOp>(argA, bit.offset,1);
   return extractOp;
 }
 

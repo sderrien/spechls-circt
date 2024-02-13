@@ -44,13 +44,13 @@ std::unique_ptr<mlir::OperationPass<>> createFactorGammaInputsPass();
 std::unique_ptr<mlir::OperationPass<>> createGenerateCPass();
 std::unique_ptr<mlir::Pass> createYosysOptimizer();
 std::unique_ptr<mlir::Pass> createGecosSchedulePass();
-std::unique_ptr<mlir::OperationPass<circt::hw::HWModuleOp>> createInlineModulesPass();
+std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>> createInlineModulesPass();
 //std::unique_ptr<mlir::Pass> createControlOptimizer();
 
 std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>> createGroupControlNodePass();
 
 
-std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>> createConvertSpecHLSToCombPass();
+std::unique_ptr<mlir::OperationPass<circt::hw::HWModuleOp>> createConvertSpecHLSToCombPass();
 std::unique_ptr<mlir::OperationPass<SpecHLS::LookUpTableOp>> createConvertSpecHLSLUTToCombPass();
 std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>> createExportVitisHLS();
 

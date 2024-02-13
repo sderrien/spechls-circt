@@ -467,77 +467,78 @@ void ExitOp::print(mlir::OpAsmPrinter &printer) {
   }
 }
 
-OpFoldResult LookUpTableOp::fold(LookUpTableOp::FoldAdaptor adaptor) {
-  auto inputValue = adaptor.getOperands()[0];
+//OpFoldResult LookUpTableOp::fold(LookUpTableOp::FoldAdaptor adaptor) {
+//  auto inputValue = adaptor.getInput();
+//
+//
+//
+////  ArrayAttr content = adaptor.getContent();
+//  llvm::outs() << "in fold(LookUpTableOp)\n";
+//  llvm::outs() << "  - input " << inputValue << "\n";
+//  auto inputAttr  = dyn_cast<mlir::IntegerAttr>(inputValue);
+//  auto cellValue =getContent()[inputAttr.getValue().getZExtValue()];
+//  llvm::outs() << "  - cell value " << cellValue << "\n";
+//  auto arratyCellAttr  = dyn_cast<mlir::IntegerAttr>(cellValue);
+//  return IntegerAttr::get(IntegerType::get(getContext(), getType().getWidth()),arratyCellAttr.getValue());
+//}
 
-
-
-//  ArrayAttr content = adaptor.getContent();
-  llvm::outs() << "in fold(LookUpTableOp)\n";
-  llvm::outs() << "  - input " << inputValue << "\n";
-  auto inputAttr  = dyn_cast<mlir::IntegerAttr>(inputValue);
-  auto cellValue =getContent()[inputAttr.getValue().getZExtValue()];
-  llvm::outs() << "  - cell value " << cellValue << "\n";
-  auto arratyCellAttr  = dyn_cast<mlir::IntegerAttr>(cellValue);
-  return IntegerAttr::get(IntegerType::get(getContext(), getType().getWidth()),arratyCellAttr.getValue());
-}
-struct LookUpTableOpCanonicalizer : public OpRewritePattern<LookUpTableOp> {
-  LookUpTableOpCanonicalizer(mlir::MLIRContext *context)
-      : OpRewritePattern<LookUpTableOp>(context, /*benefit=*/1) {}
-
-ArrayAttr updateLUTContent(ArrayAttr inner, ArrayAttr outer,
-                           PatternRewriter &rewriter) const {
-  SmallVector<int, 1024> newcontent;
-  uint32_t innerSize = inner.size();
-  uint32_t  outerSize = outer.size();
-  for (int o = 0; o < innerSize; o++) {
-
-    if (o > inner.size()) {
-      llvm::errs() << "out of bound access at " << o << " for " << inner
-                   << "  \n";
-      return NULL;
-    }
-    auto innerValue = cast<IntegerAttr>(inner.getValue()[o]).getInt();
-    if (innerValue > outer.size()) {
-      llvm::errs() << "out of bound access at " << innerValue << " for "
-                   << outer << "  \n";
-      return NULL;
-    }
-
-    auto outerValue =
-        cast<IntegerAttr>(outer.getValue()[innerValue]).getInt();
-    newcontent.push_back(outerValue);
-  }
-  return rewriter.getI32ArrayAttr(newcontent);
-}
-
-LogicalResult matchAndRewrite(LookUpTableOp op,
-                              PatternRewriter &rewriter) const override {
-
-  //    llvm::errs() << "Analyzing  " << op << " \n";
-  auto input = op.getInput().getDefiningOp();
-  if (input != NULL && llvm::isa<SpecHLS::LookUpTableOp>(input)) {
-    auto inputLUT = cast<SpecHLS::LookUpTableOp>(input);
-
-    //      llvm::errs() << "Found nested LUTs \n";
-    //      llvm::errs() << "\t " << op << "  \n";
-    //      llvm::errs() << "\t " << input << "  \n";
-
-    ArrayAttr newAttr =
-        updateLUTContent(inputLUT.getContent(), op.getContent(), rewriter);
-//    auto lutSelect = rewriter.replaceOpWithNewOp<LookUpTableOp>(
-//        op, op->getResultTypes(), inputLUT.getInput(), newAttr);
-
-    rewriter.eraseOp(inputLUT);
-
-    //      llvm::errs() << "\t-sucess ?  " << lutSelect << "\n";
-    //      llvm::errs() << "\t-sucess ?  " << lutSelect << "\n";
-    return success();
-  }
-
-  return failure();
-}
-};
+//struct LookUpTableOpCanonicalizer : public OpRewritePattern<LookUpTableOp> {
+//  LookUpTableOpCanonicalizer(mlir::MLIRContext *context)
+//      : OpRewritePattern<LookUpTableOp>(context, /*benefit=*/1) {}
+//
+//ArrayAttr updateLUTContent(ArrayAttr inner, ArrayAttr outer,
+//                           PatternRewriter &rewriter) const {
+//  SmallVector<int, 1024> newcontent;
+//  uint32_t innerSize = inner.size();
+//  uint32_t  outerSize = outer.size();
+//  for (int o = 0; o < innerSize; o++) {
+//
+//    if (o > inner.size()) {
+//      llvm::errs() << "out of bound access at " << o << " for " << inner
+//                   << "  \n";
+//      return NULL;
+//    }
+//    auto innerValue = cast<IntegerAttr>(inner.getValue()[o]).getInt();
+//    if (innerValue > outer.size()) {
+//      llvm::errs() << "out of bound access at " << innerValue << " for "
+//                   << outer << "  \n";
+//      return NULL;
+//    }
+//
+//    auto outerValue =
+//        cast<IntegerAttr>(outer.getValue()[innerValue]).getInt();
+//    newcontent.push_back(outerValue);
+//  }
+//  return rewriter.getI32ArrayAttr(newcontent);
+//}
+//
+//LogicalResult matchAndRewrite(LookUpTableOp op,
+//                              PatternRewriter &rewriter) const override {
+//
+//  //    llvm::errs() << "Analyzing  " << op << " \n";
+//  auto input = op.getInput().getDefiningOp();
+//  if (input != NULL && llvm::isa<SpecHLS::LookUpTableOp>(input)) {
+//    auto inputLUT = cast<SpecHLS::LookUpTableOp>(input);
+//
+//    //      llvm::errs() << "Found nested LUTs \n";
+//    //      llvm::errs() << "\t " << op << "  \n";
+//    //      llvm::errs() << "\t " << input << "  \n";
+//
+//    ArrayAttr newAttr =
+//        updateLUTContent(inputLUT.getContent(), op.getContent(), rewriter);
+////    auto lutSelect = rewriter.replaceOpWithNewOp<LookUpTableOp>(
+////        op, op->getResultTypes(), inputLUT.getInput(), newAttr);
+//
+//    rewriter.eraseOp(inputLUT);
+//
+//    //      llvm::errs() << "\t-sucess ?  " << lutSelect << "\n";
+//    //      llvm::errs() << "\t-sucess ?  " << lutSelect << "\n";
+//    return success();
+//  }
+//
+//  return failure();
+//}
+//};
 
 struct ConstantControlGammaNode : public OpRewritePattern<GammaOp> {
   ConstantControlGammaNode(mlir::MLIRContext *context)
@@ -570,8 +571,8 @@ void GammaOp::getCanonicalizationPatterns(::mlir::RewritePatternSet &results,
   results.add<ConstantControlGammaNode>(context);
 }
 
-void LookUpTableOp::getCanonicalizationPatterns(
-    ::mlir::RewritePatternSet &results, ::mlir::MLIRContext *context) {
-  results.add<LookUpTableOpCanonicalizer>(context);
-}
+//void LookUpTableOp::getCanonicalizationPatterns(
+//    ::mlir::RewritePatternSet &results, ::mlir::MLIRContext *context) {
+//  results.add<LookUpTableOpCanonicalizer>(context);
+//}
 }

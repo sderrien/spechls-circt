@@ -11,6 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "Transforms/Passes.h"
+#include "circt/Dialect/Comb/CombDialect.h"
 #include "circt/Dialect/HW/HWInstanceGraph.h"
 #include "circt/Dialect/HW/HWOps.h"
 #include "circt/Support/BackedgeBuilder.h"
@@ -19,13 +21,10 @@
 #include "mlir/Transforms/InliningUtils.h"
 #include "llvm/ADT/PostOrderIterator.h"
 #include "llvm/Support/Debug.h"
-#include "Transforms/Passes.h"
-#include "circt/Dialect/Comb/CombDialect.h"
 
 #define DEBUG_TYPE "arc-inline-modules"
 
-namespace circt {
-} // namespace circt
+namespace circt {} // namespace circt
 
 using namespace circt;
 using namespace hw;
@@ -73,9 +72,6 @@ struct PrefixingInliner : public InlinerInterface {
     return StringAttr::get(attr.getContext(), prefix + "/" + attr.getValue());
   }
 
-
-
-
   void updateNames(Operation *op) const {
     if (auto name = op->getAttrOfType<StringAttr>("name"))
       op->setAttr("name", updateName(name));
@@ -99,7 +95,8 @@ bool hasConstantOutputs(HWModuleOp op) {
                   .Case<circt::hw::ConstantOp>([&](auto op) { return true; })
                   .Case<circt::hw::OutputOp>([&](auto op) { return true; })
                   .Default([&](auto op) {
-                    llvm::outs() << "Operation " << _innerop  << "is not constant\n";
+                    llvm::outs()
+                        << "Operation " << _innerop << "is not constant\n";
                     return false;
                   });
 
@@ -110,10 +107,11 @@ bool hasConstantOutputs(HWModuleOp op) {
 }
 void InlineOptimizedModulesPass::runOnOperation() {
 
-
   auto &instanceGraph = getAnalysis<hw::InstanceGraph>();
   DenseSet<Operation *> handled;
 
+  llvm::outs()
+      << "InlineOptimizedModulesPass:"  <<  this->getOperation().getName() << "\n";
 
   // Iterate over all instances in the instance graph. This ensures we visit
   // every module, even private top modules (private and never instantiated).
@@ -134,29 +132,27 @@ void InlineOptimizedModulesPass::runOnOperation() {
       if (numUsesLeft == 0)
         continue;
 
+      auto hwmodule = dyn_cast_or_null<HWModuleOp>(node->getModule().getOperation());
+      llvm::outs() << "Analyzing  "<< hwmodule.getName() << "\n";
+
+      if (!hasConstantOutputs(hwmodule)) {
+        llvm::outs() << "Skipping "<< hwmodule.getName() << "\n";
+        continue;
+      }
+
       for (auto *instRecord : node->uses()) {
         // Only inline private `HWModuleOp`s (no extern or generated modules).
-        auto hwmodule =
-            dyn_cast_or_null<HWModuleOp>(node->getModule().getOperation());
-        if (!hwmodule || !hwmodule.isPrivate())
-          continue;
-
-        if (!hasConstantOutputs(hwmodule)) {
-          continue;
-
-        }
 
 
         // Only inline at plain old HW `InstanceOp`s.
-        auto inst = dyn_cast_or_null<InstanceOp>(
-            instRecord->getInstance().getOperation());
+        auto inst = dyn_cast_or_null<InstanceOp>( instRecord->getInstance().getOperation());
         if (!inst)
           continue;
 
-        llvm::outs() << "analyzing " << inst << "\n";
+        llvm::outs() << "analyzing instance " << *inst << "\n";
         bool isLastModuleUse = --numUsesLeft == 0;
 
-          // Retrieve the symbolic name associated with the InstanceOp operand
+        // Retrieve the symbolic name associated with the InstanceOp operand
 
         auto symbolicNameAttr = inst.getInnerSymAttr();
         llvm::outs() << "inlining " << inst << "\n";
@@ -176,9 +172,11 @@ void InlineOptimizedModulesPass::runOnOperation() {
           hwmodule->erase();
       }
     }
+
   }
 }
 
-std::unique_ptr<mlir::OperationPass<circt::hw::HWModuleOp>> SpecHLS::createInlineModulesPass() {
+std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>>
+SpecHLS::createInlineModulesPass() {
   return std::make_unique<InlineOptimizedModulesPass>();
 }

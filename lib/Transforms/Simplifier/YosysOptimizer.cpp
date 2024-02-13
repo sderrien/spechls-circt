@@ -173,7 +173,9 @@ circt::hw::HWModuleOp yosysBackend(MLIRContext *context,
   LLVM_DEBUG(Yosys::log_streams.push_back(&std::cout));
 
   auto start = std::chrono::high_resolution_clock::now();
-  Yosys::run_pass("read_verilog " + filename + "  ");
+  auto command =  "read_verilog " + filename ;
+  Yosys::run_pass(command);
+  Yosys::run_pass("dump;   ");
   Yosys::run_pass("proc; flatten;   ");
   Yosys::run_pass("opt -full;   ");
 #ifdef USE_YOSYS_ABC
@@ -197,7 +199,8 @@ circt::hw::HWModuleOp yosysBackend(MLIRContext *context,
       lutImporter.importModule(design->top_module(), topologicalOrder);
 
   Yosys::yosys_shutdown();
-  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+  auto duration =
+      std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
 
   llvm::outs() << "Yosys synthesis successfull for " << op.getSymName() << " ("
                << duration.count() << " ms) \n";
@@ -262,11 +265,13 @@ LogicalResult replaceAndInline(circt::hw::HWModuleOp old,
     llvm::errs() << "Cannot extract module op for   " << old << "\n";
     return failure();
   }
-
   auto instances = listAllInstances(module, old);
   llvm::outs() << "Found " << instances.size() << " instances of "
                << old.getName() << "\n";
   auto isConstant = hasConstantOutputs(_new);
+  // Set modul as private to enable inliing using arc inline pass
+  if (isConstant)
+    _new.setPrivate();
 
   for (auto inst : instances) {
     // Check if the operation is a CallOp
@@ -281,27 +286,6 @@ LogicalResult replaceAndInline(circt::hw::HWModuleOp old,
     llvm::outs() << "\n";
 
     if (isConstant) {
-      auto parent = dyn_cast<circt::hw::HWModuleOp>(inst->getParentOp());
-      if (parent == NULL) {
-        llvm::outs() << "Error inlining HWModule " << _new << "\n";
-        return failure();
-      }
-      PrefixingInliner inliner(_new->getContext(), instName);
-      auto body = module.getBody();
-
-      llvm::outs() << "Inlining instance " << inst << "\n";
-      // Inline the instance using the correct approach.
-      // OperationInlineResult result = inlineOperation(inst,
-      // old.getBody()->getOperations());
-
-      if (failed(mlir::inlineRegion(inliner, &parent.getBody(), inst,
-                                    inst.getOperands(), inst.getResults(),
-                                    std::nullopt, false))) {
-        //              inst.emitError("failed to inline '")
-        //                  << module.getName() << "' into instance '"
-        //                  << inst.getInstanceName() << "'";
-        return failure();
-      }
     }
   }
   old->remove();
@@ -311,19 +295,36 @@ LogicalResult replaceAndInline(circt::hw::HWModuleOp old,
 
 void YosysOptimizer::runOnOperation() {
 
-  //  mlir::MLIRContext ctxt;
   mlir::MLIRContext *ctxt = getOperation()->getContext();
   auto module = dyn_cast<ModuleOp>(getOperation());
-
-  //  llvm::DenseMap<circt::hw::HWModuleOp, circt::hw::HWModuleOp> hwMap;
-  //  for (auto chwop : clone.getOps<circt::hw::HWModuleOp>()) {
-  //
-  //  }
 
   // Une des difficultés et que l'API d'export de verilog fonctionne au niveau
   // ModuleOP et pas au niveau HWModuleOp. On commence donc par cloner le module
   // Pour ne conserver que les HWModules identifiés comme  synthetizables et
   // pour lesquelles on trouve un Pragma Control_Node
+
+  // supprime les HWModule qui ne seront pas optimisés via Yosys
+
+  module->walk([&](circt::hw::HWModuleOp op) {
+    llvm::outs() << "Analyzing HWModule " << op.getSymName() << "\n";
+    if (hasControlNodePragma(ctxt, op)) {
+      llvm::outs() << "   - module " << op.getSymName()
+                   << " has control node pragma\n";
+
+      OpPassManager dynamicPM("hw.module");
+
+      // Add a pass on the top-level module operation.
+      dynamicPM.addPass(SpecHLS::createConvertSpecHLSToCombPass());
+      if (failed(runPipeline(dynamicPM, op))) {
+        llvm::errs() << "   - error for " << op.getSymName() << " \n";
+      } else {
+        llvm::outs() << "   - module lowered to \n" << op << " \n";
+      }
+    }
+
+    return WalkResult::advance();
+  });
+
 
   auto clone = dyn_cast<ModuleOp>(getOperation()->clone());
   if (clone == NULL || module == NULL) {
@@ -339,9 +340,13 @@ void YosysOptimizer::runOnOperation() {
     if (hasControlNodePragma(ctxt, op)) {
       llvm::outs() << "   - module " << op.getSymName()
                    << " has control node pragma\n";
+
+
       if (isSynthesizableModule(op)) {
         llvm::outs() << "   - module " << op.getSymName()
                      << " will be optimized through Yosys\n";
+        llvm::outs() << op << "\n";
+
         return WalkResult::advance();
       }
     }
@@ -350,6 +355,7 @@ void YosysOptimizer::runOnOperation() {
     return WalkResult::advance();
   });
 
+  clone->dump();
   circt::exportSplitVerilog(clone, "./");
 
   auto cloneHWmodules = clone.getOps<circt::hw::HWModuleOp>();
@@ -375,6 +381,7 @@ void YosysOptimizer::runOnOperation() {
       return WalkResult::skip();
 
     } else {
+      llvm::outs() << "Yosys synthesis successfull for  " << op.getName() << "\n";
       optimizedModules.push_back(op.getSymName().str());
       module.push_back(optimized);
 
