@@ -15,8 +15,9 @@
 
 #include "circt/Dialect/HW/HWOpInterfaces.h"
 #include "circt/Dialect/HW/HWOps.h"
-#include "circt/Dialect/SV/SVDialect.h"
 #include "circt/Dialect/SSP/SSPDialect.h"
+#include "circt/Dialect/SSP/SSPOps.h"
+#include "circt/Dialect/SV/SVDialect.h"
 #include "circt/Dialect/Seq/SeqDialect.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -44,14 +45,18 @@ std::unique_ptr<mlir::OperationPass<>> createFactorGammaInputsPass();
 std::unique_ptr<mlir::OperationPass<>> createGenerateCPass();
 std::unique_ptr<mlir::Pass> createYosysOptimizer();
 std::unique_ptr<mlir::Pass> createGecosSchedulePass();
-std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>> createInlineModulesPass();
-//std::unique_ptr<mlir::Pass> createControlOptimizer();
+std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>>
+createInlineModulesPass();
+std::unique_ptr<mlir::Pass> createMobilityPass();
+// std::unique_ptr<mlir::Pass> createControlOptimizer();
 
-std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>> createGroupControlNodePass();
+std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>>
+createGroupControlNodePass();
 
-
-std::unique_ptr<mlir::OperationPass<circt::hw::HWModuleOp>> createConvertSpecHLSToCombPass();
-std::unique_ptr<mlir::OperationPass<SpecHLS::LookUpTableOp>> createConvertSpecHLSLUTToCombPass();
+std::unique_ptr<mlir::OperationPass<circt::hw::HWModuleOp>>
+createConvertSpecHLSToCombPass();
+std::unique_ptr<mlir::OperationPass<SpecHLS::LookUpTableOp>>
+createConvertSpecHLSLUTToCombPass();
 std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>> createExportVitisHLS();
 
 void registerYosysOptimizerPipeline();
@@ -84,6 +89,9 @@ void registerYosysOptimizerPipeline();
 
 #define GEN_PASS_DECL_SPECHLSTOCOMB
 #define GEN_PASS_DEF_SPECHLSTOCOMB
+
+#define GEN_PASS_DECL_MOBILITYPASS
+#define GEN_PASS_DEF_MOBILITYPASS
 
 #include "Transforms/Passes.h.inc"
 

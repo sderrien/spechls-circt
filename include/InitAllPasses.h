@@ -14,7 +14,6 @@
 #ifndef SPECHLS_INITALLPASSES_H_
 #define SPECHLS_INITALLPASSES_H_
 
-#include "Scheduling/Transforms/Passes.h"
 #include "SpecHLS/SpecHLSDialect.h"
 #include "Transforms/Passes.h"
 #include "circt/Transforms/Passes.h"

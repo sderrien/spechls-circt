@@ -9,41 +9,42 @@ add_compile_definitions(_YOSYS_)
 #
 # RTLILImporter.cpp
 add_mlir_library(SpecHLSTransforms
-		Simplifier/YosysOptimizer.cpp
-		Simplifier/LUTImporter.cpp
-		Simplifier/RTLILImporter.cpp
-		Simplifier/FactorGammaInputs.cpp
-		Simplifier/InlineOptimizedModules.cpp
-		Simplifier/MergeGammas.cpp
-		Simplifier/MergeLUTs.cpp
-		SpecHLSToComb/SpecHLSToComb.cpp
-		SpecHLSToComb/SpecHLSLUTToComb.cpp
-		SpecHLSToComb/GammaConversion.cpp
-		SpecHLSToComb/LUTConversion.cpp
-		VitisExport/CFileContent.cpp
-		VitisExport/PrintOperations.cpp
-		VitisExport/PrintUtils.cpp
+        Simplifier/YosysOptimizer.cpp
+        Simplifier/LUTImporter.cpp
+        Simplifier/RTLILImporter.cpp
+        Simplifier/FactorGammaInputs.cpp
+        Simplifier/InlineOptimizedModules.cpp
+        Simplifier/MergeGammas.cpp
+        Simplifier/MergeLUTs.cpp
+        SpecHLSToComb/SpecHLSToComb.cpp
+        SpecHLSToComb/SpecHLSLUTToComb.cpp
+        SpecHLSToComb/GammaConversion.cpp
+        SpecHLSToComb/LUTConversion.cpp
+        VitisExport/CFileContent.cpp
+        VitisExport/PrintOperations.cpp
+        VitisExport/PrintUtils.cpp
         VitisExport/ExportVitisHLS.cpp
-		Simplifier/GroupControlLogic.cpp
-		DEPENDS
+        Simplifier/GroupControlLogic.cpp
+        MobilityPass.cpp
+        DEPENDS
 
-		MLIRSpecHLSOpsIncGen
-		SpecHLSTransformsPassIncGen
+        MLIRSpecHLSOpsIncGen
+        SpecHLSTransformsPassIncGen
 
-		LINK_COMPONENTS
-		Core
+        LINK_COMPONENTS
+        Core
 
-		LINK_LIBS PUBLIC
-		MLIRSpecHLS
-		MLIRTransforms
-		)
+        LINK_LIBS PUBLIC
+        MLIRSpecHLS
+        MLIRTransforms
+)
 target_compile_options(SpecHLSTransforms PUBLIC -fexceptions)
 
 target_link_libraries(SpecHLSTransforms
 
-		PUBLIC
-		CIRCTExportVerilog
-		CIRCTComb
-		CIRCTHW
-		CIRCTSupport
-		)
+        PUBLIC
+        CIRCTExportVerilog
+        CIRCTComb
+        CIRCTHW
+        CIRCTSupport
+)

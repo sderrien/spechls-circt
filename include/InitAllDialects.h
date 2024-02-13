@@ -14,7 +14,8 @@
 #ifndef SPECHLS_INITALLDIALECTS_H_
 #define SPECHLS_INITALLDIALECTS_H_
 
-#include "/IR/Dialect.h"
+#include "SpecHLS/SpecHLSDialect.h"
+#include "mlir/IR/Dialect.h"
 
 namespace SpecHLS {
 

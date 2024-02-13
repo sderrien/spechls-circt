@@ -78,6 +78,9 @@ endfunction()
 
 
 get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
+get_property(mlir_dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
+get_property(circt_dialect_libs GLOBAL PROPERTY CIRCT_DIALECT_LIBS)
+
 get_property(conversion_libs GLOBAL PROPERTY MLIR_CONVERSION_LIBS)
 link_directories(/usr/local/lib/yosys/ /opt/yosys/)
 set(LIBS
@@ -86,6 +89,17 @@ set(LIBS
         CIRCTExportVerilog
         MLIROptLib
         MLIRSpecHLS
+        MLIRAffineAnalysis
+        MLIRAnalysis
+        MLIRDialect
+        MLIRFuncAllExtensions
+        MLIRLspServerLib
+        MLIRParser
+        MLIRPass
+        MLIRTransforms
+        MLIRTransformUtils
+        MLIRSupport
+        MLIRIR
         SpecHLSTransforms
         CIRCTSeq
         CIRCTComb
@@ -106,13 +120,24 @@ set(LIBS
         CIRCTSystemC
         CIRCTTransforms
         CIRCTSupport
-        yosys
+        CIRCTArc
+        CIRCTCalyx
+        CIRCTHandshake
+        CIRCTInteropDialect
+        CIRCTIbis
+        CIRCTLLHD
+        CIRCTLoopSchedule
+        CIRCTMoore
+        MLIRLspServerLib
+        ${mlir_dialect_libs}
+        ${circt_dialect_libs}
+
 )
-add_llvm_executable(spechls-opt spechls-opt.cpp)
+add_llvm_executable(spechls-lsp-server SpecHLSLspServerMain.cpp)
 
 
-llvm_update_compile_flags(spechls-opt)
+llvm_update_compile_flags(spechls-lsp-server)
 
-target_link_libraries(spechls-opt PRIVATE ${LIBS})
-target_compile_options(spechls-opt PUBLIC -fexceptions)
-install(TARGETS spechls-opt DESTINATION bin)
+target_link_libraries(spechls-lsp-server PRIVATE ${LIBS})
+target_compile_options(spechls-lsp-server PUBLIC -fexceptions)
+install(TARGETS spechls-lsp-server DESTINATION bin)
