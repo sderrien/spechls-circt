@@ -79,7 +79,6 @@ endfunction()
 
 get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
 get_property(conversion_libs GLOBAL PROPERTY MLIR_CONVERSION_LIBS)
-link_directories(/usr/local/lib/yosys/ /opt/yosys/)
 set(LIBS
         ${dialect_libs}
         ${conversion_libs}
