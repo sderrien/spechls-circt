@@ -54,7 +54,7 @@ LUTImporter::createOp(Yosys::RTLIL::Cell *cell,
     } else if (type=="$_XOR_") {
       return b.create<circt::comb::XorOp>(b.getIntegerType(1), inputs);
     } else if (type=="$_NOT_") {
-      llvm::SmallVector<circt::Value> args = {inputs[0], inputs[1]};
+      llvm::SmallVector<circt::Value> args = {inputs[0]};
       return b.create<circt::comb::XorOp>(b.getIntegerType(1), args);
     } else if (type=="$and") {
         return b.create<circt::comb::AndOp>(b.getIntegerType(1), inputs);
