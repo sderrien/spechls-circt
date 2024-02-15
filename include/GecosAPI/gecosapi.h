@@ -17,7 +17,8 @@ extern "C" {
 #endif
 void initSpecHLS();
 MlirModule parseMLIR(const char *mlir);
-void traverseRegion(MlirRegion region) void traverseMLIR(MlirModule module);
+void traverseRegion(MlirRegion region);
+void traverseMLIR(MlirModule module);
 void pass(const char *mlir);
 #ifdef __cplusplus
 }

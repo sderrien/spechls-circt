@@ -25,7 +25,8 @@ add_mlir_library(SpecHLSTransforms
         VitisExport/PrintUtils.cpp
         VitisExport/ExportVitisHLS.cpp
         Simplifier/GroupControlLogic.cpp
-        MobilityPass.cpp
+        Scheduling/MobilityPass.cpp
+        Scheduling/Schedule.cpp
         DEPENDS
 
         MLIRSpecHLSOpsIncGen
@@ -37,14 +38,12 @@ add_mlir_library(SpecHLSTransforms
         LINK_LIBS PUBLIC
         MLIRSpecHLS
         MLIRTransforms
-)
-target_compile_options(SpecHLSTransforms PUBLIC -fexceptions)
-
-target_link_libraries(SpecHLSTransforms
-
-        PUBLIC
         CIRCTExportVerilog
         CIRCTComb
         CIRCTHW
+        CIRCTSSP
         CIRCTSupport
+        CIRCTSSPTransforms
+        CIRCTScheduling
 )
+target_compile_options(SpecHLSTransforms PUBLIC -fexceptions)

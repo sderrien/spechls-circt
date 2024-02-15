@@ -113,22 +113,6 @@ def InlineModules : Pass<"inline-opt-modules", "mlir::ModuleOp"> {
 }
 
 
-/*
-def GecosSchedulePass : Pass<"gecos-schedule", "mlir::ModuleOp"> {
-  let summary = "Schedule GammaMobilityProblem with ASAP.";
-  let description = [{
-    Schedule GammaMobilityProblem with ASAP.
-  }];
-
-let options = [
-    Option<"schedulerOptions", "options", "std::string", "",
-               "Scheduler-specific options.">
-  ];
-
-  let constructor = "SpecHLS::createGecosSchedulePass()";
-  let dependentDialects = ["circt::ssp::SSPDialect"];
-}
-*/
 def ExportVitisHLS : Pass<"export-vitis-hls", "mlir::ModuleOp"> {
   let summary = "Export C code for Vitis HLS.";
 
@@ -161,5 +145,16 @@ def MobilityPass : Pass<"mobility", "mlir::ModuleOp"> {
   let constructor = "SpecHLS::createMobilityPass()";
   let dependentDialects = ["circt::ssp::SSPDialect"];
 }
+
+ def SchedulePass : Pass<"schedule", "mlir::ModuleOp"> {
+   let summary = "A circt::schedule pass wrapper for gecos.";
+   let description = [{
+     A circt::schedule pass wrapper for gecos.
+   }];
+
+   let constructor = "SpecHLS::createSchedulePass()";
+   let dependentDialects = ["circt::ssp::SSPDialect"];
+ }
+
 
 #endif // SPECHLS_TRANSFORMS_PASSES

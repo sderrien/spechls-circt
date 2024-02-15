@@ -32,6 +32,7 @@ inline void registerAllPasses() {
     registerInlineModules();
     registerYosysOptimizerPass();
     registerMobilityPass();
+    registerSchedulePass();
     registerExportVitisHLS();
 
     return true;

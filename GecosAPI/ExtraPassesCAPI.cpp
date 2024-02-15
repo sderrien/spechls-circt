@@ -23,10 +23,10 @@ void mlirRegisterExportVitisHLS(void);
 #endif
 
 MlirPass mlirCreateSchedulePass(void) {
-  return wrap(circt::ssp::createSchedulePass().release());
+  return wrap(SpecHLS::createSchedulePass().release());
 }
 
-void mlirRegisterSchedulePass(void) { circt::ssp::registerSchedulePass(); }
+void mlirRegisterSchedulePass(void) { SpecHLS::registerSchedulePass(); }
 
 MlirPass mlirCreateMobilityPass(void) {
   return wrap(SpecHLS::createMobilityPass().release());
