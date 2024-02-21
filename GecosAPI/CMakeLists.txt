@@ -34,8 +34,9 @@ set(LIBS
         CIRCTSeqTransforms
         CIRCTCAPISeq
 
-        #        CIRCTComb
+        CIRCTComb
         CIRCTCAPIComb
+        CIRCTCombTransforms
 
         CIRCTSV
 
