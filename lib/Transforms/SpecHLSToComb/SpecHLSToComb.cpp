@@ -27,16 +27,8 @@ namespace {
 // CRTP pattern
 struct ConvertSpecHLSToCombPass : public SpecHLS::impl::SpecHLSToCombBase<ConvertSpecHLSToCombPass> {
   void runOnOperation() override;
-  //  virtual StringRef getName() ;
-  //  virtual std::unique_ptr<Pass> clonePass() ;
 };
 } // namespace
-
-//void populateSpecHLSToCombConversionPatterns(
-//    TypeConverter &converter, mlir::RewritePatternSet &patterns) {
-// // patterns.add<GammaToMuxOpConversion>( converter, patterns.getContext());
-//  patterns.add<LookUpTableToTruthTableOpConversion>( converter, patterns.getContext());
-//}
 
 void ConvertSpecHLSToCombPass::runOnOperation() {
 
