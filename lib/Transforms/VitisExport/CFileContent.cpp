@@ -9,6 +9,9 @@ using namespace mlir;
 
 bool CFileContent::save() {
   ofstream oFile;
+
+  llvm::outs() << "Saving C code to " << path+"/"+name+".cpp";
+
   oFile.open(path+"/"+name+".cpp");
 
   for (auto &i : includes)
@@ -18,20 +21,25 @@ bool CFileContent::save() {
     oFile << "\t" << d << "\n";
 
   oFile << "\tbool exit;\n";
+
+  oFile << "\t\t // Initialisation update\n\n";
+  oFile << "void init_"<< name << "() {\n";
   for (auto &i : init)
     oFile << "\t" << i << "\n";
+  oFile << "} \n";
 
-  oFile << "\tdo {\n";
   oFile << "\t\t // Combinational update\n\n";
+  oFile << "void comb_update_"<< name << "() {\n";
   for (auto &c : combUpdate)
     oFile << "\t\t" << c << "\n";
+  oFile << "} \n";
 
   oFile << "\t\t // Synchronous update\n\n";
+  oFile << "void sync_update_"<< name << "() {\n";
   for (auto &s : syncUpdate)
     oFile << "\t\t" << s << "\n";
+  oFile << "}\n";
 
-  oFile << "\t} while (!exit);\n";
-  oFile << "} \n";
   oFile.close();
   return 0;
 }
