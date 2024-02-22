@@ -1,6 +1,6 @@
 
 add_compile_definitions(_YOSYS_)
-#include_directories("/usr/share/yosys/include/")
+
 
 #include_directories("./YosysOptimizer")
 #
@@ -10,7 +10,6 @@ add_compile_definitions(_YOSYS_)
 # RTLILImporter.cpp
 add_mlir_library(SpecHLSTransforms
         Simplifier/YosysOptimizer.cpp
-        Simplifier/LUTImporter.cpp
         Simplifier/RTLILImporter.cpp
         Simplifier/FactorGammaInputs.cpp
         Simplifier/InlineOptimizedModules.cpp

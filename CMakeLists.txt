@@ -74,7 +74,7 @@ include(sanitizers)
 
 add_subdirectory(include)
 add_subdirectory(lib)
-#add_subdirectory(test)
+add_subdirectory(test)
 add_subdirectory(GecosAPI)
 add_subdirectory(test/test-gecos-api)
 add_subdirectory(spechls-opt)
