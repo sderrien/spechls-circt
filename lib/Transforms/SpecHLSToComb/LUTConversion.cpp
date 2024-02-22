@@ -14,8 +14,6 @@
 
 LogicalResult LookUpTableToTruthTableOpConversion::matchAndRewrite(LookUpTableOp op, PatternRewriter &rewriter) const {
 
-  llvm :: outs() << "LookUpTableToTruthTableOpConversion for " << op <<"\n";
-
   auto content = op.getContent();
 #ifdef USE_TRUTH_TABLE
   SmallVector<Attribute> newContent[op.getType().getWidth()];
