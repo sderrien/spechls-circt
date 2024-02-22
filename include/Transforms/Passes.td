@@ -28,6 +28,24 @@ def MergeGammasPass : Pass<"merge-gammas"> {
 }
 
 
+def EliminateRedundantGammaInputsPass : Pass<"eliminiate-redundant-gamma-inputs"> {
+  let summary = "Simplify Gamma ops which have multiple identical inputs";
+
+  let description = [{
+   Simplify Gamma ops which have multiple identical inputs, e.g.
+
+       %r = SpecHLS.gamma @x %s ?  %0, %1, %0, %1, %2 :i32";
+
+     is simplified into a two input gamma op
+
+       %_s = SpecHLS.lookUpTable [%s] :i1= {0,1,0,1}
+       %r = SpecHLS.gamma @x %_s ?  %0, %1 :i32
+
+   }];
+  let constructor = "SpecHLS::createEliminateRedundantGammaInputsPass()";
+  let dependentDialects = ["circt::hw::HWDialect, mlir::arith::ArithDialect, circt::comb::CombDialect,circt::seq::SeqDialect,SpecHLS::SpecHLSDialect"];
+}
+
 def FactorGammaInputsPass : Pass<"factor-gamma-inputs"> {
   let summary = "Merge connected gamma ops";
   let description = [{ }];

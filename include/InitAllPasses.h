@@ -28,6 +28,7 @@ inline void registerAllPasses() {
     registerMergeGammasPass();
     registerMergeLookUpTablesPass();
     registerFactorGammaInputsPass();
+    registerEliminateRedundantGammaInputsPass();
     registerGroupControlNodePass();
     registerInlineModules();
     registerYosysOptimizerPass();

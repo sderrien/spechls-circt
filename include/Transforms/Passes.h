@@ -42,6 +42,7 @@ namespace SpecHLS {
 std::unique_ptr<mlir::OperationPass<>> createMergeGammasPass();
 std::unique_ptr<mlir::OperationPass<>> createMergeLookUpTablesPass();
 std::unique_ptr<mlir::OperationPass<>> createFactorGammaInputsPass();
+std::unique_ptr<mlir::OperationPass<>> createEliminateRedundantGammaInputsPass();
 std::unique_ptr<mlir::OperationPass<>> createGenerateCPass();
 std::unique_ptr<mlir::Pass> createYosysOptimizer();
 std::unique_ptr<mlir::Pass> createSchedulePass();
@@ -67,9 +68,17 @@ void registerYosysOptimizerPipeline();
 
 /// Generate the code for registering passes.
 #define GEN_PASS_REGISTRATION
+
 #define GEN_PASS_DEF_MERGEGAMMASPASS
+
 #define GEN_PASS_DEF_MERGELOOKUPTABLESPASS
+
 #define GEN_PASS_DEF_FACTORGAMMAINPUTSPASS
+#define GEN_PASS_DECL_FACTORGAMMAINPUTSPASS
+
+#define GEN_PASS_DEF_ELIMINATEREDUNDANTGAMMAINPUTSPASS
+#define GEN_PASS_DECL_ELIMINATEREDUNDANTGAMMAINPUTSPASS
+
 #define GEN_PASS_DEF_GROUPCONTROLNODEPASS
 #define GEN_PASS_DEF_GENERATECPASS
 #define GEN_PASS_DECL_YOSYSOPTIMIZER
