@@ -48,20 +48,20 @@ public:
   // config. cellOrdering is a topologically sorted list of cells that can be
   // used to sequentially create the MLIR representation.
   circt::hw::HWModuleOp
-  importModule(Yosys::RTLIL::Module *module, const llvm::SmallVector<std::string, 10> &cellOrdering);
+  importModule(circt::hw::HWModuleOp op, Yosys::RTLIL::Module *module, const llvm::SmallVector<std::string, 10> &cellOrdering);
 
 protected:
   // cellToOp converts an RTLIL cell to an MLIR operation.
-  virtual mlir::Operation *createOp(Yosys::RTLIL::Cell *cell,
+   mlir::Operation *createOp(Yosys::RTLIL::Cell *cell,
                                     llvm::SmallVector<mlir::Value, 4> &inputs,
-                                    mlir::ImplicitLocOpBuilder &b) const = 0;
+                                    mlir::ImplicitLocOpBuilder &b) ;
 
   // Returns a list of RTLIL cell inputs.
-  virtual llvm::SmallVector<Yosys::RTLIL::SigSpec, 4>
-  getInputs(Yosys::RTLIL::Cell *cell) const = 0;
+   llvm::SmallVector<Yosys::RTLIL::SigSpec, 4>
+  getInputs(Yosys::RTLIL::Cell *cell) ;
 
   // Returns an RTLIL cell output.
-  virtual Yosys::RTLIL::SigSpec getOutput(Yosys::RTLIL::Cell *cell) const = 0;
+   Yosys::RTLIL::SigSpec getOutput(Yosys::RTLIL::Cell *cell) ;
 
 private:
   mlir::MLIRContext *context;
