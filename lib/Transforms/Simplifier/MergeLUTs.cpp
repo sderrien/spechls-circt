@@ -65,12 +65,9 @@ struct LookUpMergingPattern : OpRewritePattern<LookUpTableOp> {
 
     //    llvm::errs() << "Analyzing  " << op << " \n";
     auto input = op.getInput().getDefiningOp();
+
     if (input != NULL && llvm::isa<SpecHLS::LookUpTableOp>(input)) {
       auto inputLUT = cast<SpecHLS::LookUpTableOp>(input);
-
-      //      llvm::errs() << "Found nested LUTs \n";
-      //      llvm::errs() << "\t " << op << "  \n";
-      //      llvm::errs() << "\t " << input << "  \n";
 
       ArrayAttr newAttr =
           updateLUTContent(inputLUT.getContent(), op.getContent(), rewriter);
@@ -79,8 +76,6 @@ struct LookUpMergingPattern : OpRewritePattern<LookUpTableOp> {
 
       rewriter.eraseOp(inputLUT);
 
-      //      llvm::errs() << "\t-sucess ?  " << lutSelect << "\n";
-      //      llvm::errs() << "\t-sucess ?  " << lutSelect << "\n";
       return success();
     }
 
@@ -93,13 +88,8 @@ struct MergeLookUpTablesPass
 public:
   void runOnOperation() override {
     auto *ctx = &getContext();
-    //
-    //    target.addIllegalDialect<arith::ArithDialect>();
-    //    MapArithTypeConverter typeConverter;
     RewritePatternSet patterns(ctx);
-    //
     patterns.insert<LookUpMergingPattern>(ctx);
-    // llvm::errs() << "inserted pattern  \n";
 
     if (failed(applyPatternsAndFoldGreedily(getOperation(),
                                             std::move(patterns)))) {
