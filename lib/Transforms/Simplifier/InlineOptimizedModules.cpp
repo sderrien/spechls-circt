@@ -21,7 +21,7 @@
 #include "mlir/Transforms/InliningUtils.h"
 #include "llvm/ADT/PostOrderIterator.h"
 #include "llvm/Support/Debug.h"
-
+#include "SpecHLS/SpecHLSUtils.h"
 #define DEBUG_TYPE "arc-inline-modules"
 
 namespace circt {} // namespace circt
@@ -89,34 +89,19 @@ struct PrefixingInliner : public InlinerInterface {
 };
 } // namespace
 
-bool hasConstantOutputs(HWModuleOp op) {
-  for (auto &_innerop : op.getBodyBlock()->getOperations()) {
-    bool ok = TypeSwitch<Operation *, bool>(&_innerop)
-                  .Case<circt::hw::ConstantOp>([&](auto op) { return true; })
-                  .Case<circt::hw::OutputOp>([&](auto op) { return true; })
-                  .Default([&](auto op) {
-                    llvm::outs()
-                        << "Operation " << _innerop << "is not constant\n";
-                    return false;
-                  });
 
-    if (!ok)
-      return false;
-  }
-  return true;
-}
 void InlineOptimizedModulesPass::runOnOperation() {
 
   auto &instanceGraph = getAnalysis<hw::InstanceGraph>();
   DenseSet<Operation *> handled;
 
-  llvm::outs()
-      << "InlineOptimizedModulesPass:"  <<  this->getOperation().getName() << "\n";
+//  llvm::outs()
+//      << "InlineOptimizedModulesPass:"  <<  this->getOperation().getName() << "\n";
 
   // Iterate over all instances in the instance graph. This ensures we visit
   // every module, even private top modules (private and never instantiated).
   for (auto *startNode : instanceGraph) {
-    llvm::outs() << "startnode  " << startNode << "\n";
+    //llvm::outs() << "startnode  " << startNode << "\n";
 
     if (handled.count(startNode->getModule().getOperation()))
       continue;
@@ -133,10 +118,15 @@ void InlineOptimizedModulesPass::runOnOperation() {
         continue;
 
       auto hwmodule = dyn_cast_or_null<HWModuleOp>(node->getModule().getOperation());
-      llvm::outs() << "Analyzing  "<< hwmodule.getName() << "\n";
+      //llvm::outs() << "Analyzing  "<< hwmodule.getName() << "\n";
 
-      if (!hasConstantOutputs(hwmodule)) {
-        llvm::outs() << "Skipping "<< hwmodule.getName() << "\n";
+      bool inlining = false;
+
+      inlining |= SpecHLS::hasConstantOutputs(hwmodule);
+      inlining |= SpecHLS::hasPragmaContaining(hwmodule, "INLINE");
+
+      if (!inlining) {
+        //llvm::outs() << "Skipping "<< hwmodule.getName() << "\n";
         continue;
       }
 
@@ -149,13 +139,13 @@ void InlineOptimizedModulesPass::runOnOperation() {
         if (!inst)
           continue;
 
-        llvm::outs() << "analyzing instance " << *inst << "\n";
+        //llvm::outs() << "analyzing instance " << *inst << "\n";
         bool isLastModuleUse = --numUsesLeft == 0;
 
         // Retrieve the symbolic name associated with the InstanceOp operand
 
         auto symbolicNameAttr = inst.getInnerSymAttr();
-        llvm::outs() << "inlining " << inst << "\n";
+        //llvm::outs() << "inlining " << inst << "\n";
         PrefixingInliner inliner(&getContext(), inst.getInstanceName());
 
         if (failed(mlir::inlineRegion(inliner, &hwmodule.getBody(), inst,
