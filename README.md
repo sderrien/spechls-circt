@@ -12,9 +12,12 @@ cd circt
 $ mkdir llvm/build
 $ cd llvm/build
 $ cmake -G Ninja ../llvm \
-    -DCMAKE_INSTALL_PREFIX=/opt/circt-prefix/
+    -DCMAKE_INSTALL_PREFIX=/opt/circt-prefix/ \rld
     -DCMAKE_BUILD_TYPE=Debug \
-    -DLLVM_INSTALL_UTILS=ON
+    -DLLVM_INSTALL_UTILS=ON \
+    -DLLVM_BUILD_UTILS:BOOL=ON \
+    -DLLVM_INCLUDE_UTILS:BOOL=ON \
+    -DLLVM_INSTALL_UTILS:BOOL=ON \
     -DLLVM_ENABLE_RTTI=ON \
     -DLLVM_ENABLE_EH=ON \
     -DLLVM_ENABLE_ASSERTIONS=ON \
@@ -36,6 +39,9 @@ $ cmake -G Ninja .. \
     -DMLIR_DIR=$PWD/../llvm/build/lib/cmake/mlir \
     -DLLVM_DIR=$PWD/../llvm/build/lib/cmake/llvm \
     -DLLVM_ENABLE_ASSERTIONS=ON \
+    -DLLVM_BUILD_UTILS:BOOL=ON \
+    -DLLVM_INCLUDE_UTILS:BOOL=ON \
+    -DLLVM_INSTALL_UTILS:BOOL=ON \
     -DLLVM_ENABLE_RTTI=ON \
     -DLLVM_ENABLE_EH=ON \
     -DCMAKE_BUILD_TYPE=DEBUG
@@ -88,11 +94,12 @@ $ ninja check-circt-integration # Run the integration tests.
 
 
 
-This setup assumes that you have built LLVM and MLIR in `$BUILD_DIR` and installed them to `$PREFIX`. To build and launch the tests, run
+This setup assumes that you have built LLVM and MLIR in `$BUILD_DIR` and installed them to `$PREFIX`. 
+
+To build and launch the tests, run
 ```sh
 
 
-```sh
 mkdir build && cd build
 cmake -G Ninja .. \
 -DYOSYS_LIBRARY_DIRS=/usr/local/lib/yosys/ \ 
