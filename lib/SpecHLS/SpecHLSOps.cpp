@@ -6,25 +6,23 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "circt/Dialect/Comb/CombOps.h"
+#include "circt/Dialect/HW/HWAttributes.h"
+#include "circt/Dialect/HW/HWOpInterfaces.h"
+#include "circt/Dialect/HW/HWOps.h"
 #include "circt/Support/LLVM.h"
 #include "mlir/IR/BuiltinTypes.h"
+#include "mlir/IR/DialectImplementation.h"
+#include "mlir/IR/IRMapping.h"
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/PatternMatch.h"
-#include "mlir/IR/DialectImplementation.h"
-#include "mlir/IR/IRMapping.h"
-#include "circt/Dialect/HW/HWAttributes.h"
-#include "circt/Dialect/HW/HWOps.h"
-#include "circt/Dialect/Comb/CombOps.h"
-#include "circt/Dialect/HW/HWOpInterfaces.h"
 
-#include "llvm/ADT/SetVector.h"
 #include "SpecHLS/SpecHLSOps.h"
 #include "SpecHLS/SpecHLSUtils.h"
 #include "llvm/ADT/MapVector.h"
+#include "llvm/ADT/SetVector.h"
 #include "llvm/ADT/TypeSwitch.h"
-
-
 
 #define GET_OP_CLASSES
 #include "SpecHLS/SpecHLSOps.cpp.inc"
@@ -36,9 +34,8 @@ namespace SpecHLS {
 /// strings, attributes, operands, types, etc.
 void GammaOp::print(mlir::OpAsmPrinter &printer) {
   //         %res = SpecHLS.gamma [i32 -> i32] %a ? %b:%c:%d
-  printer << " @" << this->getName() ;
+  printer << " @" << this->getName();
   printer << " " << this->getSelect() << " ? ";
-  printer.printOptionalAttrDict(this->getOperation()->getAttrs());
   int size = this->getInputs().size();
   for (int i = 0; i < (size - 1); i++) {
     printer << this->getInputs()[i] << ",";
@@ -46,6 +43,7 @@ void GammaOp::print(mlir::OpAsmPrinter &printer) {
   printer << this->getInputs()[size - 1];
 
   printer << " :" << this->getResult().getType();
+  printer.printOptionalAttrDict(this->getOperation()->getAttrs(), {"name"});
 }
 
 /// The 'OpAsmPrinter' class is a stream that will allows for formatting
@@ -59,7 +57,7 @@ void LookUpTableOp::print(mlir::OpAsmPrinter &printer) {
 
   // printer.printAttribute();
 
-  for (int i = 0; i < content.size(); i++) {
+  for (uint32_t i = 0; i < content.size(); i++) {
     if (i > 0)
       printer << ",";
     printer << content[i].cast<IntegerAttr>().getInt();
@@ -82,7 +80,6 @@ void LookUpTableOp::print(mlir::OpAsmPrinter &printer) {
 mlir::ParseResult LookUpTableOp::parse(mlir::OpAsmParser &parser,
                                        mlir::OperationState &result) {
   SmallVector<int, 1024> content;
-  int offset = 0;
   ParseResult res;
   mlir::Type dataType;
   mlir::OpAsmParser::UnresolvedOperand selectOperand;
@@ -156,7 +153,6 @@ mlir::ParseResult LookUpTableOp::parse(mlir::OpAsmParser &parser,
   parser.parseOptionalAttrDict(attrs);
   result.addAttributes(attrs);
 
-  llvm::errs() << "OK\n";
   return mlir::success();
 }
 
@@ -202,19 +198,14 @@ mlir::ParseResult GammaOp::parse(mlir::OpAsmParser &parser,
       dataOperands;
 
   mlir::Type dataType;
-  // llvm::errs() << "hello\n" ;
-  MLIRContext *ctx = result.getContext();
+
   StringAttr id = parser.getBuilder().getStringAttr("\"undef\"");
-  llvm::errs() << "hello "<< id.str() <<"\n" ;
 
   ParseResult nok = parser.parseOptionalSymbolName(id);
 
   FlatSymbolRefAttr symbolAttr = FlatSymbolRefAttr::get(id);
 
-  if (nok) {
-    //id = "undef";
-  }
-  result.addAttribute("name",symbolAttr);
+  result.addAttribute("name", symbolAttr);
 
   nok = parser.parseOperand(selectOperand);
   if (nok)
@@ -266,7 +257,7 @@ mlir::ParseResult GammaOp::parse(mlir::OpAsmParser &parser,
       return mlir::failure();
   }
   result.addTypes({dataType});
-  //result.
+  // result.
   NamedAttrList attrs;
   parser.parseOptionalAttrDict(attrs);
   result.addAttributes(attrs);
@@ -292,8 +283,7 @@ mlir::ParseResult DelayOp::parse(mlir::OpAsmParser &parser,
 
   mlir::Type dataType;
   int depth = 0;
-  int nbargs = 1;
-  MLIRContext *ctx = result.getContext();
+
   ParseResult nok;
   nok = parser.parseOperand(firstOperand);
   if (nok)
@@ -311,7 +301,6 @@ mlir::ParseResult DelayOp::parse(mlir::OpAsmParser &parser,
     nok = parser.parseInteger(depth);
     if (nok)
       return mlir::failure();
-    nbargs = 2;
 
     noInit = parser.parseOptionalLParen();
     if (!noInit) {
@@ -321,7 +310,6 @@ mlir::ParseResult DelayOp::parse(mlir::OpAsmParser &parser,
       nok = parser.parseRParen();
       if (nok)
         return mlir::failure();
-      nbargs = 3;
     }
   } else {
     nok = parser.parseKeyword(StringRef("by"));
@@ -423,10 +411,6 @@ mlir::ParseResult ExitOp::parse(mlir::OpAsmParser &parser,
   mlir::OpAsmParser::UnresolvedOperand secondOperand;
   mlir::OpAsmParser::UnresolvedOperand thirdOperand;
 
-  mlir::Type dataType;
-  int depth = 0;
-  int nbargs = 1;
-  MLIRContext *ctx = result.getContext();
   ParseResult nok;
   nok = parser.parseOperand(firstOperand);
   if (nok)
@@ -460,85 +444,63 @@ void ExitOp::print(mlir::OpAsmPrinter &printer) {
     printer << " live ";
     printer << " " << this->getLiveout()[0] << ":"
             << this->getLiveout()[0].getType() << " ";
-    for (int i = 1; i < this->getLiveout().size(); i++) {
+    for (uint32_t i = 1; i < this->getLiveout().size(); i++) {
       printer << "," << this->getLiveout()[i] << ":"
               << this->getLiveout()[i].getType() << " ";
     }
   }
 }
 
-//OpFoldResult LookUpTableOp::fold(LookUpTableOp::FoldAdaptor adaptor) {
-//  auto inputValue = adaptor.getInput();
-//
-//
-//
-////  ArrayAttr content = adaptor.getContent();
-//  llvm::outs() << "in fold(LookUpTableOp)\n";
-//  llvm::outs() << "  - input " << inputValue << "\n";
-//  auto inputAttr  = dyn_cast<mlir::IntegerAttr>(inputValue);
-//  auto cellValue =getContent()[inputAttr.getValue().getZExtValue()];
-//  llvm::outs() << "  - cell value " << cellValue << "\n";
-//  auto arratyCellAttr  = dyn_cast<mlir::IntegerAttr>(cellValue);
-//  return IntegerAttr::get(IntegerType::get(getContext(), getType().getWidth()),arratyCellAttr.getValue());
-//}
+/// From comb dialect
+inline bool hasOperandsOutsideOfBlock(Operation *op) {
+  Block *thisBlock = op->getBlock();
+  return llvm::any_of(op->getOperands(), [&](Value operand) {
+    return operand.getParentBlock() != thisBlock;
+  });
+}
+inline static TypedAttr getIntAttr(const APInt &value, MLIRContext *context) {
+  return IntegerAttr::get(IntegerType::get(context, value.getBitWidth()),
+                          value);
+}
+OpFoldResult LookUpTableOp::fold(FoldAdaptor adaptor) {
+  if (hasOperandsOutsideOfBlock(getOperation()))
+    return {};
 
-//struct LookUpTableOpCanonicalizer : public OpRewritePattern<LookUpTableOp> {
-//  LookUpTableOpCanonicalizer(mlir::MLIRContext *context)
-//      : OpRewritePattern<LookUpTableOp>(context, /*benefit=*/1) {}
-//
-//ArrayAttr updateLUTContent(ArrayAttr inner, ArrayAttr outer,
-//                           PatternRewriter &rewriter) const {
-//  SmallVector<int, 1024> newcontent;
-//  uint32_t innerSize = inner.size();
-//  uint32_t  outerSize = outer.size();
-//  for (int o = 0; o < innerSize; o++) {
-//
-//    if (o > inner.size()) {
-//      llvm::errs() << "out of bound access at " << o << " for " << inner
-//                   << "  \n";
-//      return NULL;
-//    }
-//    auto innerValue = cast<IntegerAttr>(inner.getValue()[o]).getInt();
-//    if (innerValue > outer.size()) {
-//      llvm::errs() << "out of bound access at " << innerValue << " for "
-//                   << outer << "  \n";
-//      return NULL;
-//    }
-//
-//    auto outerValue =
-//        cast<IntegerAttr>(outer.getValue()[innerValue]).getInt();
-//    newcontent.push_back(outerValue);
-//  }
-//  return rewriter.getI32ArrayAttr(newcontent);
-//}
-//
-//LogicalResult matchAndRewrite(LookUpTableOp op,
-//                              PatternRewriter &rewriter) const override {
-//
-//  //    llvm::errs() << "Analyzing  " << op << " \n";
-//  auto input = op.getInput().getDefiningOp();
-//  if (input != NULL && llvm::isa<SpecHLS::LookUpTableOp>(input)) {
-//    auto inputLUT = cast<SpecHLS::LookUpTableOp>(input);
-//
-//    //      llvm::errs() << "Found nested LUTs \n";
-//    //      llvm::errs() << "\t " << op << "  \n";
-//    //      llvm::errs() << "\t " << input << "  \n";
-//
-//    ArrayAttr newAttr =
-//        updateLUTContent(inputLUT.getContent(), op.getContent(), rewriter);
-////    auto lutSelect = rewriter.replaceOpWithNewOp<LookUpTableOp>(
-////        op, op->getResultTypes(), inputLUT.getInput(), newAttr);
-//
-//    rewriter.eraseOp(inputLUT);
-//
-//    //      llvm::errs() << "\t-sucess ?  " << lutSelect << "\n";
-//    //      llvm::errs() << "\t-sucess ?  " << lutSelect << "\n";
-//    return success();
-//  }
-//
-//  return failure();
-//}
-//};
+  // Constant fold.
+  auto input = adaptor.getInput().dyn_cast_or_null<IntegerAttr>();
+  if (input != NULL) {
+    auto index = input.getValue().getZExtValue();
+    auto cellValue = adaptor.getContent()[index];
+    auto arrayCellAttr = dyn_cast<mlir::IntegerAttr>(cellValue);
+
+    if (arrayCellAttr != NULL) {
+      auto type = getResult().getType();
+      unsigned int bw = type.getWidth();
+      if (bw > 32)
+        getOperation()->emitError("Unsupported bitwidth in fold]n");
+      int64_t res = 0;
+      res = arrayCellAttr.getValue().getZExtValue();
+      return {getIntAttr(APInt(bw, res, type.isSigned()), getContext())};
+    } else {
+      llvm::errs() << "error in LookUpTableOp::fold(FoldAdaptor adaptor) \n";
+    }
+  }
+  return {};
+}
+
+OpFoldResult GammaOp::fold(FoldAdaptor adaptor) {
+  if (hasOperandsOutsideOfBlock(getOperation()))
+    return {};
+
+  // mux(0, a, b) -> b
+  // mux(1, a, b) -> a
+  if (auto pred = adaptor.getSelect().dyn_cast_or_null<IntegerAttr>()) {
+    auto index = pred.getValue().getZExtValue();
+    return getInputs()[index];
+  }
+
+  return {};
+}
 
 struct ConstantControlGammaNode : public OpRewritePattern<GammaOp> {
   ConstantControlGammaNode(mlir::MLIRContext *context)
@@ -551,9 +513,9 @@ struct ConstantControlGammaNode : public OpRewritePattern<GammaOp> {
       auto controlOp = control.getDefiningOp();
       if (controlOp) {
         if (auto constantOp = dyn_cast<circt::hw::ConstantOp>(controlOp)) {
-          uint32_t  selected = constantOp.getValue().getZExtValue();
-          if (selected >= 0 && selected < (op.getNumOperands()-1)) {
-            Value control = op.getOperand(selected+1);
+          uint32_t selected = constantOp.getValue().getZExtValue();
+          if (selected >= 0 && selected < (op.getNumOperands() - 1)) {
+            Value control = op.getOperand(selected + 1);
             rewriter.replaceOp(op, {control});
             return success();
           }
@@ -564,15 +526,9 @@ struct ConstantControlGammaNode : public OpRewritePattern<GammaOp> {
   }
 };
 
-
-void GammaOp::getCanonicalizationPatterns(::mlir::RewritePatternSet &results,
-                                          ::mlir::MLIRContext *context) {
-  llvm::outs() <<"in getCanonicalizationPatterns\n";
-  results.add<ConstantControlGammaNode>(context);
+void GammaOp::getCanonicalizationPatterns(mlir::RewritePatternSet &results,
+                                          mlir::MLIRContext *ctxt) {
+  results.add<ConstantControlGammaNode>(ctxt);
 }
 
-//void LookUpTableOp::getCanonicalizationPatterns(
-//    ::mlir::RewritePatternSet &results, ::mlir::MLIRContext *context) {
-//  results.add<LookUpTableOpCanonicalizer>(context);
-//}
-}
+} // namespace SpecHLS

@@ -72,6 +72,7 @@ def SpecHLS_GammaOp : SpecHLSOp<"gamma", [Pure]> {
     let results = (outs AnyType:$res);
 
     let hasCanonicalizer = 1;
+    let hasFolder = 1;
 
     let hasCustomAssemblyFormat = 1;
     //let assemblyFormat = "attr-dict  `(` $select `:` type($select) `,` ($inputs^ `:` type($inputs))? `)` `:`  type($res)";
@@ -235,7 +236,7 @@ def SpecHLS_LookUpTableOp : SpecHLSOp<"lookUpTable", [Pure]> {
    let results = (outs AnyInteger:$result);
 
   //let hasCanonicalizer = 1;
-  //let hasFolder = 1;
+    let hasFolder = 1;
    let hasCustomAssemblyFormat =1;
 }
 

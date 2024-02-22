@@ -92,11 +92,54 @@ bool isControlLogicOperation(Operation* op) {
       .Case<circt::comb::ConcatOp>([&](auto op) { return true; })
       .Case<circt::comb::ICmpOp>([&](auto op) { return true; })
       .Default([&](auto op) {
-        llvm::outs() << "Operation " << *op  << "is not synthesizable\n";
+        llvm::errs() << "Operation " << *op  << "is not synthesizable\n";
         return false;
       });
 }
 
+bool hasControlNodePragma(Operation *op) {
 
+  auto attr = op->getAttr(StringRef("#pragma"));
+  if (attr != NULL) {
+    if (auto strAttr = attr.dyn_cast<mlir::StringAttr>()) {
+      // Compare the attribute value with an existing string
+      llvm::StringRef existingString = "CONTROL_NODE";
+      if (strAttr.getValue().contains(existingString)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+bool hasPragmaContaining(Operation *op, llvm::StringRef keyword) {
+
+  auto attr = op->getAttr(StringRef("#pragma"));
+  if (attr != NULL) {
+    if (auto strAttr = attr.dyn_cast<mlir::StringAttr>()) {
+      // Compare the attribute value with an existing string
+      if (strAttr.getValue().contains(keyword)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+bool hasConstantOutputs(circt::hw::HWModuleOp op) {
+  for (auto &_innerop : op.getBodyBlock()->getOperations()) {
+    bool ok = TypeSwitch<Operation *, bool>(&_innerop)
+                  .Case<circt::hw::ConstantOp>([&](auto op) { return true; })
+                  .Case<circt::hw::OutputOp>([&](auto op) { return true; })
+                  .Default([&](auto op) {
+                    //llvm::outs() << "Operation " << _innerop << "is not constant\n";
+                    return false;
+                  });
+
+    if (!ok)
+      return false;
+  }
+  return true;
+}
 }
 
