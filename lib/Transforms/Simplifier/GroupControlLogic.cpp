@@ -54,7 +54,8 @@ getBackwardSliceSimple(Operation *rootOp, SetVector<Operation *> &backwardSlice,
         definingOp->hasTrait<mlir::OpTrait::IsIsolatedFromAbove>())
       continue;
 
-    llvm::outs() << "defining op " << *definingOp << "\n";
+
+    //llvm::outs() << "defining op " << *definingOp << "\n";
     // definingOp->t
 
     // Evaluate whether we should keep this def.
@@ -62,19 +63,19 @@ getBackwardSliceSimple(Operation *rootOp, SetVector<Operation *> &backwardSlice,
     // transitive backwardSlice in the current scope.
     if (filter) {
       auto res = filter(definingOp);
-      llvm::outs() << "filter ( " << *definingOp << ")- > " << res << "\n";
+      //llvm::outs() << "filter ( " << *definingOp << ")- > " << res << "\n";
       if (!res) {
-        llvm::outs() << "we dont keep def " << *definingOp << "\n";
+        //llvm::outs() << "we dont keep def " << *definingOp << "\n";
         continue;
       } else {
-        llvm::outs() << "we continue with def " << *definingOp << "\n";
+        //llvm::outs() << "we continue with def " << *definingOp << "\n";
       }
     }
 
     if (definingOp) {
       if (!backwardSlice.contains(definingOp))
         for (auto newOperand : llvm::reverse(definingOp->getOperands())) {
-          llvm::outs() << "searching for operand  " << newOperand << "\n";
+          //llvm::outs() << "searching for operand  " << newOperand << "\n";
           worklist.push_back(newOperand);
         }
     } else if (auto blockArg = operand.dyn_cast<BlockArgument>()) {
@@ -139,7 +140,7 @@ static hw::HWModuleOp createModuleForCut(hw::HWModuleOp op,
     }
   }
   for (auto p : ports) {
-    llvm::outs() << "port  " << p << "\n";
+    //llvm::outs() << "port  " << p << "\n";
   }
 
   // Create the module, setting the output path if indicated.
@@ -184,6 +185,7 @@ static void addBlockMapping(IRMapping &cutMap, Operation *oldOp,
 
 struct GroupControlNodePass
     : public SpecHLS::impl::GroupControlNodePassBase<GroupControlNodePass> {
+  int max_bitwidth = 9;
   GroupControlNodePass() {}
 
 public:
@@ -193,7 +195,7 @@ public:
 void GroupControlNodePass::runOnOperation() {
   auto top = getOperation();
 
-  llvm::outs() << "GroupControlNodeImplPass on design " << top << "\n";
+  //llvm::outs() << "GroupControlNodeImplPass on design " << top << "\n";
 
   auto *topLevelModule = top.getBody();
   int gammaId = 0;
@@ -209,20 +211,34 @@ void GroupControlNodePass::runOnOperation() {
             }
             auto controlValue = gamma->getOperand(0);
             auto controlOp = controlValue.getDefiningOp();
-            llvm::outs() << "   Control input value " << controlValue << "\n";
-            llvm::outs() << "   Control input defining op " << *controlOp
-                         << "\n";
+            //llvm::outs() << "   Control input value " << controlValue << "\n";
+            //llvm::outs() << "   Control input defining op " << *controlOp << "\n";
 
             /*
              * Slices control logic of gamma node
              */
-            SetVector<Operation *> slice = {};
+          SetVector<Operation *> slice = {};
             getBackwardSliceSimple(controlOp, slice, [&](Operation *op) {
-              llvm::outs() << " default filter  " << *op << "\n";
+              //llvm::outs() << " default filter  " << *op << "\n";
               bool res =
                   TypeSwitch<Operation *, bool>(op)
+                      .Case<circt::comb::AddOp>([&](auto op) {
+                        //llvm::outs() << " found and " << *op << "\n";
+                        circt::comb::AddOp _op = op;
+                        return (_op.getResult().getType().getIntOrFloatBitWidth())<max_bitwidth;
+                      })
+                      .Case<circt::comb::SubOp>([&](auto op) {
+                        //llvm::outs() << " found and " << *op << "\n";
+                        circt::comb::SubOp _op = op;
+                        return (_op.getResult().getType().getIntOrFloatBitWidth())<max_bitwidth;
+                      })
+                      .Case<circt::comb::ICmpOp>([&](auto op) {
+                        //llvm::outs() << " found and " << *op << "\n";
+                        circt::comb::ICmpOp _op = op;
+                        return (_op.getResult().getType().getIntOrFloatBitWidth())<max_bitwidth;
+                      })
                       .Case<circt::comb::AndOp>([&](auto op) {
-                        llvm::outs() << " found and " << *op << "\n";
+                        //llvm::outs() << " found and " << *op << "\n";
                         return true;
                       })
                       .Case<circt::comb::OrOp>([&](auto op) { return true; })
@@ -231,37 +247,37 @@ void GroupControlNodePass::runOnOperation() {
                           [&](auto op) { return true; })
                       .Case<circt::comb::ConcatOp>(
                           [&](auto op) { return true; })
+                      .Case<circt::hw::ConstantOp>([&](auto op) { return true; })
                       .Case<circt::comb::MuxOp>([&](auto op) { return true; })
                       .Case<circt::comb::TruthTableOp>(
                           [&](auto op) { return true; })
                       .Case<SpecHLS::LookUpTableOp>(
                           [&](auto op) { return true; })
                       .Default([&](auto op) {
-                        llvm::outs() << " default filter  " << *op << "\n";
+                        //llvm::outs() << " default filter  " << *op << "\n";
                         return false;
                       });
-              llvm::outs() << " res " << res << "\n";
+              //llvm::outs() << " res " << res << "\n";
               return res;
             });
             slice.insert(controlOp);
-            llvm::outs() << "Slice for " << gamma << " contains "
-                         << slice.size() << " ops\n";
+            //llvm::outs() << "Slice for " << gamma << " contains " << slice.size() << " ops\n";
             for (auto s : slice) {
-              llvm::outs() << " - " << *s << "\n";
+              //llvm::outs() << " - " << *s << "\n";
             }
 
             // Find the dataflow into the clone set
             SetVector<Value> inputs;
             SetVector<Value> outputs;
             for (auto *op : slice) {
-              llvm ::outs() << " op in slide   " << *op << " to slice \n";
+              //llvm::outs() << " op in slide   " << *op << " to slice \n";
               for (auto arg : op->getResults()) {
                 for (auto user : arg.getUsers()) {
-                  llvm::outs() << " sink   " << *user << " to slice \n";
-                  if (!slice.count(user))
-                    // outputs.insert(arg);
-                    llvm::outs()
-                        << "register output  " << arg << " to slice \n";
+                  //llvm::outs() << " sink   " << *user << " to slice \n";
+//                  if (!slice.count(user))
+//                    // outputs.insert(arg);
+//                    //llvm::outs()
+//                        << "register output  " << arg << " to slice \n";
                 }
               }
 
@@ -269,13 +285,13 @@ void GroupControlNodePass::runOnOperation() {
                 auto argOp = arg.getDefiningOp(); // may be null
 
                 if (argOp==NULL) {
-                  llvm::outs() << "  no source     to slice \n";
+                  //llvm::outs() << "  no source     to slice \n";
                   inputs.insert(arg);
                 } else {
-                  llvm::outs() << " source   " << *argOp << " to slice \n";
+                  //llvm::outs() << " source   " << *argOp << " to slice \n";
                   if (!slice.count(argOp))
                     inputs.insert(arg);
-                  llvm::outs() << "register input  " << arg << " to slice \n";
+                  //llvm::outs() << "register input  " << arg << " to slice \n";
 
                 }
               }
@@ -310,15 +326,15 @@ void GroupControlNodePass::runOnOperation() {
             SetVector<Operation *> oplist = {};
             for (auto &s : newModule.getBodyBlock()->getOperations()) {
               oplist.insert(&s);
-              llvm::outs() << "adding " << s << "\n";
+              //llvm::outs() << "adding " << s << "\n";
             }
 
             int outputId = 0;
             for (auto s : oplist) {
               bool isOutputOp = true;
-              llvm::outs() << "op " << *s << "\n";
+              //llvm::outs() << "op " << *s << "\n";
               for (auto user : s->getUsers()) {
-                llvm::outs() << *s << "-> " << *user << "\n";
+                //llvm::outs() << *s << "-> " << *user << "\n";
                 if (oplist.count(user)) {
                   isOutputOp = false;
                 }
@@ -327,12 +343,11 @@ void GroupControlNodePass::runOnOperation() {
                 int numres = s->getNumResults();
                 switch (numres) {
                 case 0: {
-                  llvm::outs() << " op with no output  " << *s << "\n";
+                  //llvm::outs() << " op with no output  " << *s << "\n";
                   break;
                 }
                 case 1: {
-                  llvm::outs()
-                      << "appending output for " << s->getResult(0) << "\n";
+                  //llvm::outs() << "appending output for " << s->getResult(0) << "\n";
                   newModule.appendOutput(
                       builder.getStringAttr("out_" + std::to_string(outputId)),
                       s->getResult(0));
@@ -347,7 +362,7 @@ void GroupControlNodePass::runOnOperation() {
               }
             }
 
-            llvm::outs() << "module " << newModule << "\n";
+            //llvm::outs() << "module " << newModule << "\n";
             // Add an instance in the old module for the extracted module
             OpBuilder b =
                 OpBuilder::atBlockTerminator(topModule.getBodyBlock());
@@ -383,8 +398,7 @@ void GroupControlNodePass::runOnOperation() {
 namespace SpecHLS {
 std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>>
 createGroupControlNodePass() {
-  llvm::outs() << "GroupControlNodeImplPass created "
-               << "\n";
+  //llvm::outs() << "GroupControlNodeImplPass created " << "\n";
   return std::make_unique<GroupControlNodePass>();
 }
 } // namespace SpecHLS
