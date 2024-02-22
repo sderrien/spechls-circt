@@ -50,6 +50,7 @@ using namespace circt::hw;
 
 void printOperation(CFileContent *p, Operation *op);
 void printHWModule(CFileContent *p, HWModuleOp op);
+//void printTestbench(CFileContent *p, HWModuleOp op);
 
 
 namespace SpecHLS {
@@ -63,12 +64,15 @@ public:
     auto *ctx = &getContext();
     auto module = this->getOperation();
 
+    llvm::outs() << "In  Vitis-HLS Export C code pass ";
     std::ostringstream out;
 
     for (auto hwop : module.getOps<circt::hw::HWModuleOp>()) {
+      llvm::outs() << "Exporting Vitis-HLS C code for " << hwop.getName() << "\n";
       auto moduleName = hwop.getNameAttr().str();
       auto file = CFileContent("./", moduleName);
       printHWModule(&file,hwop);
+     // printTestbench(&file,hwop);
       file.save();
     }
 
