@@ -32,36 +32,23 @@ struct GammaMergingPattern : OpRewritePattern<GammaOp> {
 
   using OpRewritePattern<GammaOp>::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(GammaOp op,
-                                PatternRewriter &rewriter) const override {
+  LogicalResult matchAndRewrite(GammaOp op, PatternRewriter &rewriter) const override {
 
-    // llvm::errs() << "analyzing  " << op << " \n";
     auto nbOuterInputs = op.getInputs().size();
     for (int i = 0; i < op.getInputs().size(); i++) {
-      //      llvm::errs() << "\tinput  value " << op.getInputs()[i] << " \n";
       auto input = op.getInputs()[i].getDefiningOp();
       if (input != NULL) {
-
-        //     llvm::errs() << "\tinput op " << input << " \n";
-
-        if (llvm::isa<SpecHLS::GammaOp>(input)) {
+    if (llvm::isa<SpecHLS::GammaOp>(input)) {
 
           auto innerGamma = cast<SpecHLS::GammaOp>(input);
-          //          llvm::errs() << "Found nested gamma \n";
-          //          llvm::errs() << "\t inner " << innerGamma << "\n";
-          //          llvm::errs() << "\t outer " << op << "\n";
 
           auto users = innerGamma->getUsers();
-          auto nbusers = std::distance(users.begin(), users.end());
+          auto nbUsers = std::distance(users.begin(), users.end());
 
-          if (nbusers == 1) {
-            //            llvm::errs() << "Found nested gamma \n";
-            //            llvm::errs() << "\t inner " << innerGamma << "\n";
-            //            llvm::errs() << "\t outer " << op << "\n";
+          if (nbUsers == 1) {
 
             auto nbInnerInputs = innerGamma.getInputs().size();
-            int newDepth =
-                int(ceil(log(nbOuterInputs + nbInnerInputs) / log(2)));
+            int newDepth = int(ceil(log(nbOuterInputs + nbInnerInputs) / log(2)));
             //  Value* muxOperands = new Value[cwidth * (cwidth+1)];
             Operation::operand_range in = innerGamma.getInputs();
             SmallVector<Value, 8> muxOperands;
@@ -118,7 +105,7 @@ struct GammaMergingPattern : OpRewritePattern<GammaOp> {
                                                  ValueRange(muxOperands));
 
             lutSelect->getParentOfType<mlir::ModuleOp>().dump();
-            // rewriter.eraseOp(innerGamma);
+
             return success();
           }
         }
@@ -137,7 +124,6 @@ public:
     RewritePatternSet patterns(ctx);
 
     patterns.insert<GammaMergingPattern>(ctx);
-    // llvm::errs() << "inserted pattern  \n";
 
     if (failed(applyPatternsAndFoldGreedily(getOperation(),
                                             std::move(patterns)))) {
