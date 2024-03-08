@@ -24,6 +24,7 @@ set(LIBS
         MLIRTransforms
         MLIRCAPIIR
         SpecHLSTransforms
+
         SpecHLSCAPI
         CIRCTCAPIFSM
         CIRCTCAPIHW
@@ -41,6 +42,7 @@ set(LIBS
 
         CIRCTCAPISV
 
+
         MLIRCAPIFunc
         MLIRCAPIIR
 
@@ -50,7 +52,6 @@ set(LIBS
         CIRCTFSM #
         CIRCTCAPIFSM #
         CIRCTSupport
-        CIRCTTransforms
         CIRCTTransforms
         CIRCTHWArithToHW
 
@@ -113,6 +114,7 @@ set(LIBS
         MLIRCAPITransforms
         #        MLIRCAPIVector
         MLIRCAPISCF
+        yosys
 )
 
 

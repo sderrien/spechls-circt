@@ -31,6 +31,7 @@
 #include "mlir/IR/BuiltinTypes.h"          // from @llvm-project
 #include "mlir/IR/DialectRegistry.h"       // from @llvm-project
 #include "mlir/IR/Location.h"              // from @llvm-project
+#include "mlir/IR/Verifier.h"              // from @llvm-project
 #include "mlir/IR/SymbolTable.h"
 #include "mlir/IR/Types.h"              // from @llvm-project
 #include "mlir/IR/Value.h"              // from @llvm-project
@@ -237,7 +238,7 @@ bool isSynthesizableModule(circt::hw::HWModuleOp op) {
 }
 
 
-LogicalResult replaceAndInline(circt::hw::HWModuleOp old,
+LogicalResult replaceInstance(circt::hw::HWModuleOp old,
                                circt::hw::HWModuleOp _new) {
 
   auto oldSym = old.getSymNameAttr().getValue();
@@ -365,19 +366,14 @@ void YosysOptimizer::runOnOperation() {
       optimizedModules.push_back(op.getSymName().str());
       module.push_back(optimized);
 
-      // listHWModuleOps(module);
-      //  FIXME : name hasConstantOutputs sucks
-      if (replace) {
-        if (VERBOSE) llvm::errs() << "replacing " << op.getName() << " by "
-                     << optimized.getName() << "\n";
+        if (VERBOSE) llvm::errs() << "replacing " << op.getName() << " by " << optimized.getName() << "\n";
         auto originalOp = cloneMap[op];
         if (originalOp == NULL) {
           op.emitError("error  " + op.getName() + " by " + optimized.getName() +
                        "\n");
           return WalkResult::interrupt();
         }
-        replaceAndInline(originalOp, optimized);
-      }
+        replaceInstance(originalOp, optimized);
     }
     return WalkResult::advance();
   });
@@ -387,12 +383,13 @@ void YosysOptimizer::runOnOperation() {
     if (VERBOSE) llvm::errs() << "Yosys pass failed \n";
     signalPassFailure();
   }
+  mlir::verify(mlir::OperationPass<ModuleOp>::getOperation(),true);
 }
 
 } // namespace mlir
 namespace SpecHLS {
 
-std::unique_ptr<mlir::Pass> createYosysOptimizer() {
+std::unique_ptr<mlir::Pass> createYosysOptimizerPass() {
   return std::make_unique<mlir::YosysOptimizer>();
 }
 

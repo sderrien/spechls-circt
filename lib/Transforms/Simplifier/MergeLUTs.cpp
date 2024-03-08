@@ -23,6 +23,7 @@
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+#include "mlir/IR/Verifier.h"
 
 using namespace mlir;
 using namespace circt;
@@ -34,49 +35,49 @@ struct LookUpMergingPattern : OpRewritePattern<LookUpTableOp> {
 
   using OpRewritePattern<LookUpTableOp>::OpRewritePattern;
 
-  ArrayAttr updateLUTContent(ArrayAttr inner, ArrayAttr outer,
+  ArrayAttr updateLUTContent(LookUpTableOp op,ArrayAttr inner, ArrayAttr outer,
                              PatternRewriter &rewriter) const {
     SmallVector<int, 1024> newcontent;
     int innerSize = inner.size();
     int outerSize = outer.size();
     for (int o = 0; o < innerSize; o++) {
 
-      if (o > inner.size()) {
-        llvm::errs() << "out of bound access at " << o << " for " << inner
-                     << "  \n";
-        return NULL;
-      }
+
       auto innerValue = cast<IntegerAttr>(inner.getValue()[o]).getInt();
-      if (innerValue > outer.size()) {
-        llvm::errs() << "out of bound access at " << innerValue << " for "
-                     << outer << "  \n";
-        return NULL;
+
+      if (innerValue>=outer.size()) {
+        emitError(op->getLoc(),"Inconsistent indexing in nested LookUpTables (forcing to zero)");
+        newcontent.push_back(0);
+      } else {
+        auto outerValue = cast<IntegerAttr>(outer.getValue()[innerValue]).getInt();
+        newcontent.push_back(outerValue);
+
       }
 
-      auto outerValue =
-          cast<IntegerAttr>(outer.getValue()[innerValue]).getInt();
-      newcontent.push_back(outerValue);
     }
     return rewriter.getI32ArrayAttr(newcontent);
   }
 
-  LogicalResult matchAndRewrite(LookUpTableOp op,
-                                PatternRewriter &rewriter) const override {
+  LogicalResult matchAndRewrite(LookUpTableOp op, PatternRewriter &rewriter) const override {
 
-    //    llvm::errs() << "Analyzing  " << op << " \n";
     auto input = op.getInput().getDefiningOp();
+    if (input) {
+      auto inputLUT = dyn_cast<SpecHLS::LookUpTableOp>(input);
 
-    if (input != NULL && llvm::isa<SpecHLS::LookUpTableOp>(input)) {
-      auto inputLUT = cast<SpecHLS::LookUpTableOp>(input);
 
-      ArrayAttr newAttr =
-          updateLUTContent(inputLUT.getContent(), op.getContent(), rewriter);
-      auto lutSelect = rewriter.replaceOpWithNewOp<LookUpTableOp>(
-          op, op->getResultTypes(), inputLUT.getInput(), newAttr);
+      if (inputLUT) {
+        llvm::errs() << "Merging " << op << " and "<<  inputLUT << "\n";
 
-      rewriter.eraseOp(inputLUT);
+        ArrayAttr newAttr =
+            updateLUTContent(op,inputLUT.getContent(), op.getContent(), rewriter);
+        auto lutSelect = rewriter.replaceOpWithNewOp<LookUpTableOp>(
+            op, op->getResult(0).getType(), inputLUT.getInput(), newAttr);
 
-      return success();
+        rewriter.eraseOp(inputLUT);
+
+        return success();
+      }
+
     }
 
     return failure();
@@ -96,6 +97,7 @@ public:
       llvm::errs() << "partial conversion failed pattern  \n";
       signalPassFailure();
     }
+    mlir::verify(getOperation(),true);
   }
 };
 

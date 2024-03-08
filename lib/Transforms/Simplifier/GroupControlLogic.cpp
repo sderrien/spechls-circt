@@ -26,6 +26,7 @@
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/IRMapping.h"
 #include "llvm/ADT/SetVector.h"
+#include "mlir/IR/Verifier.h"
 
 #include <set>
 
@@ -185,7 +186,7 @@ static void addBlockMapping(IRMapping &cutMap, Operation *oldOp,
 
 struct GroupControlNodePass
     : public SpecHLS::impl::GroupControlNodePassBase<GroupControlNodePass> {
-  int max_bitwidth = 9;
+  int max_bitwidth = 4;
   GroupControlNodePass() {}
 
 public:
@@ -199,9 +200,11 @@ void GroupControlNodePass::runOnOperation() {
 
   auto *topLevelModule = top.getBody();
   int gammaId = 0;
+
   for (auto &op : llvm::make_early_inc_range(topLevelModule->getOperations())) {
     if (auto topModule = dyn_cast<hw::HWModuleOp>(op)) {
       if (!topModule.getBody().empty()) {
+
         for (auto &innerOp : llvm::make_early_inc_range(
                  topModule.getBodyBlock()->getOperations())) {
           if (auto gamma = dyn_cast<SpecHLS::GammaOp>(innerOp)) {
@@ -270,40 +273,23 @@ void GroupControlNodePass::runOnOperation() {
             SetVector<Value> inputs;
             SetVector<Value> outputs;
             for (auto *op : slice) {
-              //llvm::outs() << " op in slide   " << *op << " to slice \n";
-              for (auto arg : op->getResults()) {
-                for (auto user : arg.getUsers()) {
-                  //llvm::outs() << " sink   " << *user << " to slice \n";
-//                  if (!slice.count(user))
-//                    // outputs.insert(arg);
-//                    //llvm::outs()
-//                        << "register output  " << arg << " to slice \n";
-                }
-              }
-
               for (auto arg : op->getOperands()) {
                 auto argOp = arg.getDefiningOp(); // may be null
 
                 if (argOp==NULL) {
-                  //llvm::outs() << "  no source     to slice \n";
                   inputs.insert(arg);
                 } else {
-                  //llvm::outs() << " source   " << *argOp << " to slice \n";
                   if (!slice.count(argOp))
                     inputs.insert(arg);
-                  //llvm::outs() << "register input  " << arg << " to slice \n";
-
                 }
               }
             }
 
             //
-            //
             // Make a module to contain the clone set, with arguments being the
             // cut
 
             auto builder = OpBuilder(op.getContext());
-
             IRMapping cutMap;
             auto moduleName =
                 builder.getStringAttr(topModule.getName()+ "ctrl_" + std::to_string(gammaId));
@@ -393,6 +379,7 @@ void GroupControlNodePass::runOnOperation() {
       }
     }
   }
+  mlir::verify(top,true);
 }
 
 namespace SpecHLS {

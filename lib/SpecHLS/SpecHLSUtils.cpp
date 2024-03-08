@@ -27,8 +27,6 @@
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
-#include "mlir/IR/Operation.h"
-#include "mlir/IR/PatternMatch.h"
 
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/SymbolTable.h"
@@ -46,7 +44,8 @@ circt::hw::HWModuleOp *findHWModuleForInstanceOp(Operation op) {
     // Get the callee symbol reference
     FlatSymbolRefAttr calleeSymbolRef = callOp.getModuleNameAttr();
 
-    // Find the operation with the given symbol reference in the parent operations
+    // Find the operation with the given symbol reference in the parent
+    // operations
     Operation *symbolDefOp =
         SymbolTable::lookupNearestSymbolFrom(callOp, calleeSymbolRef);
 
@@ -74,7 +73,7 @@ std::string getPragma(Operation *op) {
   return NULL;
 }
 
-bool isControlLogicOperation(Operation* op) {
+bool isControlLogicOperation(Operation *op) {
   return TypeSwitch<Operation *, bool>(op)
       .Case<circt::comb::AddOp>([&](auto op) { return true; })
       .Case<circt::comb::SubOp>([&](auto op) { return true; })
@@ -92,7 +91,7 @@ bool isControlLogicOperation(Operation* op) {
       .Case<circt::comb::ConcatOp>([&](auto op) { return true; })
       .Case<circt::comb::ICmpOp>([&](auto op) { return true; })
       .Default([&](auto op) {
-        llvm::errs() << "Operation " << *op  << "is not synthesizable\n";
+        llvm::errs() << "Operation " << *op << "is not synthesizable\n";
         return false;
       });
 }
@@ -127,19 +126,26 @@ bool hasPragmaContaining(Operation *op, llvm::StringRef keyword) {
 }
 
 bool hasConstantOutputs(circt::hw::HWModuleOp op) {
-  for (auto &_innerop : op.getBodyBlock()->getOperations()) {
-    bool ok = TypeSwitch<Operation *, bool>(&_innerop)
-                  .Case<circt::hw::ConstantOp>([&](auto op) { return true; })
-                  .Case<circt::hw::OutputOp>([&](auto op) { return true; })
-                  .Default([&](auto op) {
-                    //llvm::outs() << "Operation " << _innerop << "is not constant\n";
-                    return false;
-                  });
+  auto block = op.getBodyBlock();
+  if (block) {
 
-    if (!ok)
-      return false;
+    if (block->getOperations().size() <= 2)
+      return true;
+
+    for (auto &_innerop : block->getOperations()) {
+      bool ok = TypeSwitch<Operation *, bool>(&_innerop)
+                    .Case<circt::hw::ConstantOp>([&](auto op) { return true; })
+                    .Case<circt::hw::OutputOp>([&](auto op) { return true; })
+                    .Default([&](auto op) {
+                      // llvm::outs() << "Operation " << _innerop << "is not
+                      // constant\n";
+                      return false;
+                    });
+
+      if (!ok)
+        return false;
+    }
+    return true;
   }
-  return true;
 }
-}
-
+} // namespace SpecHLS

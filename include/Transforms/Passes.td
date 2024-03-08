@@ -27,6 +27,16 @@ def MergeGammasPass : Pass<"merge-gammas"> {
   let dependentDialects = ["circt::hw::HWDialect, mlir::arith::ArithDialect, circt::comb::CombDialect,circt::seq::SeqDialect,SpecHLS::SpecHLSDialect"];
 }
 
+def AutoPipelinePass : Pass<"auto-pipeline"> {
+  let summary = "Schedule pipeline draft";
+  let description = [{
+    Perform operation scheduling on the
+
+  }];
+  let constructor = "SpecHLS::createAutoPipelinePass()";
+  let dependentDialects = ["circt::ssp::SSPDialect","circt::hw::HWDialect, mlir::arith::ArithDialect, circt::comb::CombDialect,circt::seq::SeqDialect,SpecHLS::SpecHLSDialect"];
+}
+
 
 def EliminateRedundantGammaInputsPass : Pass<"eliminiate-redundant-gamma-inputs"> {
   let summary = "Simplify Gamma ops which have multiple identical inputs";
@@ -93,7 +103,7 @@ def GroupControlNodePass : Pass<"group-control","mlir::ModuleOp"> {
 def YosysOptimizer : Pass<"yosys-optimizer","mlir::ModuleOp"> {
   let summary = "Invoke Yosys to perform circuit optimization.";
 
-  let constructor = "SpecHLS::createYosysOptimizer()";
+  let constructor = "SpecHLS::createYosysOptimizerPass()";
 
 
   let options = [

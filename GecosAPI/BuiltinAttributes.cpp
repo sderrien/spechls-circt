@@ -137,6 +137,52 @@ double mlirFloatAttrGetValueDouble(MlirAttribute attr) {
 MlirTypeID mlirFloatAttrGetTypeID(void) { return wrap(FloatAttr::getTypeID()); }
 
 //===----------------------------------------------------------------------===//
+// Array attribute.
+//===----------------------------------------------------------------------===//
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+bool foobar(MlirAttribute attr);
+
+bool mlirAttributeIsAArrayAttr(MlirAttribute attr);
+
+size_t mlirArrayAttrGetSize(MlirAttribute attr) ;
+
+Attribute mlirArrayAttrGetAt(MlirAttribute attr, int pos);
+
+#ifdef __cplusplus
+}
+#endif
+
+
+
+bool mlirAttributeIsAArrayAttr(MlirAttribute attr) {
+  return llvm::isa<ArrayAttr>(unwrap(attr));
+}
+
+size_t mlirArrayAttrGetSize(MlirAttribute attr) {
+  auto arrayAttr = dyn_cast<ArrayAttr>(unwrap(attr));
+  if (arrayAttr) {
+    return arrayAttr.size();
+  } else {
+
+    fprintf(stderr,"Attribute is not ArrayAttr %X",unwrap(attr));
+    return -1;
+  }
+}
+
+Attribute mlirArrayAttrGetAt(MlirAttribute attr, int pos) {
+  auto arrayAttr = dyn_cast<ArrayAttr>(unwrap(attr));
+  if (arrayAttr) {
+    if (pos< mlirArrayAttrGetSize(attr)) {
+      return arrayAttr[pos];
+    }
+  }
+  return NULL;
+}
+
+//===----------------------------------------------------------------------===//
 // Integer attribute.
 //===----------------------------------------------------------------------===//
 
@@ -440,8 +486,15 @@ MlirAttribute mlirDenseF64ArrayGet(MlirContext ctx, intptr_t size,
 //===----------------------------------------------------------------------===//
 
 intptr_t mlirDenseArrayGetNumElements(MlirAttribute attr) {
-  return llvm::cast<DenseArrayAttr>(unwrap(attr)).size();
+  auto denseArray = dyn_cast<DenseArrayAttr>(unwrap(attr));
+  if (denseArray!=NULL) {
+    return llvm::cast<DenseArrayAttr>(unwrap(attr)).size();
+  } else {
+    llvm::errs() << attr.ptr << " is not DenseArray \n";
+    return -1;
+  }
 }
+
 
 //===----------------------------------------------------------------------===//
 // Indexed accessors.

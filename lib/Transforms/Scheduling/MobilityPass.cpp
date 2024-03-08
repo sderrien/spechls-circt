@@ -235,6 +235,8 @@ void computeNext(Operation *op, unsigned &nextAsapCycle,
 
 struct MobilityPass : public impl::MobilityPassBase<MobilityPass> {
   void runOnOperation() override {
+    llvm::errs() << "in MobilityPass\n";
+
     auto moduleOp = getOperation();
 
     llvm::SmallVector<circt::ssp::InstanceOp> instanceOps;

@@ -14,42 +14,92 @@ include "mlir/Interfaces/InferTypeOpInterface.td"
 include "mlir/IR/EnumAttr.td"
 
 include "mlir/IR/BuiltinAttributes.td"
-include "mlir/Interfaces/InferTypeOpInterface.td"
+include "mlir/IR/CommonAttrConstraints.td"
+include "mlir/IR/AttrTypeBase.td"
+include "mlir/IR/BuiltinTypeInterfaces.td"
+include "mlir/IR/SymbolInterfaces.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
+include "mlir/Interfaces/CallInterfaces.td"
+include "mlir/Dialect/DLTI/DLTIBase.td"
+include "mlir/Dialect/Linalg/IR/LinalgInterfaces.td"
+include "mlir/IR/EnumAttr.td"
+include "mlir/Interfaces/FunctionInterfaces.td"
+include "mlir/IR/OpBase.td"
+include "mlir/IR/OpAsmInterface.td"
+include "mlir/IR/PatternBase.td"
+include "mlir/IR/RegionKindInterface.td"
+include "mlir/IR/SymbolInterfaces.td"
+include "mlir/Interfaces/CallInterfaces.td"
+include "mlir/Interfaces/ControlFlowInterfaces.td"
+include "mlir/Interfaces/CopyOpInterface.td"
+include "mlir/Interfaces/DataLayoutInterfaces.td"
+include "mlir/Interfaces/DestinationStyleOpInterface.td"
+include "mlir/Interfaces/InferIntRangeInterface.td"
+include "mlir/Interfaces/InferTypeOpInterface.td"
+include "mlir/Interfaces/LoopLikeInterface.td"
+include "mlir/Interfaces/SideEffectInterfaces.td"
+
+
 // Include the definition of the necessary tablegen constructs for defining
 // our attributes.
 include "mlir/IR/AttrTypeBase.td"
-/*
-// It's common to define a base classes for types in the same dialect. This
-// removes the need to pass in the dialect for each type, and can also be used
-// to define a few fields ahead of time.
-class MyDialect_Type<string name, string typeMnemonic, list<Trait> traits = []>
-    : TypeDef<My_Dialect, name, traits> {
+
+
+class SpecHLS_Type<string name, string typeMnemonic, list<Trait> traits = []>
+    : TypeDef<SpecHLS_Dialect, name, traits> {
   let mnemonic = typeMnemonic;
 }
 
-// Here is a simple definition of an "integer" type, with a width parameter.
-def My_IntegerType : MyDialect_Type<"Integer", "int"> {
-  let summary = "Integer type with arbitrary precision up to a fixed limit";
-  let description = [{
-    Integer types have a designated bit width.
-  }];
-  /// Here we defined a single parameter for the type, which is the bitwidth.
-  let parameters = (ins "unsigned":$width);
 
-  /// Here we define the textual format of the type declaratively, which will
-  /// automatically generate parser and printer logic. This will allow for
-  /// instances of the type to be output as, for example:
-  ///
-  ///    !my.int<10> // a 10-bit integer.
-  ///
-  let assemblyFormat = "`<` $width `>`";
+def SpecHLS_SpecArrayType : SpecHLS_Type<"SpecArray", "specmemref", [
+    ShapedTypeInterface
+  ]> {
+  let summary = "Shaped reference to a region of memory";
 
-  /// Indicate that our type will add additional verification to the parameters.
-  let genVerifyDecl = 1;
+  let parameters = (ins
+
+    "int64_t":$size,
+    "Type":$elementType,
+    "int64_t":$nbDiscardedWrites,
+    ArrayRefParameter<"int64_t">:$nbPendingWrites,
+    "int64_t":$maxPendingWrites,
+    "int64_t":$maxPendingAddresses
+
+  );
+
+  let hasCustomAssemblyFormat =1;
 }
 
-*/
+
+def SpecHLS_SeqBlock : SpecHLSOp<"block", [Pure,SingleBlock]> {
+    let arguments = (ins FlatSymbolRefAttr:$name, I1:$enable, Variadic<AnyType>:$inputs, I32Attr:$latency);
+    let results = (outs Variadic<AnyType>:$outputs);
+    let regions = (region SizedRegion<1>:$region);
+    // let hasCanonicalizer = 1;
+    // let hasFolder = 1;
+    // let hasCustomAssemblyFormat = 1;
+}
+
+def SpecHLS_PipeBlock : SpecHLSOp<"block", [Pure,SingleBlock]> {
+    let arguments = (ins FlatSymbolRefAttr:$name, I1:$enable, Variadic<AnyType>:$inputs, I32Attr:$II, I32Attr:$depth);
+    let results = (outs Variadic<AnyType>:$outputs);
+    let regions = (region SizedRegion<1>:$region);
+    // let hasCanonicalizer = 1;
+    // let hasFolder = 1;
+    // let hasCustomAssemblyFormat = 1;
+}
+
+def SpecHLS_RootBlock : SpecHLSOp<"block", [Pure,SingleBlock]> {
+    let arguments = (ins FlatSymbolRefAttr:$name);
+    let results = (outs );
+
+    let regions = (region SizedRegion<1>:$region);
+    // let hasCanonicalizer = 1;
+    // let hasFolder = 1;
+    // let hasCustomAssemblyFormat = 1;
+}
+
+
 def SpecHLS_GammaOp : SpecHLSOp<"gamma", [Pure]> {
     let summary = "Illustrates how to define an operation.";
     let description = [{
@@ -76,6 +126,17 @@ def SpecHLS_GammaOp : SpecHLSOp<"gamma", [Pure]> {
 
     let hasCustomAssemblyFormat = 1;
     //let assemblyFormat = "attr-dict  `(` $select `:` type($select) `,` ($inputs^ `:` type($inputs))? `)` `:`  type($res)";
+}
+
+def SpecHLS_CastOp : SpecHLSOp<"cast", [Pure]> {
+    let arguments = (ins AnyType:$input);
+    let results = (outs AnyType:$res);
+
+//    let hasCanonicalizer = 1;
+    let hasFolder = 1;
+
+    //let hasCustomAssemblyFormat = 1;
+    let assemblyFormat = "$input `:` type($input) `to` type($res) attr-dict";
 }
 
 def SpecHLS_AlphaOp : SpecHLSOp<"alpha", [Pure,AttrSizedOperandSegments,
@@ -150,17 +211,17 @@ def SpecHLS_RollbackOp : SpecHLSOp<"rollback", [Pure,
 }
 
 def SpecHLS_PrintOp : SpecHLSOp<"ioprintf", [Pure]> {
-    let summary = "Rollback operation.";
+    let summary = "printf operation.";
     let description = [{}];
 
-   let arguments = (ins StrAttr:$format,  I1:$state, I1:$enable,Variadic<AnyType>:$items);
-   let results = (outs I1:$newstate);
+   let arguments = (ins StrAttr:$format,  AnyType:$state, I1:$enable,Variadic<AnyType>:$items);
+   let results = (outs AnyType:$newstate);
 
-//   let hasCustomAssemblyFormat =1;
+   let hasCustomAssemblyFormat =1;
 
- let assemblyFormat = [{
-    $format `(` $items `:` type($items) `)` `from` $state `when` $enable attr-dict
- }];
+// let assemblyFormat = [{
+//    $format `(` $items `:` type($items) `)` `from` $state `when` $enable attr-dict
+// }];
 
 }
 
@@ -235,7 +296,7 @@ def SpecHLS_LookUpTableOp : SpecHLSOp<"lookUpTable", [Pure]> {
    let arguments = (ins AnySignlessInteger:$input, I32ArrayAttr:$content);
    let results = (outs AnyInteger:$result);
 
-  //let hasCanonicalizer = 1;
+    let hasVerifier = 1;
     let hasFolder = 1;
    let hasCustomAssemblyFormat =1;
 }
@@ -276,10 +337,7 @@ def SpecHLS_SyncOp : SpecHLSOp<"sync", [Pure,
    let arguments = (ins AnyType:$data, Variadic<AnyType>:$others);
    let results = (outs AnyType:$result );
 
-  // let hasCustomAssemblyFormat =1;
-     let assemblyFormat = [{
-         $data `:` type($result) `,`  $others `:` type($others)     attr-dict
-     }];
+  let hasCustomAssemblyFormat =1;
 }
 
 def SpecHLS_StringOp : SpecHLSOp<"string", [Pure]> {
