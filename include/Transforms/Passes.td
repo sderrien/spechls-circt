@@ -164,6 +164,12 @@ def MobilityPass : Pass<"mobility", "mlir::ModuleOp"> {
   let dependentDialects = ["circt::ssp::SSPDialect"];
 }
 
+def LocalMobilityPass : Pass<"local-mobility", "mlir::ModuleOp"> {
+  let summary = "Compute local mobility informations.";
+  let constructor = "SpecHLS::createLocalMobilityPass()";
+  let dependentDialects = ["circt::ssp::SSPDialect"];
+}
+
  def SchedulePass : Pass<"schedule", "mlir::ModuleOp"> {
    let summary = "A circt::schedule pass wrapper for gecos.";
    let description = [{

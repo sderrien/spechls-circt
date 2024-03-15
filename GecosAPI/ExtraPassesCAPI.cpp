@@ -15,6 +15,9 @@ void mlirRegisterSchedulePass(void);
 MlirPass mlirCreateMobilityPass(void);
 void mlirRegisterMobilityPass(void);
 
+MlirPass mlirCreateLocalMobilityPass(void);
+void mlirRegisterLocalMobilityPass(void);
+
 MlirPass mlirCreateExportVitisHLS(void);
 void mlirRegisterExportVitisHLS(void);
 
@@ -33,6 +36,14 @@ MlirPass mlirCreateMobilityPass(void) {
 }
 
 void mlirRegisterMobilityPass(void) { SpecHLS::registerMobilityPass(); }
+
+MlirPass mlirCreateLocalMobilityPass(void) {
+  return wrap(SpecHLS::createLocalMobilityPass().release());
+}
+
+void mlirRegisterLocalMobilityPass(void) {
+  SpecHLS::registerLocalMobilityPass();
+}
 
 // MlirPass mlirCreateControlOptimizer(void) {
 //   return wrap(SpecHLS::createControlOptimizer().release());

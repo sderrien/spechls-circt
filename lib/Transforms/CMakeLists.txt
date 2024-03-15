@@ -25,6 +25,7 @@ add_mlir_library(SpecHLSTransforms
         VitisExport/ExportVitisHLS.cpp
         Simplifier/GroupControlLogic.cpp
         Scheduling/MobilityPass.cpp
+        Scheduling/LocalMobilityPass.cpp
         Scheduling/Schedule.cpp
         DEPENDS
 

@@ -76,6 +76,7 @@
 // FIXME move into include file
 MlirPass mlirCreateSchedulePass(void);
 MlirPass mlirCreateMobilityPass(void);
+MlirPass mlirCreateLocalMobilityPass(void);
 MlirPass mlirCreateExportVitisHLS(void);
 
 #define DEFINE_GECOS_API_PASS(name, pass)                                      \
@@ -97,6 +98,7 @@ MlirPass mlirCreateExportVitisHLS(void);
 DEFINE_GECOS_API_PASS(scheduleMLIR, SchedulePass);
 DEFINE_GECOS_API_PASS(canonicalizeMLIR, TransformsCanonicalizer);
 DEFINE_GECOS_API_PASS(mobilityMLIR, MobilityPass);
+DEFINE_GECOS_API_PASS(localMobilityMLIR, LocalMobilityPass);
 
 DEFINE_GECOS_API_PASS(exportVitisHLS, ExportVitisHLS);
 // DEFINE_GECOS_API_PASS(extractControl,ExportVitis);
