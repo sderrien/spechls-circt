@@ -2,18 +2,56 @@
 #include "circt/Dialect/SSP/SSPPasses.h"
 
 #include "Transforms/Passes.h"
+#include "circt/Dialect/HW/HWOps.h"
 #include "mlir/CAPI/Pass.h"
+#include "mlir-c/BuiltinAttributes.h"
+#include "mlir-c/Support.h"
+#include "mlir/CAPI/AffineMap.h"
+#include "mlir/CAPI/IR.h"
+#include "mlir/CAPI/Support.h"
+#include "mlir/IR/AsmState.h"
+#include "mlir/IR/Attributes.h"
+#include "mlir/IR/BuiltinAttributes.h"
+#include "mlir/IR/BuiltinTypes.h"
+#include "mlir/Bytecode/BytecodeWriter.h"
+#include "mlir/CAPI/Wrap.h"
+#include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/MLIRContext.h"
+#include "mlir/IR/Operation.h"
 
 using namespace circt;
+
+#define DEFINE_CAPI_IMPL(pass)                                          \
+  void mlirRegister##pass(void) { SpecHLS::register##pass(); }                \
+  MlirPass mlirCreate##pass(void) { return wrap(SpecHLS::create##pass().release()); }
+
+#define DEFINE_CAPI_DECL(pass) \
+  void mlirRegister##pass(void); \
+  MlirPass mlirCreate##pass(void);
+
+#define DEFINE_C_API_STRUCT(name, storage)                                     \
+  struct name {                                                                \
+    storage *ptr;                                                              \
+  };                                                                           \
+  typedef struct name name
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-MlirPass mlirCreateSchedulePass(void);
-void mlirRegisterSchedulePass(void);
 
-MlirPass mlirCreateMobilityPass(void);
-void mlirRegisterMobilityPass(void);
+DEFINE_CAPI_DECL(MergeLookUpTablesPass)
+DEFINE_CAPI_DECL(SchedulePass)
+DEFINE_CAPI_DECL(MobilityPass)
+DEFINE_CAPI_DECL(YosysOptimizerPass)
+DEFINE_CAPI_DECL(ExportVitisHLS)
+DEFINE_CAPI_DECL(GroupControlNodePass)
+DEFINE_CAPI_DECL(FactorGammaInputsPass)
+DEFINE_CAPI_DECL(MergeGammasPass)
+DEFINE_CAPI_DECL(EliminateRedundantGammaInputsPass)
+DEFINE_CAPI_DECL(InlineModulesPass)
+
 
 MlirPass mlirCreateLocalMobilityPass(void);
 void mlirRegisterLocalMobilityPass(void);
@@ -21,21 +59,41 @@ void mlirRegisterLocalMobilityPass(void);
 MlirPass mlirCreateExportVitisHLS(void);
 void mlirRegisterExportVitisHLS(void);
 
+
 #ifdef __cplusplus
 }
 #endif
 
-MlirPass mlirCreateSchedulePass(void) {
-  return wrap(SpecHLS::createSchedulePass().release());
+DEFINE_CAPI_IMPL(MergeLookUpTablesPass)
+DEFINE_CAPI_IMPL(SchedulePass)
+DEFINE_CAPI_IMPL(MobilityPass)
+DEFINE_CAPI_IMPL(YosysOptimizerPass)
+DEFINE_CAPI_IMPL(ExportVitisHLS)
+DEFINE_CAPI_IMPL(GroupControlNodePass)
+DEFINE_CAPI_IMPL(FactorGammaInputsPass)
+DEFINE_CAPI_IMPL(MergeGammasPass)
+DEFINE_CAPI_IMPL(EliminateRedundantGammaInputsPass)
+DEFINE_CAPI_IMPL(InlineModulesPass)
+
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+DEFINE_C_API_STRUCT(MlirPortInfo, void);
+
+
+#ifdef __cplusplus
 }
+#endif
 
-void mlirRegisterSchedulePass(void) { SpecHLS::registerSchedulePass(); }
-
-MlirPass mlirCreateMobilityPass(void) {
-  return wrap(SpecHLS::createMobilityPass().release());
-}
-
-void mlirRegisterMobilityPass(void) { SpecHLS::registerMobilityPass(); }
+//
+//bool mlirAttributeIsAArrayAttr(MlirAttribute attr) {
+//  return llvm::isa<ArrayAttr>(unwrap(attr));
+//}
+//
+//DEFINE_C_API_STRUCT(MlirTypeID, const void);
 
 MlirPass mlirCreateLocalMobilityPass(void) {
   return wrap(SpecHLS::createLocalMobilityPass().release());
@@ -49,25 +107,25 @@ void mlirRegisterLocalMobilityPass(void) {
 //   return wrap(SpecHLS::createControlOptimizer().release());
 // }
 
-// MlirPass mlirCreateGroupControlNode(void) {
-//   return wrap(SpecHLS::createGroupControlNodePass().release());
-// }
+
+//DEFINE_C_API_PTR_METHODS(MlirPortInfo, circt::hw::PortInfo)
+//DEFINE_C_API_METHODS(MlirPortInfo, circt::hw::PortInfo)
+
+//size_t hwModuleOp_getNumPorts(MlirOperation op) {
+//  auto hwOp = dyn_cast<circt::hw::HWModuleOp>(unwrap(op));
+//  if (hwOp) {
+//    return hwOp.getNumPorts();
+//  } else {
+//    return -1;
+//  }
+//}
 //
-MlirPass mlirCreateExportVitisHLS(void) {
-  return wrap(SpecHLS::createExportVitisHLS().release());
-}
+//MlirType hwModuleOp_getPortsTypeAt(MlirOperation op, int i) {
+//  auto hwOp = dyn_cast<circt::hw::HWModuleOp>(unwrap(op));
+//  if (hwOp) {
+//    return hwOp.getBodyBlock()->getArgument(i).getType();
+//  } else {
+//    return -1;
+//  }
+//}
 
-void mlirExportVitisHLS(void) { SpecHLS::registerExportVitisHLS(); }
-// void mlirGroupControlNode(void) { SpecHLS::registerGroupControlNodePass(); }
-// void mlirControlOptimizer(void) { SpecHLS::registerControlOptimizer(); }
-
-// mlir::Operation testpass(mlir::Operation op) {
-//   {
-//     auto ctx = op.getContext();
-//     mlir::PassManager pm(ctx);
-//     pm.addPass(std::move(SpecHLS::createMergeGammasPass()));
-//     //    pm.addPass(std::move(createYYYPass()));
-//     //    pm.addPass(std::move(createZZZPass()));
-//     pm.run(&op); //
-//   }
-// }

@@ -45,12 +45,15 @@ std::unique_ptr<mlir::OperationPass<>> createFactorGammaInputsPass();
 std::unique_ptr<mlir::OperationPass<>>
 createEliminateRedundantGammaInputsPass();
 std::unique_ptr<mlir::OperationPass<>> createGenerateCPass();
-std::unique_ptr<mlir::Pass> createYosysOptimizer();
+std::unique_ptr<mlir::Pass> createYosysOptimizerPass();
 std::unique_ptr<mlir::Pass> createSchedulePass();
+
+std::unique_ptr<mlir::Pass> createAutoPipelinePass();
 std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>> createInlineModulesPass();
 std::unique_ptr<mlir::Pass> createMobilityPass();
 std::unique_ptr<mlir::Pass> createLocalMobilityPass();
 // std::unique_ptr<mlir::Pass> createControlOptimizer();
+
 
 std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>>
 createGroupControlNodePass();
@@ -108,6 +111,9 @@ void registerYosysOptimizerPipeline();
 
 #define GEN_PASS_DECL_SCHEDULEPASS
 #define GEN_PASS_DEF_SCHEDULEPASS
+
+#define GEN_PASS_DECL_AUTOPIPELINEPASS
+#define GEN_PASS_DEF_AUTOPIPELINEPASS
 
 #include "Transforms/Passes.h.inc"
 

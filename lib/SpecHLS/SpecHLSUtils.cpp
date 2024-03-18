@@ -27,8 +27,13 @@
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+//#include "mlir/Analysis/Analysis.h"
 #include "mlir/IR/Operation.h"
-#include "mlir/IR/PatternMatch.h"
+#include "mlir/IR/Value.h"
+#include "llvm/ADT/BitVector.h"
+#include "llvm/ADT/DenseMap.h"
+#include <queue>
+
 
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/SymbolTable.h"
@@ -46,7 +51,8 @@ circt::hw::HWModuleOp *findHWModuleForInstanceOp(Operation op) {
     // Get the callee symbol reference
     FlatSymbolRefAttr calleeSymbolRef = callOp.getModuleNameAttr();
 
-    // Find the operation with the given symbol reference in the parent operations
+    // Find the operation with the given symbol reference in the parent
+    // operations
     Operation *symbolDefOp =
         SymbolTable::lookupNearestSymbolFrom(callOp, calleeSymbolRef);
 
@@ -74,7 +80,7 @@ std::string getPragma(Operation *op) {
   return NULL;
 }
 
-bool isControlLogicOperation(Operation* op) {
+bool isControlLogicOperation(Operation *op) {
   return TypeSwitch<Operation *, bool>(op)
       .Case<circt::comb::AddOp>([&](auto op) { return true; })
       .Case<circt::comb::SubOp>([&](auto op) { return true; })
@@ -92,7 +98,7 @@ bool isControlLogicOperation(Operation* op) {
       .Case<circt::comb::ConcatOp>([&](auto op) { return true; })
       .Case<circt::comb::ICmpOp>([&](auto op) { return true; })
       .Default([&](auto op) {
-        llvm::errs() << "Operation " << *op  << "is not synthesizable\n";
+        llvm::errs() << "Operation " << *op << "is not synthesizable\n";
         return false;
       });
 }
@@ -127,19 +133,123 @@ bool hasPragmaContaining(Operation *op, llvm::StringRef keyword) {
 }
 
 bool hasConstantOutputs(circt::hw::HWModuleOp op) {
-  for (auto &_innerop : op.getBodyBlock()->getOperations()) {
-    bool ok = TypeSwitch<Operation *, bool>(&_innerop)
-                  .Case<circt::hw::ConstantOp>([&](auto op) { return true; })
-                  .Case<circt::hw::OutputOp>([&](auto op) { return true; })
-                  .Default([&](auto op) {
-                    //llvm::outs() << "Operation " << _innerop << "is not constant\n";
-                    return false;
-                  });
+  auto block = op.getBodyBlock();
+  if (block) {
 
-    if (!ok)
-      return false;
+    if (block->getOperations().size() <= 2)
+      return true;
+
+    for (auto &_innerop : block->getOperations()) {
+      bool ok = TypeSwitch<Operation *, bool>(&_innerop)
+                    .Case<circt::hw::ConstantOp>([&](auto op) { return true; })
+                    .Case<circt::hw::OutputOp>([&](auto op) { return true; })
+                    .Default([&](auto op) {
+                      // llvm::outs() << "Operation " << _innerop << "is not
+                      // constant\n";
+                      return false;
+                    });
+
+      if (!ok)
+        return false;
+    }
+    return true;
   }
-  return true;
-}
 }
 
+
+
+// Helper function to compute the transitive closure of def/use relationships.
+llvm::DenseMap<Operation *, llvm::BitVector> computeTransitiveClosure(Operation *funcOp) {
+
+  llvm::DenseMap<Operation *, llvm::BitVector> defUseMap;
+  llvm::DenseMap<Operation *, u_int64_t  > opMap;
+  u_int64_t cnt =0;
+  funcOp->walk([&](Operation *op) {
+    defUseMap[op].set(cnt++);
+  });
+
+  // Populate the initial def/use relationships.
+  funcOp->walk([&](Operation *op) {
+    for (Value result : op->getResults()) {
+      for (Operation *user : result.getUsers()) {
+        u_int64_t id = opMap[user];
+        defUseMap[op].set(id);
+      }
+    }
+  });
+
+  // Perform a breadth-first search to compute the transitive closure.
+  std::queue<Operation *> worklist;
+  for (auto &entry : defUseMap) {
+    worklist.push(entry.first);
+  }
+
+  while (!worklist.empty()) {
+    Operation *current = worklist.front();
+    worklist.pop();
+    u_int64_t currentId = opMap[current];
+
+    for (auto &entry : defUseMap) {
+      u_int64_t entryId = opMap[entry.first];
+      if (entry.second.test(currentId)) {
+        // If there is a connection from the current operation to entry.first,
+        // update the transitive closure information.
+        if (!defUseMap[current].test(entryId)) {
+          defUseMap[current].set(entryId);
+          worklist.push(current);
+        }
+      }
+    }
+  }
+
+  return defUseMap;
+}
+
+
+// Helper function to compute the transitive closure of def/use relationships.
+llvm::DenseMap<Operation *, llvm::BitVector> computeReverseTransitiveClosure(Operation *funcOp) {
+
+  llvm::DenseMap<Operation *, llvm::BitVector> useDefMap;
+  llvm::DenseMap<Operation *, u_int64_t  > opMap;
+  u_int64_t cnt =0;
+  funcOp->walk([&](Operation *op) {
+    useDefMap[op].set(cnt++);
+  });
+
+  // Populate the initial def/use relationships.
+  funcOp->walk([&](Operation *op) {
+    for (Value operand : op->getOperands()) {
+      Operation *user = operand.getDefiningOp();
+      u_int64_t id = opMap[user];
+      useDefMap[op].set(id);
+    }
+  });
+
+  // Perform a breadth-first search to compute the transitive closure.
+  std::queue<Operation *> worklist;
+  for (auto &entry : useDefMap) {
+    worklist.push(entry.first);
+  }
+
+
+  while (!worklist.empty()) {
+    Operation *current = worklist.front();
+    worklist.pop();
+    u_int64_t currentId = opMap[current];
+
+    for (auto &entry : useDefMap) {
+      u_int64_t entryId = opMap[entry.first];
+      if (entry.second.test(currentId)) {
+        // If there is a connection from the current operation to entry.first,
+        // update the transitive closure information.
+        if (!useDefMap[current].test(entryId)) {
+          useDefMap[current].set(entryId);
+          worklist.push(current);
+        }
+      }
+    }
+  }
+
+  return useDefMap;
+}
+} // namespace SpecHLS

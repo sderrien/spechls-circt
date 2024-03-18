@@ -11,17 +11,19 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "SpecHLS/SpecHLSUtils.h"
 #include "Transforms/Passes.h"
 #include "circt/Dialect/Comb/CombDialect.h"
 #include "circt/Dialect/HW/HWInstanceGraph.h"
 #include "circt/Dialect/HW/HWOps.h"
 #include "circt/Support/BackedgeBuilder.h"
 #include "mlir/IR/IRMapping.h"
+#include "mlir/IR/Verifier.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/InliningUtils.h"
 #include "llvm/ADT/PostOrderIterator.h"
 #include "llvm/Support/Debug.h"
-#include "SpecHLS/SpecHLSUtils.h"
+
 #define DEBUG_TYPE "arc-inline-modules"
 
 namespace circt {} // namespace circt
@@ -89,24 +91,24 @@ struct PrefixingInliner : public InlinerInterface {
 };
 } // namespace
 
-
 void InlineOptimizedModulesPass::runOnOperation() {
 
   auto &instanceGraph = getAnalysis<hw::InstanceGraph>();
   DenseSet<Operation *> handled;
 
-//  llvm::outs()
-//      << "InlineOptimizedModulesPass:"  <<  this->getOperation().getName() << "\n";
+  //  llvm::outs()
+  //      << "InlineOptimizedModulesPass:"  <<  this->getOperation().getName()
+  //      << "\n";
 
   // Iterate over all instances in the instance graph. This ensures we visit
   // every module, even private top modules (private and never instantiated).
   for (auto *startNode : instanceGraph) {
-    //llvm::outs() << "startnode  " << startNode << "\n";
+    // llvm::outs() << "startnode  " << startNode << "\n";
 
     if (handled.count(startNode->getModule().getOperation()))
       continue;
 
-    // Visit the instance subhierarchy starting at the current module, in a
+    // Visit the instance sub-hierarchy starting at the current module, in a
     // depth-first manner. This allows us to inline child modules into parents
     // before we attempt to inline parents into their parents.
     for (InstanceGraphNode *node : llvm::post_order(startNode)) {
@@ -117,53 +119,54 @@ void InlineOptimizedModulesPass::runOnOperation() {
       if (numUsesLeft == 0)
         continue;
 
-      auto hwmodule = dyn_cast_or_null<HWModuleOp>(node->getModule().getOperation());
-      //llvm::outs() << "Analyzing  "<< hwmodule.getName() << "\n";
+      auto hwmodule =
+          dyn_cast_or_null<HWModuleOp>(node->getModule().getOperation());
+      // llvm::outs() << "Analyzing  "<< hwmodule.getName() << "\n";
+      if (hwmodule) {
+        bool inlining = false;
 
-      bool inlining = false;
+        inlining |= SpecHLS::hasConstantOutputs(hwmodule);
+        inlining |= SpecHLS::hasPragmaContaining(hwmodule, "INLINE");
 
-      inlining |= SpecHLS::hasConstantOutputs(hwmodule);
-      inlining |= SpecHLS::hasPragmaContaining(hwmodule, "INLINE");
-
-      if (!inlining) {
-        //llvm::outs() << "Skipping "<< hwmodule.getName() << "\n";
-        continue;
-      }
-
-      for (auto *instRecord : node->uses()) {
-        // Only inline private `HWModuleOp`s (no extern or generated modules).
-
-
-        // Only inline at plain old HW `InstanceOp`s.
-        auto inst = dyn_cast_or_null<InstanceOp>( instRecord->getInstance().getOperation());
-        if (!inst)
+        if (!inlining) {
+          // llvm::outs() << "Skipping "<< hwmodule.getName() << "\n";
           continue;
-
-        //llvm::outs() << "analyzing instance " << *inst << "\n";
-        bool isLastModuleUse = --numUsesLeft == 0;
-
-        // Retrieve the symbolic name associated with the InstanceOp operand
-
-        auto symbolicNameAttr = inst.getInnerSymAttr();
-        //llvm::outs() << "inlining " << inst << "\n";
-        PrefixingInliner inliner(&getContext(), inst.getInstanceName());
-
-        if (failed(mlir::inlineRegion(inliner, &hwmodule.getBody(), inst,
-                                      inst.getOperands(), inst.getResults(),
-                                      std::nullopt, !isLastModuleUse))) {
-          inst.emitError("failed to inline '")
-              << hwmodule.getModuleName() << "' into instance '"
-              << inst.getInstanceName() << "'";
-          return signalPassFailure();
         }
 
-        inst.erase();
-        if (isLastModuleUse)
-          hwmodule->erase();
+        for (auto *instRecord : node->uses()) {
+          // Only inline private `HWModuleOp`s (no extern or generated modules).
+
+          // Only inline at plain old HW `InstanceOp`s.
+          auto inst = dyn_cast_or_null<InstanceOp>(
+              instRecord->getInstance().getOperation());
+          if (!inst)
+            continue;
+
+          // llvm::outs() << "analyzing instance " << *inst << "\n";
+          bool isLastModuleUse = --numUsesLeft == 0;
+
+          // Retrieve the symbolic name associated with the InstanceOp operand
+
+          auto symbolicNameAttr = inst.getInnerSymAttr();
+          // llvm::outs() << "inlining " << inst << "\n";
+          PrefixingInliner inliner(&getContext(), inst.getInstanceName());
+
+          if (failed(mlir::inlineRegion(inliner, &hwmodule.getBody(), inst,
+                                        inst.getOperands(), inst.getResults(),
+                                        std::nullopt, !isLastModuleUse))) {
+            inst.emitError("failed to inline '")
+                << hwmodule.getModuleName() << "' into instance '"
+                << inst.getInstanceName() << "'";
+            return signalPassFailure();
+          }
+
+          inst.erase();
+            hwmodule->erase();
+        }
       }
     }
-
   }
+  mlir::verify(mlir::OperationPass<ModuleOp>::getOperation(), true);
 }
 
 std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>>

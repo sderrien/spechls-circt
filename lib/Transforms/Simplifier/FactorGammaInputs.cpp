@@ -21,6 +21,7 @@
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+#include "mlir/IR/Verifier.h"
 
 using namespace mlir;
 using namespace circt;
@@ -574,7 +575,7 @@ private:
     }
 
     return rewriter.create<SpecHLS::LookUpTableOp>(
-        op->getLoc(), op->getResult(0).getType(), op.getSelect(),
+        op->getLoc(), op.getSelect().getType(), op.getSelect(),
         rewriter.getI32ArrayAttr(outerLutContent));
 
   }
@@ -584,21 +585,15 @@ public:
   LogicalResult matchAndRewrite(GammaOp op,
                                 PatternRewriter &rewriter) const override {
 
-    // llvm::errs() << "analyzing  " << op << " \n";
-
     SmallVector<int32_t> matches;
     u_int32_t nbInputs = op.getInputs().size();
     if (extractMatches(op,matches).succeeded()) {
-      auto parent =  op->getParentOp();
       if (matches.size()==nbInputs) {
-        if (verbose) llvm::outs() << "Gamma op with all same inputs :\n\t" << op  << "\n";
+        llvm::errs() << "Eliminating " << op  << " because it has all the same inputs :\n";
         op.getResult().replaceAllUsesWith(op.getInputs()[0]);
-        if (verbose) llvm::outs() << *parent << "\n";
         rewriter.eraseOp(op);
         return success();
-
       } else {
-        if (verbose) llvm::outs() << "Gamma op with "<< matches.size() <<" redundant inputs :\n\t" << op  << "\n";
 
         auto lut = createOuterReindexingLUT(op,matches,rewriter);
 
@@ -607,7 +602,7 @@ public:
         for (int32_t k=0;k<nbInputs;k++) {
           bool found = false;
           for (u_int32_t j=1;j<matches.size();j++) {
-            if (k==j) {
+            if (k==matches[j]) {
               found =true;
               break;
             }
@@ -623,9 +618,9 @@ public:
             lut->getResult(0),
             args);
 
-        rewriter.replaceOp(op, gamma);
 
-        if (verbose) llvm::outs() << "After rewiring gamma " << gamma << "\n";
+        llvm::errs() << "Simplifying  "<< op <<" into  " << gamma  << "\n";
+        rewriter.replaceOp(op, gamma);
         return success();
       }
 
@@ -650,7 +645,9 @@ public:
         llvm::errs() << "partial conversion failed pattern  \n";
         signalPassFailure();
       }
+      mlir::verify(getOperation(),true);
     }
+
   };
   std::unique_ptr<OperationPass<>> createFactorGammaInputsPass() {
     return std::make_unique<FactorGammaInputsPass>();
@@ -673,6 +670,8 @@ public:
         llvm::errs() << "partial conversion failed pattern  \n";
         signalPassFailure();
       }
+      mlir::verify(getOperation(),true);
+
     }
   };
   std::unique_ptr<OperationPass<>> createEliminateRedundantGammaInputsPass() {

@@ -24,6 +24,7 @@ add_mlir_library(SpecHLSTransforms
         VitisExport/PrintUtils.cpp
         VitisExport/ExportVitisHLS.cpp
         Simplifier/GroupControlLogic.cpp
+        Scheduling/AutoPipeline.cpp
         Scheduling/MobilityPass.cpp
         Scheduling/LocalMobilityPass.cpp
         Scheduling/Schedule.cpp

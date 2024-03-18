@@ -8,6 +8,7 @@
 #include <mlir-c/Diagnostics.h>
 #include <mlir-c/Dialect/Arith.h>
 #include <mlir-c/Dialect/Func.h>
+#include <mlir-c/Dialect/MemRef.h>
 #include <mlir-c/Dialect/SCF.h>
 #include <mlir-c/Dialect/Transform.h>
 #include <mlir-c/IR.h>
@@ -49,13 +50,38 @@ void registerAllUpstreamDialects(MlirContext ctx) {
   mlirDialectHandleRegisterDialect(mlirGetDialectHandle__hwarith__(), ctx);
   mlirDialectHandleRegisterDialect(mlirGetDialectHandle__scf__(), ctx);
   mlirDialectHandleRegisterDialect(mlirGetDialectHandle__ssp__(), ctx);
+  mlirDialectHandleRegisterDialect(mlirGetDialectHandle__memref__(), ctx);
+
 
   mlirContextAppendDialectRegistry(ctx, registry);
+  fprintf(stderr, "Done regsitration\n");
   mlirDialectRegistryDestroy(registry);
 }
 
 bool mlirAttributeIsAArray(MlirAttribute attr);
 bool mlirAttributeIsAString(MlirAttribute attr);
+
+int errorId = 0;
+char* errorMessage= "no error";
+
+void error(int i, char* message) {
+  errorMessage=message;
+  errorId=i;
+}
+
+int getErrorId(int i) {
+  return errorId;
+}
+
+char* getErrorMessage(int i) {
+  return errorMessage;
+}
+
+void clearError() {
+  errorId = 0;
+  errorMessage= "no error";
+}
+
 
 int traverseMLIR(MlirModule module);
 
@@ -188,11 +214,14 @@ MlirModule parseMLIR(const char *mlir) {
   registerAllUpstreamDialects(ctx);
   // printf("C side : context %p\n", ctx.ptr);
 
-  // printf("Input %s", mlir);
+  //printf("Input %s", mlir);
 
   MlirStringRef str = mlirStringRefCreateFromCString(mlir);
 
   MlirModule module = mlirModuleCreateParse(ctx, str);
+
+
+  //printf("Output %s", mlirModuleToString(module));
 
   return module;
 }
@@ -209,6 +238,8 @@ static void printToStderr(MlirStringRef str, void *userData) {
 void traverseBlock(MlirBlock block);
 void traverseOp(MlirOperation operation);
 void traverseRegion(MlirRegion region);
+
+
 
 int traverseModule(MlirModule m) {
   // Assuming we are given a module, go to the first operation of the first

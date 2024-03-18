@@ -15,9 +15,12 @@
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
+#include "llvm/ADT/APSInt.h"
 
+#include "SpecHLSGecosUtils.h"
 using namespace mlir;
 
+void error(int i, char* message);
 MlirAttribute mlirAttributeGetNull() { return {nullptr}; }
 
 //===----------------------------------------------------------------------===//
@@ -137,6 +140,52 @@ double mlirFloatAttrGetValueDouble(MlirAttribute attr) {
 MlirTypeID mlirFloatAttrGetTypeID(void) { return wrap(FloatAttr::getTypeID()); }
 
 //===----------------------------------------------------------------------===//
+// Array attribute.
+//===----------------------------------------------------------------------===//
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+bool foobar(MlirAttribute attr);
+
+bool mlirAttributeIsAArrayAttr(MlirAttribute attr);
+
+size_t mlirArrayAttrGetSize(MlirAttribute attr) ;
+
+Attribute mlirArrayAttrGetAt(MlirAttribute attr, int pos);
+
+#ifdef __cplusplus
+}
+#endif
+
+
+
+bool mlirAttributeIsAArrayAttr(MlirAttribute attr) {
+  return llvm::isa<ArrayAttr>(unwrap(attr));
+}
+
+size_t mlirArrayAttrGetSize(MlirAttribute attr) {
+  auto arrayAttr = dyn_cast<ArrayAttr>(unwrap(attr));
+  if (arrayAttr) {
+    return arrayAttr.size();
+  } else {
+
+    fprintf(stderr,"Attribute is not ArrayAttr %X",unwrap(attr));
+    return -1;
+  }
+}
+
+Attribute mlirArrayAttrGetAt(MlirAttribute attr, int pos) {
+  auto arrayAttr = dyn_cast<ArrayAttr>(unwrap(attr));
+  if (arrayAttr) {
+    if (pos< mlirArrayAttrGetSize(attr)) {
+      return arrayAttr[pos];
+    }
+  }
+  return NULL;
+}
+
+//===----------------------------------------------------------------------===//
 // Integer attribute.
 //===----------------------------------------------------------------------===//
 
@@ -149,15 +198,38 @@ MlirAttribute mlirIntegerAttrGet(MlirType type, int64_t value) {
 }
 
 int64_t mlirIntegerAttrGetValueInt(MlirAttribute attr) {
-  return llvm::cast<IntegerAttr>(unwrap(attr)).getInt();
+  auto intAttr = dyn_cast<IntegerAttr>(unwrap(attr));
+  if (intAttr!=NULL) {
+    return intAttr.getInt();
+  } else {
+   // error(10, "Error in mlirIntegerAttrGetValueInt : \n");
+    return -1;
+  }
 }
 
 int64_t mlirIntegerAttrGetValueSInt(MlirAttribute attr) {
-  return llvm::cast<IntegerAttr>(unwrap(attr)).getSInt();
+  auto intAttr = dyn_cast<IntegerAttr>(unwrap(attr));
+  if (intAttr!=NULL) {
+    if (intAttr.getType().isSignedInteger()) {
+      return intAttr.getAPSInt().getSExtValue();
+    } else {
+      return intAttr.getInt();
+    }
+  } else {
+    //error(10, "Error in mlirIntegerAttrGetValueSInt : \n");
+  }
+
 }
 
 uint64_t mlirIntegerAttrGetValueUInt(MlirAttribute attr) {
-  return llvm::cast<IntegerAttr>(unwrap(attr)).getUInt();
+  auto intAttr = dyn_cast<IntegerAttr>(unwrap(attr));
+  if (intAttr!=NULL) {
+    auto apint = intAttr.getAPSInt().getZExtValue();
+  } else {
+    fprintf(stderr, "Error in mlirIntegerAttrGetValueSInt\n");
+    return -1;
+    //    setError("Error in mlirIntegerAttrGetValueSInt ");
+  }
 }
 
 MlirTypeID mlirIntegerAttrGetTypeID(void) {
@@ -440,8 +512,15 @@ MlirAttribute mlirDenseF64ArrayGet(MlirContext ctx, intptr_t size,
 //===----------------------------------------------------------------------===//
 
 intptr_t mlirDenseArrayGetNumElements(MlirAttribute attr) {
-  return llvm::cast<DenseArrayAttr>(unwrap(attr)).size();
+  auto denseArray = dyn_cast<DenseArrayAttr>(unwrap(attr));
+  if (denseArray!=NULL) {
+    return llvm::cast<DenseArrayAttr>(unwrap(attr)).size();
+  } else {
+    llvm::errs() << attr.ptr << " is not DenseArray \n";
+    return -1;
+  }
 }
+
 
 //===----------------------------------------------------------------------===//
 // Indexed accessors.

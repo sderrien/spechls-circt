@@ -266,7 +266,6 @@ void RTLILImporter::addResultBit(
   }
   auto b = ImplicitLocOpBuilder::atBlockBegin(submodule.getLoc(), block);
 
-  auto ctcx = b.getContext();
 
   // Convert cells to Operations according to topological order.
   for (const auto &cellName : cellOrdering) {

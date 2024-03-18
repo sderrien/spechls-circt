@@ -28,6 +28,7 @@ inline void registerAllPasses() {
     registerMergeGammasPass();
     registerMergeLookUpTablesPass();
     registerFactorGammaInputsPass();
+    registerAutoPipelinePass();
     registerEliminateRedundantGammaInputsPass();
     registerGroupControlNodePass();
     registerInlineModules();

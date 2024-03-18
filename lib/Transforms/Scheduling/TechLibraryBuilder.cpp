@@ -10,9 +10,8 @@
 
 namespace SpecHLS {
 
-struct SchedulePass : public impl::SchedulePassBase<SchedulePass> {
+struct TechLibraryBuilderPass : public impl::TechLibraryBuilderPassBase<TechLibraryBuilderPass> {
   void runOnOperation() override {
-    llvm::errs() << "in SchedulePass\n";
     auto moduleOp = getOperation();
     float period;
     llvm::SmallVector<circt::ssp::InstanceOp> instanceOps;
@@ -26,7 +25,7 @@ struct SchedulePass : public impl::SchedulePassBase<SchedulePass> {
       }
     }
     mlir::OpPassManager dynamicPM("builtin.module");
-    std::unique_ptr<mlir::Pass> pass = circt::ssp::createSchedulePass();
+    std::unique_ptr<mlir::Pass> pass = circt::ssp::createTechLibraryBuilderPass();
     auto optionsResults =
         pass->initializeOptions("options=cycle-time=" + std::to_string(period));
     if (failed(optionsResults)) {
@@ -75,8 +74,8 @@ struct SchedulePass : public impl::SchedulePassBase<SchedulePass> {
   }
 };
 
-std::unique_ptr<mlir::Pass> createSchedulePass() {
-  return std::make_unique<SchedulePass>();
+std::unique_ptr<mlir::Pass> createTechLibraryBuilderPass() {
+  return std::make_unique<TechLibraryBuilderPass>();
 }
 
 } // namespace SpecHLS

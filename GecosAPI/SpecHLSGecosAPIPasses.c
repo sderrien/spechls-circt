@@ -79,7 +79,11 @@ MlirPass mlirCreateMobilityPass(void);
 MlirPass mlirCreateLocalMobilityPass(void);
 MlirPass mlirCreateExportVitisHLS(void);
 
+
 #define DEFINE_GECOS_API_PASS(name, pass)                                      \
+                                                                               \
+  MlirPass mlirCreate##pass();                                                 \
+                                                                               \
   MlirModule name(MlirModule module) {                                         \
     MlirContext ctx = mlirModuleGetContext(module);                            \
     MlirOperation op = mlirModuleGetOperation(module);                         \
@@ -98,7 +102,15 @@ MlirPass mlirCreateExportVitisHLS(void);
 DEFINE_GECOS_API_PASS(scheduleMLIR, SchedulePass);
 DEFINE_GECOS_API_PASS(canonicalizeMLIR, TransformsCanonicalizer);
 DEFINE_GECOS_API_PASS(mobilityMLIR, MobilityPass);
+
 DEFINE_GECOS_API_PASS(localMobilityMLIR, LocalMobilityPass);
 
+
 DEFINE_GECOS_API_PASS(exportVitisHLS, ExportVitisHLS);
-// DEFINE_GECOS_API_PASS(extractControl,ExportVitis);
+DEFINE_GECOS_API_PASS(yosysOptimizer,YosysOptimizerPass)
+DEFINE_GECOS_API_PASS(groupControl,GroupControlNodePass)
+DEFINE_GECOS_API_PASS(factorGammaInputs,FactorGammaInputsPass)
+DEFINE_GECOS_API_PASS(mergeLUTs,MergeLookUpTablesPass)
+DEFINE_GECOS_API_PASS(mergeGammas,MergeGammasPass)
+DEFINE_GECOS_API_PASS(eliminateRedundantGammaInputs,EliminateRedundantGammaInputsPass)
+DEFINE_GECOS_API_PASS(inlineModule,InlineModulesPass)
