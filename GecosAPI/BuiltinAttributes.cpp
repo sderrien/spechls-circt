@@ -15,9 +15,12 @@
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
+#include "llvm/ADT/APSInt.h"
 
+#include "SpecHLSGecosUtils.h"
 using namespace mlir;
 
+void error(int i, char* message);
 MlirAttribute mlirAttributeGetNull() { return {nullptr}; }
 
 //===----------------------------------------------------------------------===//
@@ -195,15 +198,38 @@ MlirAttribute mlirIntegerAttrGet(MlirType type, int64_t value) {
 }
 
 int64_t mlirIntegerAttrGetValueInt(MlirAttribute attr) {
-  return llvm::cast<IntegerAttr>(unwrap(attr)).getInt();
+  auto intAttr = dyn_cast<IntegerAttr>(unwrap(attr));
+  if (intAttr!=NULL) {
+    return intAttr.getInt();
+  } else {
+   // error(10, "Error in mlirIntegerAttrGetValueInt : \n");
+    return -1;
+  }
 }
 
 int64_t mlirIntegerAttrGetValueSInt(MlirAttribute attr) {
-  return llvm::cast<IntegerAttr>(unwrap(attr)).getSInt();
+  auto intAttr = dyn_cast<IntegerAttr>(unwrap(attr));
+  if (intAttr!=NULL) {
+    if (intAttr.getType().isSignedInteger()) {
+      return intAttr.getAPSInt().getSExtValue();
+    } else {
+      return intAttr.getInt();
+    }
+  } else {
+    //error(10, "Error in mlirIntegerAttrGetValueSInt : \n");
+  }
+
 }
 
 uint64_t mlirIntegerAttrGetValueUInt(MlirAttribute attr) {
-  return llvm::cast<IntegerAttr>(unwrap(attr)).getUInt();
+  auto intAttr = dyn_cast<IntegerAttr>(unwrap(attr));
+  if (intAttr!=NULL) {
+    auto apint = intAttr.getAPSInt().getZExtValue();
+  } else {
+    fprintf(stderr, "Error in mlirIntegerAttrGetValueSInt\n");
+    return -1;
+    //    setError("Error in mlirIntegerAttrGetValueSInt ");
+  }
 }
 
 MlirTypeID mlirIntegerAttrGetTypeID(void) {

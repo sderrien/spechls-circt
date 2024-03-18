@@ -27,6 +27,13 @@
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+//#include "mlir/Analysis/Analysis.h"
+#include "mlir/IR/Operation.h"
+#include "mlir/IR/Value.h"
+#include "llvm/ADT/BitVector.h"
+#include "llvm/ADT/DenseMap.h"
+#include <queue>
+
 
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/SymbolTable.h"
@@ -147,5 +154,102 @@ bool hasConstantOutputs(circt::hw::HWModuleOp op) {
     }
     return true;
   }
+}
+
+
+
+// Helper function to compute the transitive closure of def/use relationships.
+llvm::DenseMap<Operation *, llvm::BitVector> computeTransitiveClosure(Operation *funcOp) {
+
+  llvm::DenseMap<Operation *, llvm::BitVector> defUseMap;
+  llvm::DenseMap<Operation *, u_int64_t  > opMap;
+  u_int64_t cnt =0;
+  funcOp->walk([&](Operation *op) {
+    defUseMap[op].set(cnt++);
+  });
+
+  // Populate the initial def/use relationships.
+  funcOp->walk([&](Operation *op) {
+    for (Value result : op->getResults()) {
+      for (Operation *user : result.getUsers()) {
+        u_int64_t id = opMap[user];
+        defUseMap[op].set(id);
+      }
+    }
+  });
+
+  // Perform a breadth-first search to compute the transitive closure.
+  std::queue<Operation *> worklist;
+  for (auto &entry : defUseMap) {
+    worklist.push(entry.first);
+  }
+
+  while (!worklist.empty()) {
+    Operation *current = worklist.front();
+    worklist.pop();
+    u_int64_t currentId = opMap[current];
+
+    for (auto &entry : defUseMap) {
+      u_int64_t entryId = opMap[entry.first];
+      if (entry.second.test(currentId)) {
+        // If there is a connection from the current operation to entry.first,
+        // update the transitive closure information.
+        if (!defUseMap[current].test(entryId)) {
+          defUseMap[current].set(entryId);
+          worklist.push(current);
+        }
+      }
+    }
+  }
+
+  return defUseMap;
+}
+
+
+// Helper function to compute the transitive closure of def/use relationships.
+llvm::DenseMap<Operation *, llvm::BitVector> computeReverseTransitiveClosure(Operation *funcOp) {
+
+  llvm::DenseMap<Operation *, llvm::BitVector> useDefMap;
+  llvm::DenseMap<Operation *, u_int64_t  > opMap;
+  u_int64_t cnt =0;
+  funcOp->walk([&](Operation *op) {
+    useDefMap[op].set(cnt++);
+  });
+
+  // Populate the initial def/use relationships.
+  funcOp->walk([&](Operation *op) {
+    for (Value operand : op->getOperands()) {
+      Operation *user = operand.getDefiningOp();
+      u_int64_t id = opMap[user];
+      useDefMap[op].set(id);
+    }
+  });
+
+  // Perform a breadth-first search to compute the transitive closure.
+  std::queue<Operation *> worklist;
+  for (auto &entry : useDefMap) {
+    worklist.push(entry.first);
+  }
+
+
+  while (!worklist.empty()) {
+    Operation *current = worklist.front();
+    worklist.pop();
+    u_int64_t currentId = opMap[current];
+
+    for (auto &entry : useDefMap) {
+      u_int64_t entryId = opMap[entry.first];
+      if (entry.second.test(currentId)) {
+        // If there is a connection from the current operation to entry.first,
+        // update the transitive closure information.
+        if (!useDefMap[current].test(entryId)) {
+          useDefMap[current].set(entryId);
+          worklist.push(current);
+        }
+      }
+    }
+  }
+
+  return useDefMap;
 }
 } // namespace SpecHLS

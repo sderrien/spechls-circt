@@ -61,6 +61,28 @@ void registerAllUpstreamDialects(MlirContext ctx) {
 bool mlirAttributeIsAArray(MlirAttribute attr);
 bool mlirAttributeIsAString(MlirAttribute attr);
 
+int errorId = 0;
+char* errorMessage= "no error";
+
+void error(int i, char* message) {
+  errorMessage=message;
+  errorId=i;
+}
+
+int getErrorId(int i) {
+  return errorId;
+}
+
+char* getErrorMessage(int i) {
+  return errorMessage;
+}
+
+void clearError() {
+  errorId = 0;
+  errorMessage= "no error";
+}
+
+
 int traverseMLIR(MlirModule module);
 
 void printMlirIdentifier(MlirIdentifier ident) {

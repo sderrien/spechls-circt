@@ -70,7 +70,7 @@ def SpecHLS_SpecArrayType : SpecHLS_Type<"SpecArray", "specmemref", [
   let hasCustomAssemblyFormat =1;
 }
 
-
+/*
 def SpecHLS_SeqBlock : SpecHLSOp<"block", [Pure,SingleBlock]> {
     let arguments = (ins FlatSymbolRefAttr:$name, I1:$enable, Variadic<AnyType>:$inputs, I32Attr:$latency);
     let results = (outs Variadic<AnyType>:$outputs);
@@ -98,7 +98,7 @@ def SpecHLS_RootBlock : SpecHLSOp<"block", [Pure,SingleBlock]> {
     // let hasFolder = 1;
     // let hasCustomAssemblyFormat = 1;
 }
-
+*/
 
 def SpecHLS_GammaOp : SpecHLSOp<"gamma", [Pure]> {
     let summary = "Illustrates how to define an operation.";
