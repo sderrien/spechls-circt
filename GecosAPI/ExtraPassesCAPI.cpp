@@ -53,6 +53,13 @@ DEFINE_CAPI_DECL(EliminateRedundantGammaInputsPass)
 DEFINE_CAPI_DECL(InlineModulesPass)
 
 
+MlirPass mlirCreateLocalMobilityPass(void);
+void mlirRegisterLocalMobilityPass(void);
+
+MlirPass mlirCreateExportVitisHLS(void);
+void mlirRegisterExportVitisHLS(void);
+
+
 #ifdef __cplusplus
 }
 #endif
@@ -87,6 +94,18 @@ DEFINE_C_API_STRUCT(MlirPortInfo, void);
 //}
 //
 //DEFINE_C_API_STRUCT(MlirTypeID, const void);
+
+MlirPass mlirCreateLocalMobilityPass(void) {
+  return wrap(SpecHLS::createLocalMobilityPass().release());
+}
+
+void mlirRegisterLocalMobilityPass(void) {
+  SpecHLS::registerLocalMobilityPass();
+}
+
+// MlirPass mlirCreateControlOptimizer(void) {
+//   return wrap(SpecHLS::createControlOptimizer().release());
+// }
 
 
 //DEFINE_C_API_PTR_METHODS(MlirPortInfo, circt::hw::PortInfo)
