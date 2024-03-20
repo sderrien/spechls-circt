@@ -9,6 +9,8 @@
 
 namespace SpecHLS {
 
+namespace Mobility {
+
 class Operator {
   llvm::StringRef name;
   unsigned latency;
@@ -233,6 +235,8 @@ void computeNext(Operation *op, unsigned &nextAsapCycle,
   }
 }
 
+} // namespace Mobility
+
 struct MobilityPass : public impl::MobilityPassBase<MobilityPass> {
   void runOnOperation() override {
     llvm::errs() << "in MobilityPass\n";
@@ -250,11 +254,13 @@ struct MobilityPass : public impl::MobilityPassBase<MobilityPass> {
         exit(1);
       }
 
-      llvm::SmallVector<Operator *> operators;
-      llvm::SmallVector<Operation *> operations;
-      llvm::SmallVector<Operation *> gammas;
-      llvm::DenseMap<mlir::Operation *, Operator *> translationOperator;
-      llvm::DenseMap<mlir::Operation *, Operation *> translationOperation;
+      llvm::SmallVector<Mobility::Operator *> operators;
+      llvm::SmallVector<Mobility::Operation *> operations;
+      llvm::SmallVector<Mobility::Operation *> gammas;
+      llvm::DenseMap<mlir::Operation *, Mobility::Operator *>
+          translationOperator;
+      llvm::DenseMap<mlir::Operation *, Mobility::Operation *>
+          translationOperation;
 
       for (auto &op : instOp.getOperatorLibrary()) {
         mlir::StringAttr nameAttr =
@@ -276,7 +282,8 @@ struct MobilityPass : public impl::MobilityPassBase<MobilityPass> {
             outDelay = outcommingDelay.getValue().getValue().convertToFloat();
           }
         }
-        Operator *ptr = new Operator(name, lat, incDelay, outDelay);
+        Mobility::Operator *ptr =
+            new Mobility::Operator(name, lat, incDelay, outDelay);
         operators.push_back(ptr);
         translationOperator[&op] = ptr;
       }
@@ -302,7 +309,8 @@ struct MobilityPass : public impl::MobilityPassBase<MobilityPass> {
             outDelay = opType->getOutDelay();
           }
         }
-        auto *ptr = new Operation(name, lat, incDelay, outDelay, isGamma);
+        auto *ptr =
+            new Mobility::Operation(name, lat, incDelay, outDelay, isGamma);
         translationOperation[&operation] = ptr;
         operations.push_back(ptr);
         if (isGamma)
@@ -324,7 +332,7 @@ struct MobilityPass : public impl::MobilityPassBase<MobilityPass> {
             if (auto control = llvm::dyn_cast<mlir::SymbolRefAttr>(attr)) {
               mlir::Operation *mlirControlOperation =
                   instOp.getDependenceGraph().lookupSymbol(control);
-              Operation *controlOperation =
+              Mobility::Operation *controlOperation =
                   translationOperation.lookup(mlirControlOperation);
               operation->setControl(controlOperation);
             }
@@ -359,14 +367,14 @@ struct MobilityPass : public impl::MobilityPassBase<MobilityPass> {
         delete op;
 
       for (unsigned iteration = 0; iteration < 2 * sumDistances; ++iteration)
-        for (Operation *op : operations) {
+        for (Mobility::Operation *op : operations) {
           unsigned nextAsapCycle =
               op->isGamma() ? std::numeric_limits<unsigned>::max() : 0;
           float nextAsapTimeInCycle = 0.0f;
           unsigned nextAlapCycle = 0;
           float nextAlapTimeInCycle = 0.0f;
           for (auto dep : op->getDependences()) {
-            Operation *pred = dep.first;
+            Mobility::Operation *pred = dep.first;
             unsigned dist = dep.second;
             computeNext(op, nextAsapCycle, nextAsapTimeInCycle, nextAlapCycle,
                         nextAlapTimeInCycle, pred, op->isGamma(), iteration,
@@ -378,11 +386,11 @@ struct MobilityPass : public impl::MobilityPassBase<MobilityPass> {
           op->setAlapTimeInCycle(iteration, nextAlapTimeInCycle);
         }
 
-      for (Operation *g : gammas) {
+      for (Mobility::Operation *g : gammas) {
         g->computeMobility(sumDistances);
       }
 
-      for (Operation *op : operations)
+      for (Mobility::Operation *op : operations)
         delete op;
     }
 
