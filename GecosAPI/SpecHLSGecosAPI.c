@@ -218,8 +218,10 @@ MlirModule parseMLIR(const char *mlir) {
   return module;
 }
 
-void foobar12(MlirModule module) {
-  // printf("Im there");
+void destroyMLIR(MlirModule module) {
+  MlirContext ctx = mlirModuleGetContext(module);
+  mlirModuleDestroy(module);
+  mlirContextDestroy(ctx);
 }
 
 static void printToStderr(MlirStringRef str, void *userData) {
