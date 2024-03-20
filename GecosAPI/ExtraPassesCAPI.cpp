@@ -56,6 +56,9 @@ DEFINE_CAPI_DECL(InlineModulesPass)
 MlirPass mlirCreateLocalMobilityPass(void);
 void mlirRegisterLocalMobilityPass(void);
 
+MlirPass mlirCreateConfigurationExcluderPass(void);
+void mlirRegisterConfigurationExcluderPass(void);
+
 MlirPass mlirCreateExportVitisHLS(void);
 void mlirRegisterExportVitisHLS(void);
 
@@ -101,6 +104,14 @@ MlirPass mlirCreateLocalMobilityPass(void) {
 
 void mlirRegisterLocalMobilityPass(void) {
   SpecHLS::registerLocalMobilityPass();
+}
+
+MlirPass mlirCreateConfigurationExcluderPass(void) {
+  return wrap(SpecHLS::createConfigurationExcluderPass().release());
+}
+
+void mlirRegisterConfigurationExcluderPass(void) {
+  SpecHLS::registerConfigurationExcluderPass();
 }
 
 // MlirPass mlirCreateControlOptimizer(void) {

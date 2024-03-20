@@ -52,6 +52,7 @@ std::unique_ptr<mlir::Pass> createAutoPipelinePass();
 std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>> createInlineModulesPass();
 std::unique_ptr<mlir::Pass> createMobilityPass();
 std::unique_ptr<mlir::Pass> createLocalMobilityPass();
+std::unique_ptr<mlir::Pass> createConfigurationExcluderPass();
 // std::unique_ptr<mlir::Pass> createControlOptimizer();
 
 
@@ -108,6 +109,9 @@ void registerYosysOptimizerPipeline();
 
 #define GEN_PASS_DECL_LOCALMOBILITYPASS
 #define GEN_PASS_DEF_LOCALMOBILITYPASS
+
+#define GEN_PASS_DECL_CONFIGURATIONEXCLUDERPASS
+#define GEN_PASS_DEF_CONFIGURATIONEXCLUDERPASS
 
 #define GEN_PASS_DECL_SCHEDULEPASS
 #define GEN_PASS_DEF_SCHEDULEPASS

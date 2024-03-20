@@ -39,6 +39,10 @@ MLIR_CAPI_EXPORTED void registerSchedulePass(void);
 // Registration for the entire group
 MLIR_CAPI_EXPORTED void createMobilityPass(void);
 MLIR_CAPI_EXPORTED void registerMobilityPass(void);
+MLIR_CAPI_EXPORTED void createLocalMobilityPass(void);
+MLIR_CAPI_EXPORTED void registerLocalMobilityPass(void);
+MLIR_CAPI_EXPORTED void createConfigurationExcluderPass(void);
+MLIR_CAPI_EXPORTED void registerConfigurationExcluderPass(void);
 
 #ifdef __cplusplus
 }

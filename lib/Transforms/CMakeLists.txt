@@ -27,6 +27,7 @@ add_mlir_library(SpecHLSTransforms
         Scheduling/AutoPipeline.cpp
         Scheduling/MobilityPass.cpp
         Scheduling/LocalMobilityPass.cpp
+        Scheduling/ConfigurationExcluder.cpp
         Scheduling/Schedule.cpp
         DEPENDS
 

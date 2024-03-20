@@ -180,6 +180,12 @@ def LocalMobilityPass : Pass<"local-mobility", "mlir::ModuleOp"> {
   let dependentDialects = ["circt::ssp::SSPDialect"];
 }
 
+def ConfigurationExcluderPass : Pass<"config-excluder", "mlir::ModuleOp"> {
+  let summary = "Exclude some configurations that cannot leads to II=1.";
+  let constructor = "SpecHLS::createConfigurationExcluderPass()";
+  let dependentDialects = ["circt::ssp::SSPDialect"];
+}
+
  def SchedulePass : Pass<"schedule", "mlir::ModuleOp"> {
    let summary = "A circt::schedule pass wrapper for gecos.";
    let description = [{
