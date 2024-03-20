@@ -12,7 +12,6 @@ namespace SpecHLS {
 
 struct SchedulePass : public impl::SchedulePassBase<SchedulePass> {
   void runOnOperation() override {
-    llvm::errs() << "in SchedulePass\n";
     auto moduleOp = getOperation();
     float period;
     llvm::SmallVector<circt::ssp::InstanceOp> instanceOps;
