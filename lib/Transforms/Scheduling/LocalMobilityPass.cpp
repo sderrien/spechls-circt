@@ -9,6 +9,8 @@
 
 namespace SpecHLS {
 
+namespace LocalMobility {
+
 class Operator {
   llvm::StringRef name;
   unsigned latency;
@@ -44,20 +46,30 @@ private:
   bool computeLocalMobility;
   unsigned mobility = 0;
   mlir::Operation *ptr = nullptr;
-  llvm::SmallVector<unsigned> asapCycle;
-  llvm::SmallVector<float> asapTimeInCycle;
+  llvm::SmallVector<Operation *> &gammas;
+  llvm::DenseMap<Operation *, llvm::SmallVector<unsigned>> asapCycle;
+  llvm::DenseMap<Operation *, llvm::SmallVector<float>> asapTimeInCycle;
   llvm::SmallVector<unsigned> alapCycle;
   llvm::SmallVector<float> alapTimeInCycle;
 
 public:
   Operation(llvm::StringRef name, int latency, float incDelay, float outDelay,
-            bool gamma, bool computeLocalMobility)
+            bool gamma, bool computeLocalMobility,
+            llvm::SmallVector<Operation *> &gammas)
       : name(name), latency(latency), incDelay(incDelay), outDelay(outDelay),
-        gamma(gamma), computeLocalMobility(computeLocalMobility) {}
+        gamma(gamma), computeLocalMobility(computeLocalMobility),
+        gammas(gammas) {
+    for (auto *g : gammas) {
+      asapCycle[g] = llvm::SmallVector<unsigned>();
+      asapTimeInCycle[g] = llvm::SmallVector<float>();
+    }
+  }
 
   void resize(unsigned sumDistance) {
-    asapCycle.resize(2 * sumDistance);
-    asapTimeInCycle.resize(2 * sumDistance);
+    for (auto &g : gammas) {
+      asapCycle[g].resize(2 * sumDistance);
+      asapTimeInCycle[g].resize(2 * sumDistance);
+    }
     alapCycle.resize(2 * sumDistance);
     alapTimeInCycle.resize(2 * sumDistance);
   }
@@ -65,6 +77,8 @@ public:
   void setControl(Operation *op) { controlPredecessor = op; }
 
   Operation *getControl(void) { return controlPredecessor; }
+
+  llvm::SmallVector<Operation *> &getGammas(void) { return gammas; }
 
   void addDependences(Operation *op) { dependences[op] = 0; }
 
@@ -95,9 +109,10 @@ public:
     timeInCycle = alapTimeInCycle[iteration];
   }
 
-  void getAsap(unsigned iteration, unsigned &cycle, float &timeInCycle) {
-    cycle = asapCycle[iteration];
-    timeInCycle = asapTimeInCycle[iteration];
+  void getAsap(Operation *g, unsigned iteration, unsigned &cycle,
+               float &timeInCycle) {
+    cycle = asapCycle[g][iteration];
+    timeInCycle = asapTimeInCycle[g][iteration];
   }
 
   void dump(void) {
@@ -112,12 +127,12 @@ public:
     llvm::errs() << "\n";
   }
 
-  void setAsapCycle(unsigned iteration, unsigned cycle) {
-    asapCycle[iteration] = cycle;
+  void setAsapCycle(Operation *g, unsigned iteration, unsigned cycle) {
+    asapCycle[g][iteration] = cycle;
   }
 
-  void setAsapTimeInCycle(unsigned iteration, float timeInCycle) {
-    asapTimeInCycle[iteration] = timeInCycle;
+  void setAsapTimeInCycle(Operation *g, unsigned iteration, float timeInCycle) {
+    asapTimeInCycle[g][iteration] = timeInCycle;
   }
 
   void setAlapCycle(unsigned iteration, unsigned cycle) {
@@ -132,7 +147,8 @@ public:
     for (unsigned iteration = sumDistance; iteration < 2 * sumDistance;
          ++iteration) {
       unsigned diff1 = alapCycle[iteration] - alapCycle[iteration - 1];
-      unsigned diff2 = asapCycle[iteration] - asapCycle[iteration - 1];
+      unsigned diff2 =
+          asapCycle[this][iteration] - asapCycle[this][iteration - 1];
       unsigned localMobility = (diff1 < diff2) ? 0 : (diff1 - diff2);
       mobility = std::max(mobility, localMobility);
     }
@@ -141,25 +157,7 @@ public:
         mlir::IntegerAttr::get(mlir::IntegerType::get(context, 32), mobility);
     ptr->setAttr("SpecHLS.mobility", mobilityAttr);
   }
-
-  void dumpTrace(unsigned iterations) {
-    dump();
-    for (unsigned it = 0; it < iterations; ++it) {
-      llvm::errs() << "alap: (" << alapCycle[it] << ", " << alapTimeInCycle[it]
-                   << "); asap: (" << asapCycle[it] << ", "
-                   << asapTimeInCycle[it] << ")\n";
-    }
-  }
-
-  void dumpIteration(unsigned iteration) {
-    llvm::errs() << name << "; alap: (" << alapCycle[iteration] << ", "
-                 << alapTimeInCycle[iteration] << "); asap: ("
-                 << asapCycle[iteration] << ", " << asapTimeInCycle[iteration]
-                 << ")\n";
-  }
 };
-
-namespace LocalMobility {
 
 void computeEnd(unsigned &cycle, float &timeInCycle, unsigned startCycle,
                 float startTimeInCycle, unsigned latency, float outDelay) {
@@ -199,14 +197,17 @@ void compare(unsigned &aCycle, float &aTimeInCycle, unsigned bCycle,
   }
 }
 
-void computeNext(Operation *op, unsigned &nextAsapCycle,
-                 float &nextAsapTimeInCycle, unsigned &nextAlapCycle,
-                 float &nextAlapTimeInCycle, Operation *pred, bool gamma,
-                 bool computeLocalMobility, unsigned iteration,
-                 unsigned distance, float period) {
+void computeNext(Operation *op,
+                 llvm::DenseMap<Operation *, unsigned> &nextAsapCycle,
+                 llvm::DenseMap<Operation *, float> &nextAsapTimeInCycle,
+                 unsigned &nextAlapCycle, float &nextAlapTimeInCycle,
+                 Operation *pred, unsigned iteration, unsigned distance,
+                 float period) {
   if (iteration < distance) {
-    nextAsapCycle = 0;
-    nextAsapTimeInCycle = 0.0f;
+    for (Operation *g : op->getGammas()) {
+      nextAsapCycle[g] = 0;
+      nextAsapTimeInCycle[g] = 0.0f;
+    }
     compare(nextAlapCycle, nextAlapTimeInCycle, 0, 0.0f, false);
     return;
   }
@@ -223,19 +224,27 @@ void computeNext(Operation *op, unsigned &nextAsapCycle,
   computeNextStart(nextStartCycle, nextStartTimeInCycle, incDelay, distance,
                    period);
   compare(nextAlapCycle, nextAlapTimeInCycle, nextStartCycle,
-          nextStartTimeInCycle, gamma && !computeLocalMobility);
+          nextStartTimeInCycle, false);
 
-  // ASAP
-  if (pred != op->getControl()) {
-    nextStartCycle = 0;
-    nextStartTimeInCycle = 0.0f;
-    pred->getAsap(iteration - distance, predStartCycle, predStartTimeInCycle);
-    computeEnd(nextStartCycle, nextStartTimeInCycle, predStartCycle,
-               predStartTimeInCycle, lat, outDelay);
-    computeNextStart(nextStartCycle, nextStartTimeInCycle, incDelay, distance,
-                     period);
-    compare(nextAsapCycle, nextAsapTimeInCycle, nextStartCycle,
-            nextStartTimeInCycle, gamma);
+  // ASAPs
+  for (Operation *g : op->getGammas()) {
+    bool computeAsap = g->isGamma() && g->needLocalMobility() && (op == g);
+    if (pred != op->getControl()) {
+      nextStartCycle = 0;
+      nextStartTimeInCycle = 0.0f;
+      pred->getAsap(g, iteration - distance, predStartCycle,
+                    predStartTimeInCycle);
+      computeEnd(nextStartCycle, nextStartTimeInCycle, predStartCycle,
+                 predStartTimeInCycle, lat, outDelay);
+      computeNextStart(nextStartCycle, nextStartTimeInCycle, incDelay, distance,
+                       period);
+      unsigned localNextAsapCycle = nextAsapCycle[g];
+      float localNextAsapTimeInCycle = nextAsapTimeInCycle[g];
+      compare(localNextAsapCycle, localNextAsapTimeInCycle, nextStartCycle,
+              nextStartTimeInCycle, computeAsap);
+      nextAsapCycle[g] = localNextAsapCycle;
+      nextAsapTimeInCycle[g] = localNextAsapTimeInCycle;
+    }
   }
 }
 
@@ -257,11 +266,13 @@ struct LocalMobilityPass
         exit(1);
       }
 
-      llvm::SmallVector<Operator *> operators;
-      llvm::SmallVector<Operation *> operations;
-      llvm::SmallVector<Operation *> gammas;
-      llvm::DenseMap<mlir::Operation *, Operator *> translationOperator;
-      llvm::DenseMap<mlir::Operation *, Operation *> translationOperation;
+      llvm::SmallVector<LocalMobility::Operator *> operators;
+      llvm::SmallVector<LocalMobility::Operation *> operations;
+      llvm::SmallVector<LocalMobility::Operation *> gammas;
+      llvm::DenseMap<mlir::Operation *, LocalMobility::Operator *>
+          translationOperator;
+      llvm::DenseMap<mlir::Operation *, LocalMobility::Operation *>
+          translationOperation;
 
       for (auto &op : instOp.getOperatorLibrary()) {
         mlir::StringAttr nameAttr =
@@ -283,7 +294,8 @@ struct LocalMobilityPass
             outDelay = outcommingDelay.getValue().getValue().convertToFloat();
           }
         }
-        Operator *ptr = new Operator(name, lat, incDelay, outDelay);
+        LocalMobility::Operator *ptr =
+            new LocalMobility::Operator(name, lat, incDelay, outDelay);
         operators.push_back(ptr);
         translationOperator[&op] = ptr;
       }
@@ -310,8 +322,9 @@ struct LocalMobilityPass
             outDelay = opType->getOutDelay();
           }
         }
-        auto *ptr = new Operation(name, lat, incDelay, outDelay, isGamma,
-                                  computeLocalMobility);
+        auto *ptr =
+            new LocalMobility::Operation(name, lat, incDelay, outDelay, isGamma,
+                                         computeLocalMobility, gammas);
         translationOperation[&operation] = ptr;
         operations.push_back(ptr);
         if (isGamma)
@@ -333,7 +346,7 @@ struct LocalMobilityPass
             if (auto control = llvm::dyn_cast<mlir::SymbolRefAttr>(attr)) {
               mlir::Operation *mlirControlOperation =
                   instOp.getDependenceGraph().lookupSymbol(control);
-              Operation *controlOperation =
+              LocalMobility::Operation *controlOperation =
                   translationOperation.lookup(mlirControlOperation);
               operation->setControl(controlOperation);
             }
@@ -368,31 +381,39 @@ struct LocalMobilityPass
         delete op;
 
       for (unsigned iteration = 0; iteration < 2 * sumDistances; ++iteration)
-        for (Operation *op : operations) {
-          unsigned nextAsapCycle =
-              op->isGamma() ? std::numeric_limits<unsigned>::max() : 0;
-          float nextAsapTimeInCycle = 0.0f;
+        for (LocalMobility::Operation *op : operations) {
+          // unsigned nextAsapCycle =
+          //     op->isGamma() ? std::numeric_limits<unsigned>::max() : 0;
+          llvm::DenseMap<LocalMobility::Operation *, unsigned> nextAsapCycle;
+          // float nextAsapTimeInCycle = 0.0f;
+          llvm::DenseMap<LocalMobility::Operation *, float> nextAsapTimeInCycle;
+          for (auto *g : gammas) {
+            nextAsapCycle[g] =
+                op->isGamma() ? std::numeric_limits<unsigned>::max() : 0;
+            nextAsapTimeInCycle[g] = 0.0f;
+          }
           unsigned nextAlapCycle = 0;
           float nextAlapTimeInCycle = 0.0f;
           for (auto dep : op->getDependences()) {
-            Operation *pred = dep.first;
+            LocalMobility::Operation *pred = dep.first;
             unsigned dist = dep.second;
             LocalMobility::computeNext(op, nextAsapCycle, nextAsapTimeInCycle,
                                        nextAlapCycle, nextAlapTimeInCycle, pred,
-                                       op->isGamma(), op->needLocalMobility(),
                                        iteration, dist, period);
           }
-          op->setAsapCycle(iteration, nextAsapCycle);
-          op->setAsapTimeInCycle(iteration, nextAsapTimeInCycle);
+          for (auto *g : gammas) {
+            op->setAsapCycle(g, iteration, nextAsapCycle[g]);
+            op->setAsapTimeInCycle(g, iteration, nextAsapTimeInCycle[g]);
+          }
           op->setAlapCycle(iteration, nextAlapCycle);
           op->setAlapTimeInCycle(iteration, nextAlapTimeInCycle);
         }
 
-      for (Operation *g : gammas) {
+      for (LocalMobility::Operation *g : gammas) {
         g->computeMobility(sumDistances);
       }
 
-      for (Operation *op : operations)
+      for (LocalMobility::Operation *op : operations)
         delete op;
     }
 
