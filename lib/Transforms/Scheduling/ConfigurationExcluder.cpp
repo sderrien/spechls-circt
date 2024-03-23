@@ -220,8 +220,7 @@ void computeNext(Operation *op, unsigned &nextAsapCycle,
   pred->getAlap(iteration - distance, predStartCycle, predStartTimeInCycle);
   computeEnd(nextStartCycle, nextStartTimeInCycle, predStartCycle,
              predStartTimeInCycle, lat, outDelay);
-  computeNextStart(nextStartCycle, nextStartTimeInCycle, incDelay, distance,
-                   period);
+  computeNextStart(nextStartCycle, nextStartTimeInCycle, incDelay, 0, period);
   compare(nextAlapCycle, nextAlapTimeInCycle, nextStartCycle,
           nextStartTimeInCycle, false);
 
@@ -232,8 +231,7 @@ void computeNext(Operation *op, unsigned &nextAsapCycle,
     pred->getAsap(iteration - distance, predStartCycle, predStartTimeInCycle);
     computeEnd(nextStartCycle, nextStartTimeInCycle, predStartCycle,
                predStartTimeInCycle, lat, outDelay);
-    computeNextStart(nextStartCycle, nextStartTimeInCycle, incDelay, distance,
-                     period);
+    computeNextStart(nextStartCycle, nextStartTimeInCycle, incDelay, 0, period);
     compare(nextAsapCycle, nextAsapTimeInCycle, nextStartCycle,
             nextStartTimeInCycle, gamma);
   }
