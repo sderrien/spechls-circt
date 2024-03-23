@@ -36,6 +36,7 @@ inline void registerAllPasses() {
     registerMobilityPass();
     registerLocalMobilityPass();
     registerSchedulePass();
+    registerConfigurationExcluderPass();
     registerExportVitisHLS();
 
     return true;
