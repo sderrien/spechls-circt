@@ -254,15 +254,15 @@ struct MobilityPass : public impl::MobilityPassBase<MobilityPass> {
         exit(1);
       }
 
-      llvm::SmallVector<Mobility::Operator *> operators;
-      llvm::SmallVector<Mobility::Operation *> operations;
+      llvm::SmallVector<std::unique_ptr<Mobility::Operator>> operators;
+      llvm::SmallVector<std::unique_ptr<Mobility::Operation>> operations;
       llvm::SmallVector<Mobility::Operation *> gammas;
       llvm::DenseMap<mlir::Operation *, Mobility::Operator *>
           translationOperator;
       llvm::DenseMap<mlir::Operation *, Mobility::Operation *>
           translationOperation;
 
-      for (auto &op : instOp.getOperatorLibrary()) {
+      for (auto &&op : instOp.getOperatorLibrary()) {
         mlir::StringAttr nameAttr =
             op.getAttrOfType<mlir::StringAttr>("sym_name");
         llvm::StringRef name = nameAttr.getValue();
@@ -282,13 +282,13 @@ struct MobilityPass : public impl::MobilityPassBase<MobilityPass> {
             outDelay = outcommingDelay.getValue().getValue().convertToFloat();
           }
         }
-        Mobility::Operator *ptr =
-            new Mobility::Operator(name, lat, incDelay, outDelay);
-        operators.push_back(ptr);
-        translationOperator[&op] = ptr;
+        auto ptr =
+            std::make_unique<Mobility::Operator>(name, lat, incDelay, outDelay);
+        translationOperator[&op] = ptr.get();
+        operators.push_back(std::move(ptr));
       }
 
-      for (auto &operation : instOp.getDependenceGraph()) {
+      for (auto &&operation : instOp.getDependenceGraph()) {
         mlir::StringAttr nameAttr =
             operation.getAttrOfType<mlir::StringAttr>("sym_name");
         llvm::StringRef name = nameAttr.getValue();
@@ -309,21 +309,21 @@ struct MobilityPass : public impl::MobilityPassBase<MobilityPass> {
             outDelay = opType->getOutDelay();
           }
         }
-        auto *ptr =
-            new Mobility::Operation(name, lat, incDelay, outDelay, isGamma);
-        translationOperation[&operation] = ptr;
-        operations.push_back(ptr);
+        auto ptr = std::make_unique<Mobility::Operation>(name, lat, incDelay,
+                                                         outDelay, isGamma);
+        translationOperation[&operation] = ptr.get();
         if (isGamma)
-          gammas.push_back(ptr);
+          gammas.push_back(ptr.get());
         ptr->setMlirOperation(&operation);
         for (auto &op : operation.getOpOperands()) {
           ptr->addDependences(
               translationOperation.lookup(op.get().getDefiningOp()));
         }
+        operations.push_back(std::move(ptr));
       }
 
       unsigned sumDistances = 0;
-      for (auto *operation : operations) {
+      for (auto &&operation : operations) {
         auto *mlirOperation = operation->getMlirOperation();
         mlir::ArrayAttr controlNodeArray =
             mlirOperation->getAttrOfType<mlir::ArrayAttr>("SpecHLS.gamma");
@@ -359,15 +359,12 @@ struct MobilityPass : public impl::MobilityPassBase<MobilityPass> {
           }
         }
       }
-      for (auto *op : operations) {
+      for (auto &&op : operations) {
         op->resize(sumDistances);
       }
 
-      for (auto *op : operators)
-        delete op;
-
       for (unsigned iteration = 0; iteration < 2 * sumDistances; ++iteration)
-        for (Mobility::Operation *op : operations) {
+        for (auto &&op : operations) {
           unsigned nextAsapCycle =
               op->isGamma() ? std::numeric_limits<unsigned>::max() : 0;
           float nextAsapTimeInCycle = 0.0f;
@@ -376,9 +373,9 @@ struct MobilityPass : public impl::MobilityPassBase<MobilityPass> {
           for (auto dep : op->getDependences()) {
             Mobility::Operation *pred = dep.first;
             unsigned dist = dep.second;
-            computeNext(op, nextAsapCycle, nextAsapTimeInCycle, nextAlapCycle,
-                        nextAlapTimeInCycle, pred, op->isGamma(), iteration,
-                        dist, period);
+            computeNext(op.get(), nextAsapCycle, nextAsapTimeInCycle,
+                        nextAlapCycle, nextAlapTimeInCycle, pred, op->isGamma(),
+                        iteration, dist, period);
           }
           op->setAsapCycle(iteration, nextAsapCycle);
           op->setAsapTimeInCycle(iteration, nextAsapTimeInCycle);
@@ -386,12 +383,9 @@ struct MobilityPass : public impl::MobilityPassBase<MobilityPass> {
           op->setAlapTimeInCycle(iteration, nextAlapTimeInCycle);
         }
 
-      for (Mobility::Operation *g : gammas) {
+      for (auto &&g : gammas) {
         g->computeMobility(sumDistances);
       }
-
-      for (Mobility::Operation *op : operations)
-        delete op;
     }
 
     llvm::for_each(instanceOps, [](circt::ssp::InstanceOp op) { op.erase(); });

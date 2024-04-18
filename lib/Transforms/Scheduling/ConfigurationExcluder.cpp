@@ -255,8 +255,10 @@ struct ConfigurationExcluderPass
         exit(1);
       }
 
-      llvm::SmallVector<ConfigurationExcluder::Operator *> operators;
-      llvm::SmallVector<ConfigurationExcluder::Operation *> operations;
+      llvm::SmallVector<std::unique_ptr<ConfigurationExcluder::Operator>>
+          operators;
+      llvm::SmallVector<std::unique_ptr<ConfigurationExcluder::Operation>>
+          operations;
       llvm::SmallVector<ConfigurationExcluder::Operation *> gammas;
       llvm::SmallVector<ConfigurationExcluder::Operation *> mus;
       llvm::DenseMap<mlir::Operation *, ConfigurationExcluder::Operator *>
@@ -284,13 +286,13 @@ struct ConfigurationExcluderPass
             outDelay = outcommingDelay.getValue().getValue().convertToFloat();
           }
         }
-        ConfigurationExcluder::Operator *ptr =
-            new ConfigurationExcluder::Operator(name, lat, incDelay, outDelay);
-        operators.push_back(ptr);
-        translationOperator[&op] = ptr;
+        auto ptr = std::make_unique<ConfigurationExcluder::Operator>(
+            name, lat, incDelay, outDelay);
+        translationOperator[&op] = ptr.get();
+        operators.push_back(std::move(ptr));
       }
 
-      for (auto &operation : instOp.getDependenceGraph()) {
+      for (auto &&operation : instOp.getDependenceGraph()) {
         mlir::StringAttr nameAttr =
             operation.getAttrOfType<mlir::StringAttr>("sym_name");
         llvm::StringRef name = nameAttr.getValue();
@@ -301,7 +303,7 @@ struct ConfigurationExcluderPass
             operation.getAttrOfType<mlir::ArrayAttr>("sspProperties");
         unsigned lat = 0;
         float incDelay = 0.0f, outDelay = 0.0f;
-        for (auto prop : properties) {
+        for (auto &&prop : properties) {
           if (auto opr =
                   llvm::dyn_cast<circt::ssp::LinkedOperatorTypeAttr>(prop)) {
             auto *operatorType =
@@ -312,28 +314,28 @@ struct ConfigurationExcluderPass
             outDelay = opType->getOutDelay();
           }
         }
-        auto *ptr = new ConfigurationExcluder::Operation(
+        auto ptr = std::make_unique<ConfigurationExcluder::Operation>(
             name, lat, incDelay, outDelay, isGamma, isMu);
-        translationOperation[&operation] = ptr;
-        operations.push_back(ptr);
+        translationOperation[&operation] = ptr.get();
         if (isGamma)
-          gammas.push_back(ptr);
+          gammas.push_back(ptr.get());
         if (isMu)
-          mus.push_back(ptr);
+          mus.push_back(ptr.get());
         ptr->setMlirOperation(&operation);
-        for (auto &op : operation.getOpOperands()) {
+        for (auto &&op : operation.getOpOperands()) {
           ptr->addDependences(
               translationOperation.lookup(op.get().getDefiningOp()));
         }
+        operations.push_back(std::move(ptr));
       }
 
       unsigned sumDistances = 0;
-      for (auto *operation : operations) {
+      for (auto &&operation : operations) {
         auto *mlirOperation = operation->getMlirOperation();
         mlir::ArrayAttr controlNodeArray =
             mlirOperation->getAttrOfType<mlir::ArrayAttr>("SpecHLS.gamma");
         if (controlNodeArray) {
-          for (mlir::Attribute attr : controlNodeArray) {
+          for (auto &&attr : controlNodeArray) {
             if (auto control = llvm::dyn_cast<mlir::SymbolRefAttr>(attr)) {
               mlir::Operation *mlirControlOperation =
                   instOp.getDependenceGraph().lookupSymbol(control);
@@ -364,26 +366,23 @@ struct ConfigurationExcluderPass
           }
         }
       }
-      for (auto *op : operations) {
+      for (auto &&op : operations) {
         op->resize(sumDistances);
       }
 
-      for (auto *op : operators)
-        delete op;
-
       for (unsigned iteration = 0; iteration < 2 * sumDistances; ++iteration)
-        for (ConfigurationExcluder::Operation *op : operations) {
+        for (auto &&op : operations) {
           unsigned nextAsapCycle =
               op->isGamma() ? std::numeric_limits<unsigned>::max() : 0;
           float nextAsapTimeInCycle = 0.0f;
           unsigned nextAlapCycle = 0;
           float nextAlapTimeInCycle = 0.0f;
-          for (auto dep : op->getDependences()) {
+          for (auto &&dep : op->getDependences()) {
             ConfigurationExcluder::Operation *pred = dep.first;
             unsigned dist = dep.second;
-            computeNext(op, nextAsapCycle, nextAsapTimeInCycle, nextAlapCycle,
-                        nextAlapTimeInCycle, pred, op->isGamma(), iteration,
-                        dist, period);
+            computeNext(op.get(), nextAsapCycle, nextAsapTimeInCycle,
+                        nextAlapCycle, nextAlapTimeInCycle, pred, op->isGamma(),
+                        iteration, dist, period);
           }
           op->setAsapCycle(iteration, nextAsapCycle);
           op->setAsapTimeInCycle(iteration, nextAsapTimeInCycle);
@@ -398,7 +397,7 @@ struct ConfigurationExcluderPass
         }
 
       bool allowUnitII = true;
-      for (ConfigurationExcluder::Operation *m : mus) {
+      for (auto &&m : mus) {
         if (!m->allowUnitII(sumDistances)) {
           allowUnitII = false;
           break;
@@ -406,9 +405,6 @@ struct ConfigurationExcluderPass
       }
       instOp->setAttr("SpecHLS.allowUnitII",
                       mlir::BoolAttr::get(instOp->getContext(), allowUnitII));
-
-      for (ConfigurationExcluder::Operation *op : operations)
-        delete op;
     }
 
     llvm::for_each(instanceOps, [](circt::ssp::InstanceOp op) { op.erase(); });
