@@ -27,8 +27,10 @@
 #include "mlir/Pass/PassRegistry.h"
 #include <limits>
 
-#include "SpecHLS/SpecHLSDialect.h"
-#include "SpecHLS/SpecHLSOps.h"
+#include "Dialect/ScheduleDialect/ScheduleDialectDialect.h"
+#include "Dialect/ScheduleDialect/ScheduleDialectOps.h"
+#include "Dialect/SpecHLS/SpecHLSDialect.h"
+#include "Dialect/SpecHLS/SpecHLSOps.h"
 #include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/Seq/SeqOps.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
@@ -54,7 +56,6 @@ std::unique_ptr<mlir::Pass> createMobilityPass();
 std::unique_ptr<mlir::Pass> createLocalMobilityPass();
 std::unique_ptr<mlir::Pass> createConfigurationExcluderPass();
 // std::unique_ptr<mlir::Pass> createControlOptimizer();
-
 
 std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>>
 createGroupControlNodePass();
@@ -106,9 +107,6 @@ void registerYosysOptimizerPipeline();
 
 #define GEN_PASS_DECL_MOBILITYPASS
 #define GEN_PASS_DEF_MOBILITYPASS
-
-#define GEN_PASS_DECL_LOCALMOBILITYPASS
-#define GEN_PASS_DEF_LOCALMOBILITYPASS
 
 #define GEN_PASS_DECL_CONFIGURATIONEXCLUDERPASS
 #define GEN_PASS_DEF_CONFIGURATIONEXCLUDERPASS

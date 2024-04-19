@@ -6,9 +6,9 @@
 #include <string>
 #include <utility>
 
-#include "SpecHLS/SpecHLSDialect.h"
-#include "SpecHLS/SpecHLSOps.h"
-#include "SpecHLS/SpecHLSUtils.h"
+#include "Dialect/SpecHLS/SpecHLSDialect.h"
+#include "Dialect/SpecHLS/SpecHLSOps.h"
+#include "Dialect/SpecHLS/SpecHLSUtils.h"
 #include "Transforms/Passes.h"
 #include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/HW/HWAttributes.h"
@@ -32,7 +32,7 @@
 #include "mlir/Support/LLVM.h"             // from @llvm-project
 #include "mlir/Transforms/FoldUtils.h"     // from @llvm-project
 #include "llvm/ADT/MapVector.h"            // from @llvm-project
-#include "llvm/Support/FormatVariadic.h"  // from @llvm-project
+#include "llvm/Support/FormatVariadic.h"   // from @llvm-project
 namespace mlir {
 
 using ::Yosys::RTLIL::Module;
@@ -64,18 +64,18 @@ getTopologicalOrder(std::stringstream &torderOutput) {
   return cells;
 }
 
-
 mlir::Operation *
 RTLILImporter::createOp(Yosys::RTLIL::Cell *cell,
-                      llvm::SmallVector<mlir::Value, 4> &inputs,
-                      circt::ImplicitLocOpBuilder &b)  {
-  
-  if (VERBOSE) llvm::outs() << "Cell " << cell << ":" << cell->type.str() <<"\n";
-  //assert(cell->type.begins_with("$lut"));
+                        llvm::SmallVector<mlir::Value, 4> &inputs,
+                        circt::ImplicitLocOpBuilder &b) {
+
+  if (VERBOSE)
+    llvm::outs() << "Cell " << cell << ":" << cell->type.str() << "\n";
+  // assert(cell->type.begins_with("$lut"));
 
   // Create truth table from cell attributes.
 
-  if(cell->type.begins_with("$lut")) {
+  if (cell->type.begins_with("$lut")) {
     int lutBits;
     llvm::StringRef(cell->type.substr(4, 1)).getAsInteger(10, lutBits);
     uint64_t lutValue = 0;
@@ -85,47 +85,49 @@ RTLILImporter::createOp(Yosys::RTLIL::Cell *cell,
           cell->getPort(Yosys::RTLIL::IdString(llvm::formatv("\\P{0}", i)));
       lutValue |= (lutStr.as_bool() ? 1 : 0) << i;
     }
-    if (VERBOSE) llvm::outs() << "Extracting LUT value  ";
-    auto lookupTable =
-        b.getIntegerAttr(b.getIntegerType(lutSize, /*isSigned=*/false), lutValue);
+    if (VERBOSE)
+      llvm::outs() << "Extracting LUT value  ";
+    auto lookupTable = b.getIntegerAttr(
+        b.getIntegerType(lutSize, /*isSigned=*/false), lutValue);
 
     llvm::SmallVector<int, 1024> newcontent;
     circt::ArrayAttr attr = b.getI32ArrayAttr(newcontent);
-    if (VERBOSE) llvm::outs() << "LUT  "<< lookupTable <<"   " << attr <<"\n";
+    if (VERBOSE)
+      llvm::outs() << "LUT  " << lookupTable << "   " << attr << "\n";
 
     return b.create<SpecHLS::LookUpTableOp>(b.getIntegerType(1), inputs.front(),
                                             attr);
   } else {
     auto type = cell->type.str();
-    if (type=="$_AND_") {
+    if (type == "$_AND_") {
       return b.create<circt::comb::AndOp>(b.getIntegerType(1), inputs);
-    } else if (type=="$_OR_") {
+    } else if (type == "$_OR_") {
       return b.create<circt::comb::OrOp>(b.getIntegerType(1), inputs);
-    } else if (type=="$_XOR_") {
+    } else if (type == "$_XOR_") {
       return b.create<circt::comb::XorOp>(b.getIntegerType(1), inputs);
-    } else if (type=="$_NOT_") {
+    } else if (type == "$_NOT_") {
       llvm::SmallVector<circt::Value> args = {inputs[0]};
       return b.create<circt::comb::XorOp>(b.getIntegerType(1), args);
-    } else if (type=="$and") {
+    } else if (type == "$and") {
       return b.create<circt::comb::AndOp>(b.getIntegerType(1), inputs);
-    } else if (type=="$or") {
+    } else if (type == "$or") {
       return b.create<circt::comb::OrOp>(b.getIntegerType(1), inputs);
-    } else if (type=="$xor") {
+    } else if (type == "$xor") {
       return b.create<circt::comb::XorOp>(b.getIntegerType(1), inputs);
-    } else if (type=="$not") {
-      llvm::SmallVector<circt::Value> args= {inputs[0],inputs[1]};
+    } else if (type == "$not") {
+      llvm::SmallVector<circt::Value> args = {inputs[0], inputs[1]};
       return b.create<circt::comb::XorOp>(b.getIntegerType(1), args);
     } else {
-      llvm::errs() << "Error : unsupported cell type " <<cell->type.str() << "\n";
+      llvm::errs() << "Error : unsupported cell type " << cell->type.str()
+                   << "\n";
       return NULL;
     }
   }
-
 }
 
 llvm::SmallVector<Yosys::RTLIL::SigSpec, 4>
 
-RTLILImporter::getInputs(Yosys::RTLIL::Cell *cell)  {
+RTLILImporter::getInputs(Yosys::RTLIL::Cell *cell) {
 
   // Return all non-P, non-Y named attributes.
   llvm::SmallVector<Yosys::RTLIL::SigSpec, 4> inputs;
@@ -138,7 +140,7 @@ RTLILImporter::getInputs(Yosys::RTLIL::Cell *cell)  {
   return inputs;
 }
 
-Yosys::RTLIL::SigSpec RTLILImporter::getOutput(Yosys::RTLIL::Cell *cell)  {
+Yosys::RTLIL::SigSpec RTLILImporter::getOutput(Yosys::RTLIL::Cell *cell) {
   return cell->getPort(Yosys::RTLIL::IdString("\\Y"));
 }
 
@@ -160,7 +162,8 @@ Value RTLILImporter::getBit(
   // of an input wire, in the map of already defined wires (which are
   // bits), or a constant bit.
   if (!(conn.is_wire() || conn.is_fully_const() || conn.is_bit())) {
-    if (VERBOSE) llvm::outs() << " connection " << conn.as_string() << "\n";
+    if (VERBOSE)
+      llvm::outs() << " connection " << conn.as_string() << "\n";
   }
   assert(conn.is_wire() || conn.is_fully_const() || conn.is_bit());
   if (conn.is_wire()) {
@@ -182,7 +185,7 @@ Value RTLILImporter::getBit(
     return retBitValues[bit.wire][offset];
   }
   auto argA = getWireValue(bit.wire);
-  auto extractOp = b.create<circt::comb::ExtractOp>(argA, bit.offset,1);
+  auto extractOp = b.create<circt::comb::ExtractOp>(argA, bit.offset, 1);
   return extractOp;
 }
 
@@ -201,7 +204,9 @@ void RTLILImporter::addResultBit(
   retBitValues[bit.wire][offset] = result;
 }
 
- circt::hw::HWModuleOp RTLILImporter::importModule(circt::hw::HWModuleOp op,Module *module, const SmallVector<std::string, 10> &cellOrdering) {
+circt::hw::HWModuleOp
+RTLILImporter::importModule(circt::hw::HWModuleOp op, Module *module,
+                            const SmallVector<std::string, 10> &cellOrdering) {
   // Gather input and output wires of the module to match up with the block
   // arguments.
   SmallVector<Type, 4> argTypes;
@@ -230,19 +235,19 @@ void RTLILImporter::addResultBit(
   size_t id = 0;
   for (auto argtype : argTypes) {
     // auto port = ;
-    auto label= op.getPort(id).getName();
+    auto label = op.getPort(id).getName();
     if (!op.getPort(id).isInput()) {
       // expects input port followed by output ports
       llvm::errs() << "Interface mismatch\n";
     }
     auto portName = builder.getStringAttr(label);
-    ports.push_back({{portName, argtype, circt::hw::ModulePort::Direction::Input}, id});
+    ports.push_back(
+        {{portName, argtype, circt::hw::ModulePort::Direction::Input}, id});
     id++;
   }
 
-
   for (auto restype : retTypes) {
-    auto label= op.getPort(id).getName();
+    auto label = op.getPort(id).getName();
     if (!op.getPort(id).isOutput()) {
       // expects input port followed by output ports
       llvm::errs() << "Interface mismatch\n";
@@ -252,12 +257,11 @@ void RTLILImporter::addResultBit(
         {{portName, restype, circt::hw::ModulePort::Direction::Output}, id});
     id++;
   }
-  StringAttr nameAttr =
-      builder.getStringAttr(module->name.str().replace(0, 1, "")+std::string("_opt"));
+  StringAttr nameAttr = builder.getStringAttr(
+      module->name.str().replace(0, 1, "") + std::string("_opt"));
 
-
-  auto submodule = builder.create<circt::hw::HWModuleOp>(builder.getUnknownLoc(), nameAttr, ports);
-
+  auto submodule = builder.create<circt::hw::HWModuleOp>(
+      builder.getUnknownLoc(), nameAttr, ports);
 
   mlir::Block *block = submodule.getBodyBlock();
   // Map the RTLIL wires to the block arguments' Values.
@@ -265,7 +269,6 @@ void RTLILImporter::addResultBit(
     addWireValue(wireArgs[i], block->getArgument(i));
   }
   auto b = ImplicitLocOpBuilder::atBlockBegin(submodule.getLoc(), block);
-
 
   // Convert cells to Operations according to topological order.
   for (const auto &cellName : cellOrdering) {
@@ -288,7 +291,8 @@ void RTLILImporter::addResultBit(
       }
     }
     auto *op = createOp(cell, inputValues, b);
-    if (VERBOSE) llvm::outs() << "op created " << *op << "\n";
+    if (VERBOSE)
+      llvm::outs() << "op created " << *op << "\n";
     auto resultConn = getOutput(cell);
     addResultBit(resultConn, op->getResult(0), retBitValues);
   }
@@ -332,12 +336,12 @@ void RTLILImporter::addResultBit(
     }
   }
 
-
   circt::hw::OutputOp outOp = cast<circt::hw::OutputOp>(block->getTerminator());
 
   for (auto retVal : llvm::enumerate(returnValues)) {
-    //if (VERBOSE) llvm::outs() << "out_" + std::to_string(retVal.index()) << " " << retVal.value() << "\n";
-    outOp->insertOperands(retVal.index(),retVal.value());
+    // if (VERBOSE) llvm::outs() << "out_" + std::to_string(retVal.index()) << "
+    // " << retVal.value() << "\n";
+    outOp->insertOperands(retVal.index(), retVal.value());
   }
   return submodule;
 }

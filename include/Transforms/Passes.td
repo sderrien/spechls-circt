@@ -15,7 +15,9 @@
 
 include "mlir/Pass/PassBase.td"
 include "mlir/Rewrite/PassUtil.td"
-include "SpecHLS/SpecHLSDialect.td"
+include "Dialect/SpecHLS/SpecHLSDialect.td"
+include "Dialect/ScheduleDialect/ScheduleDialectDialect.td"
+include "Dialect/ScheduleDialect/ScheduleDialectOps.td"
 
 def MergeGammasPass : Pass<"merge-gammas"> {
   let summary = "Merge connected gamma ops";
@@ -168,22 +170,16 @@ def SpecHLSLUTToComb : Pass<"lower-SpecHLSLUT-to-comb", "SpecHLS::LookUpTableOp"
   ];
 }
 
-def MobilityPass : Pass<"mobility", "mlir::ModuleOp"> {
+def MobilityPass : Pass<"mobility", "SpecHLS::circuit"> {
   let summary = "Compute mobility informations.";
   let constructor = "SpecHLS::createMobilityPass()";
-  let dependentDialects = ["circt::ssp::SSPDialect"];
+  let dependentDialects = ["SpecHLS::ScheduleDialectDialect"];
 }
 
-def LocalMobilityPass : Pass<"local-mobility", "mlir::ModuleOp"> {
-  let summary = "Compute local mobility informations.";
-  let constructor = "SpecHLS::createLocalMobilityPass()";
-  let dependentDialects = ["circt::ssp::SSPDialect"];
-}
-
-def ConfigurationExcluderPass : Pass<"config-excluder", "mlir::ModuleOp"> {
+def ConfigurationExcluderPass : Pass<"config-excluder", "SpecHLS::circuit"> {
   let summary = "Exclude some configurations that cannot leads to II=1.";
   let constructor = "SpecHLS::createConfigurationExcluderPass()";
-  let dependentDialects = ["circt::ssp::SSPDialect"];
+  let dependentDialects = ["SpecHLS::ScheduleDialectDialect"];
 }
 
  def SchedulePass : Pass<"schedule", "mlir::ModuleOp"> {

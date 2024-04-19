@@ -1,6 +1,8 @@
-#include "SpecHLS/SpecHLSDialect.h"
-#include "SpecHLS/SpecHLSOps.h"
-#include "SpecHLS/SpecHLSUtils.h"
+#include "Dialect/ScheduleDialect/ScheduleDialectDialect.h"
+#include "Dialect/ScheduleDialect/ScheduleDialectOpsDialect.cpp.inc"
+#include "Dialect/SpecHLS/SpecHLSDialect.h"
+#include "Dialect/SpecHLS/SpecHLSOps.h"
+#include "Dialect/SpecHLS/SpecHLSUtils.h"
 #include "Transforms/Passes.h"
 #include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/HW/HWOpInterfaces.h"
@@ -39,8 +41,6 @@ MLIR_CAPI_EXPORTED void registerSchedulePass(void);
 // Registration for the entire group
 MLIR_CAPI_EXPORTED void createMobilityPass(void);
 MLIR_CAPI_EXPORTED void registerMobilityPass(void);
-MLIR_CAPI_EXPORTED void createLocalMobilityPass(void);
-MLIR_CAPI_EXPORTED void registerLocalMobilityPass(void);
 MLIR_CAPI_EXPORTED void createConfigurationExcluderPass(void);
 MLIR_CAPI_EXPORTED void registerConfigurationExcluderPass(void);
 

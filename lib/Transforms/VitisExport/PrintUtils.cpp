@@ -1,25 +1,23 @@
 //
 // Created by Steven on 24/01/2024.
 //
-#include "SpecHLS/SpecHLSOps.h"
+#include "Dialect/SpecHLS/SpecHLSOps.h"
 #include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/HW/HWOps.h"
 #include "mlir/IR/BuiltinDialect.h"
 #include "mlir/Pass/Pass.h"
 
-#include "mlir/IR/BuiltinOps.h"
-#include "mlir/IR/Attributes.h"
 #include "Transforms/VitisExport/CFileContent.h"
+#include "mlir/IR/Attributes.h"
+#include "mlir/IR/BuiltinOps.h"
 
 #include "llvm/ADT/TypeSwitch.h"
-
 
 using namespace mlir;
 using namespace SpecHLS;
 
 using namespace circt::hw;
 using namespace circt::comb;
-
 
 string op2str(Operation *v) {
   std::string s;
@@ -35,7 +33,6 @@ string value2str(Value *v) {
   return r.str();
 }
 
-
 std::string quote(std::string s) { return "\"" + s + "\""; }
 std::string parent(std::string s) { return "(" + s + ")"; }
 
@@ -50,8 +47,7 @@ std::string replace_all(std::string str, const std::string &remove,
   return str;
 }
 
-
-std::string assign(CFileContent *p,Value lhs, std::string rhs) {
+std::string assign(CFileContent *p, Value lhs, std::string rhs) {
   return p->getValueId(&lhs) + " = " + rhs + ";\n";
 }
 
@@ -67,21 +63,20 @@ std::string type2str(Type type) {
   if (type.isInteger(64))
     return "long long";
   if (type.isUnsignedInteger()) {
-    return "ac_int<"+ to_string(type.getIntOrFloatBitWidth())+",false>";
+    return "ac_int<" + to_string(type.getIntOrFloatBitWidth()) + ",false>";
   }
   if (type.isSignedInteger()) {
-    return "ac_int<"+ to_string(type.getIntOrFloatBitWidth())+",true>";
+    return "ac_int<" + to_string(type.getIntOrFloatBitWidth()) + ",true>";
   }
   if (isa<IntegerType>(type)) {
     if (type.isSignlessIntOrFloat()) {
-      return "ac_int<"+ to_string(type.getIntOrFloatBitWidth())+",false>";
+      return "ac_int<" + to_string(type.getIntOrFloatBitWidth()) + ",false>";
     } else {
-      return "ac_int<"+ to_string(type.getIntOrFloatBitWidth())+",true>";
-
+      return "ac_int<" + to_string(type.getIntOrFloatBitWidth()) + ",true>";
     }
   }
   if (type.isInteger(2)) {
-    return "ac_int<"+ to_string(type.getIntOrFloatBitWidth())+",true>";
+    return "ac_int<" + to_string(type.getIntOrFloatBitWidth()) + ",true>";
   }
   if (type.isF16() || type.isF32())
     return "float";
@@ -91,9 +86,9 @@ std::string type2str(Type type) {
     return "int";
 
   if (MemRefType::classof(type)) {
-      auto memref = type.cast<MemRefType>();
-      return type2str(memref.getElementType())+"*";
-    }
+    auto memref = type.cast<MemRefType>();
+    return type2str(memref.getElementType()) + "*";
+  }
 
   //  if (ShapedType::classof(type)) { // VectorType, TensorType
   //    includes.insert("array");
@@ -107,7 +102,7 @@ std::string type2str(Type type) {
   //    return res;
   //  }
   llvm::errs() << "Unsupported type " << type << "\n";
-    llvm_unreachable("Unsupported type for Vitis C translation");
+  llvm_unreachable("Unsupported type for Vitis C translation");
 }
 
 std::string attr2str(Attribute attr) {
@@ -135,8 +130,10 @@ std::string attr2str(Attribute attr) {
         std::string res = "{";
         //        auto dense = attr;
         //        //            interleave(
-        //        //                dense.attr_value_begin(), dense.attr_value_end(),
-        //        //                [&](Attribute a) { res += attr2str(a); }, [&] { res +=
+        //        //                dense.attr_value_begin(),
+        //        dense.attr_value_end(),
+        //        //                [&](Attribute a) { res += attr2str(a); },
+        //        [&] { res +=
         //        //                ","; });
         return res + "}";
       });
@@ -146,13 +143,13 @@ std::string attr2str(Attribute attr) {
   mlir::TypeID typeID = attr.getTypeID();
 
   // Print the TypeID as a string
-  llvm::outs() << "Attribute "<< attr <<"\n";
-      //" : " << typeID << "\n";
+  llvm::outs() << "Attribute " << attr << "\n";
+  //" : " << typeID << "\n";
 
   llvm_unreachable("Unsupported attribute ");
 }
 
-string valueList(CFileContent *p,OperandRange range, std::string sep) {
+string valueList(CFileContent *p, OperandRange range, std::string sep) {
   std::string res = "";
   if (range.size() > 0) {
     auto arrayVar = range[0];
@@ -168,15 +165,24 @@ string valueList(CFileContent *p,OperandRange range, std::string sep) {
 
 std::string predicate2str(circt::comb::ICmpPredicate predicate) {
   switch (predicate) {
-  case ICmpPredicate::slt: return "<";
-  case ICmpPredicate::sgt: return ">";
-  case ICmpPredicate::sge: return "<=";
-  case ICmpPredicate::ult: return "<";
-  case ICmpPredicate::ugt: return ">";
-  case ICmpPredicate::uge: return "<=";
-  case ICmpPredicate::sle:return ">=";
-  case ICmpPredicate::eq: return "==";
-  case ICmpPredicate::ne: return "!=";
+  case ICmpPredicate::slt:
+    return "<";
+  case ICmpPredicate::sgt:
+    return ">";
+  case ICmpPredicate::sge:
+    return "<=";
+  case ICmpPredicate::ult:
+    return "<";
+  case ICmpPredicate::ugt:
+    return ">";
+  case ICmpPredicate::uge:
+    return "<=";
+  case ICmpPredicate::sle:
+    return ">=";
+  case ICmpPredicate::eq:
+    return "==";
+  case ICmpPredicate::ne:
+    return "!=";
   default:
 
     llvm_unreachable("Unsupported ICmpPredicate");
@@ -184,7 +190,7 @@ std::string predicate2str(circt::comb::ICmpPredicate predicate) {
   llvm_unreachable("This should be never reached!");
 }
 
-std::string argList(CFileContent *p,OperandRange range, std::string sep) {
+std::string argList(CFileContent *p, OperandRange range, std::string sep) {
   std::string res = "";
   if (range.size() > 0) {
     auto arrayVar = range[0];

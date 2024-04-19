@@ -17,6 +17,6 @@
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 
 #define GET_OP_CLASSES
-#include "SpecHLS/SpecHLSOps.h.inc"
+#include "Dialect/SpecHLS/SpecHLSOps.h.inc"
 
 #endif // SpecHLS_SpecHLSOPS_H

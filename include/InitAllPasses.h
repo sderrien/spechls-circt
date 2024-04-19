@@ -14,7 +14,8 @@
 #ifndef SPECHLS_INITALLPASSES_H_
 #define SPECHLS_INITALLPASSES_H_
 
-#include "SpecHLS/SpecHLSDialect.h"
+#include "Dialect/ScheduleDialect/ScheduleDialectDialect.h"
+#include "Dialect/SpecHLS/SpecHLSDialect.h"
 #include "Transforms/Passes.h"
 #include "circt/Transforms/Passes.h"
 
@@ -34,7 +35,6 @@ inline void registerAllPasses() {
     registerInlineModules();
     registerYosysOptimizerPass();
     registerMobilityPass();
-    registerLocalMobilityPass();
     registerSchedulePass();
     registerConfigurationExcluderPass();
     registerExportVitisHLS();

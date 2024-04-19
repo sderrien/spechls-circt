@@ -1,0 +1,17 @@
+ScheduleDialect.circuit 10.0{
+%0 = ScheduleDialect.operation{} @_0( : [],0.0, 0, 0.0)
+%1 = ScheduleDialect.operation{"SpecHLS.mu"} @_1(%0, %14 : [0, 1],0.0, 0, 0.0)
+%2 = ScheduleDialect.operation{} @_2( : [],0.0, 0, 0.0)
+%3 = ScheduleDialect.operation{"SpecHLS.mu"} @_3(%2, %7 : [0, 1],0.0, 0, 0.0)
+%4 = ScheduleDialect.operation{} @_4(%3 : [0],0.0, 0, 0.0)
+%5 = ScheduleDialect.operation{"SpecHLS.gamma"=-1} @_5(%3, %4 : [0, 0],1.6849625007211564, 0, 1.6849625007211564)
+%6 = ScheduleDialect.operation{} @_6(%5 : [0],0.0, 0, 0.0)
+%7 = ScheduleDialect.operation{} @_7(%6 : [0],0.0, 0, 0.0)
+%8 = ScheduleDialect.operation{} @_8(%6 : [0],0.0, 0, 0.0)
+%9 = ScheduleDialect.operation{} @_9(%8 : [0],0.0, 7, 0.0)
+%10 = ScheduleDialect.operation{} @_10( : [],0.0, 0, 0.0)
+%11 = ScheduleDialect.operation{} @_11(%9, %10 : [0, 0],2.430000066757202, 0, 2.430000066757202)
+%12 = ScheduleDialect.operation{} @_12(%11 : [0],0.0, 0, 0.0)
+%13 = ScheduleDialect.operation{} @_13(%12 : [0],0.0, 0, 0.0)
+%14 = ScheduleDialect.operation{} @_14(%12 : [0],0.0, 0, 0.0)
+}

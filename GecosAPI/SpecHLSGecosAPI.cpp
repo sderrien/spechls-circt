@@ -34,12 +34,16 @@
 #include <stdlib.h>
 #include <string.h>
 
+extern "C" {
+
 int isNull(void *p) { return (p == NULL); }
 
 void registerAllUpstreamDialects(MlirContext ctx) {
   MlirDialectRegistry registry = mlirDialectRegistryCreate();
   // mlirRegisterAllDialects(registry);
   mlirDialectHandleRegisterDialect(mlirGetDialectHandle__spechls__(), ctx);
+  mlirDialectHandleRegisterDialect(mlirGetDialectHandle__scheduledialect__(),
+                                   ctx);
   mlirDialectHandleRegisterDialect(mlirGetDialectHandle__transform__(), ctx);
   mlirDialectHandleRegisterDialect(mlirGetDialectHandle__func__(), ctx);
   mlirDialectHandleRegisterDialect(mlirGetDialectHandle__arith__(), ctx);
@@ -90,11 +94,11 @@ int getCStringSizeFromMlirIdentifier(MlirIdentifier ident) {
 
 char *getCStringDataFromMlirIdentifier(MlirIdentifier ident) {
   MlirStringRef identStr = mlirIdentifierStr(ident);
-  return identStr.data;
+  return (char *)identStr.data;
 }
 
 char *getCStringDataFromMlirStringRef(MlirStringRef ident) {
-  return ident.data;
+  return (char *)ident.data;
 }
 
 size_t getCStringSizeFromMlirStringRef(MlirStringRef ident) {
@@ -313,4 +317,5 @@ void pass(const char *mlir) {
 
   mlirModuleDestroy(module);
   mlirContextDestroy(ctx);
+}
 }

@@ -10,408 +10,125 @@
 
 namespace SpecHLS {
 
-namespace ConfigurationExcluder {
-
-class Operator {
-  llvm::StringRef name;
-  unsigned latency;
-  float incDelay;
-  float outDelay;
-
-public:
-  Operator(llvm::StringRef name, int latency, float incDelay, float outDelay)
-      : name(name), latency(latency), incDelay(incDelay), outDelay(outDelay) {}
-
-  unsigned getLatency(void) { return latency; }
-
-  float getIncDelay(void) { return incDelay; }
-
-  float getOutDelay(void) { return outDelay; }
-
-  void dump(void) {
-    std::cerr << "operator @" << name.str() << "[latency=" << latency
-              << "; incDelay=" << incDelay << "; outDelay=" << outDelay << "]"
-              << std::endl;
-  }
-};
-
-class Operation {
-private:
-  llvm::StringRef name;
-  unsigned latency;
-  float incDelay;
-  float outDelay;
-  llvm::DenseMap<Operation *, unsigned> dependences;
-  Operation *controlPredecessor = nullptr;
-  bool gamma;
-  bool mu;
-  unsigned mobility = 0;
-  mlir::Operation *ptr = nullptr;
-  llvm::SmallVector<unsigned> asapCycle;
-  llvm::SmallVector<float> asapTimeInCycle;
-  llvm::SmallVector<unsigned> alapCycle;
-  llvm::SmallVector<float> alapTimeInCycle;
-
-public:
-  Operation(llvm::StringRef name, int latency, float incDelay, float outDelay,
-            bool gamma, bool mu)
-      : name(name), latency(latency), incDelay(incDelay), outDelay(outDelay),
-        gamma(gamma), mu(mu) {}
-
-  void resize(unsigned sumDistance) {
-    asapCycle.resize(2 * sumDistance);
-    asapTimeInCycle.resize(2 * sumDistance);
-    alapCycle.resize(2 * sumDistance);
-    alapTimeInCycle.resize(2 * sumDistance);
-  }
-
-  void setControl(Operation *op) { controlPredecessor = op; }
-
-  Operation *getControl(void) { return controlPredecessor; }
-
-  void addDependences(Operation *op) { dependences[op] = 0; }
-
-  void addDependences(Operation *op, unsigned distance) {
-    dependences[op] = distance;
-  }
-
-  void setMlirOperation(mlir::Operation *operation) { ptr = operation; }
-
-  mlir::Operation *getMlirOperation(void) { return ptr; }
-
-  llvm::DenseMap<Operation *, unsigned> &getDependences(void) {
-    return dependences;
-  }
-
-  void getInfos(unsigned &lat, float &incomingDelay, float &outgoingDelay) {
-    lat = latency;
-    incomingDelay = incDelay;
-    outgoingDelay = outDelay;
-  }
-
-  bool isGamma(void) { return gamma; }
-
-  bool isMu(void) { return mu; }
-
-  void getAlap(unsigned iteration, unsigned &cycle, float &timeInCycle) {
-    cycle = alapCycle[iteration];
-    timeInCycle = alapTimeInCycle[iteration];
-  }
-
-  void getAsap(unsigned iteration, unsigned &cycle, float &timeInCycle) {
-    cycle = asapCycle[iteration];
-    timeInCycle = asapTimeInCycle[iteration];
-  }
-
-  unsigned getAsapDelta(unsigned iteration) {
-    return (asapCycle[iteration] - asapCycle[iteration - 1]);
-  }
-
-  void dump(void) {
-    std::cerr << "operation @" << name.str() << "[lat=" << latency
-              << "; incDelay=" << incDelay << "; outDelay=" << outDelay << "] "
-              << "dependences={";
-    for (auto op : dependences)
-      llvm::errs() << op.first->name.str() << ":" << op.second << "; ";
-    llvm::errs() << "}";
-    if (gamma)
-      llvm::errs() << "; mobility=" << mobility;
-    llvm::errs() << "\n";
-  }
-
-  void setAsapCycle(unsigned iteration, unsigned cycle) {
-    asapCycle[iteration] = cycle;
-  }
-
-  void setAsapTimeInCycle(unsigned iteration, float timeInCycle) {
-    asapTimeInCycle[iteration] = timeInCycle;
-  }
-
-  void setAlapCycle(unsigned iteration, unsigned cycle) {
-    alapCycle[iteration] = cycle;
-  }
-
-  void setAlapTimeInCycle(unsigned iteration, float timeInCycle) {
-    alapTimeInCycle[iteration] = timeInCycle;
-  }
-
-  bool allowUnitII(unsigned sumDistance) {
-    for (unsigned iteration = sumDistance; iteration < 2 * sumDistance;
-         ++iteration) {
-      unsigned diff = asapCycle[iteration] - asapCycle[iteration - 1];
-      if (diff > 1)
-        return false;
-    }
-    return true;
-  }
-
-  void dumpTrace(unsigned iterations) {
-    dump();
-    for (unsigned it = 0; it < iterations; ++it) {
-      llvm::errs() << "alap: (" << alapCycle[it] << ", " << alapTimeInCycle[it]
-                   << "); asap: (" << asapCycle[it] << ", "
-                   << asapTimeInCycle[it] << ")\n";
-    }
-  }
-
-  void dumpIteration(unsigned iteration) {
-    llvm::errs() << name << "; alap: (" << alapCycle[iteration] << ", "
-                 << alapTimeInCycle[iteration] << "); asap: ("
-                 << asapCycle[iteration] << ", " << asapTimeInCycle[iteration]
-                 << ")\n";
-  }
-};
-
-void computeEnd(unsigned &cycle, float &timeInCycle, unsigned startCycle,
-                float startTimeInCycle, unsigned latency, float outDelay) {
-  if (latency == 0) {
-    cycle = startCycle;
-    timeInCycle = startTimeInCycle + outDelay;
-  } else {
-    cycle = startCycle + latency;
-    timeInCycle = outDelay;
-  }
-}
-
-void computeNextStart(unsigned &cycle, float &timeInCycle, float incDelay,
-                      unsigned distance, float period) {
-  if ((distance != 0) || (timeInCycle + incDelay >= period)) {
-    ++cycle;
-    timeInCycle = 0.0f;
-  }
-}
-
-void compare(unsigned &aCycle, float &aTimeInCycle, unsigned bCycle,
-             float bTimeInCycle, bool min) {
-  if (min) {
-    if (aCycle > bCycle) {
-      aCycle = bCycle;
-      aTimeInCycle = bTimeInCycle;
-    } else if (aCycle == bCycle) {
-      aTimeInCycle = std::min(aTimeInCycle, bTimeInCycle);
-    }
-  } else {
-    if (aCycle < bCycle) {
-      aCycle = bCycle;
-      aTimeInCycle = bTimeInCycle;
-    } else if (aCycle == bCycle) {
-      aTimeInCycle = std::max(aTimeInCycle, bTimeInCycle);
-    }
-  }
-}
-
-void computeNext(Operation *op, unsigned &nextAsapCycle,
-                 float &nextAsapTimeInCycle, unsigned &nextAlapCycle,
-                 float &nextAlapTimeInCycle, Operation *pred, bool gamma,
-                 unsigned iteration, unsigned distance, float period) {
-  if (iteration < distance) {
-    nextAsapCycle = 0;
-    nextAsapTimeInCycle = 0.0f;
-    compare(nextAlapCycle, nextAlapTimeInCycle, 0, 0.0f, false);
-    return;
-  }
-  unsigned lat;
-  float incDelay, outDelay;
-  pred->getInfos(lat, incDelay, outDelay);
-
-  // ALAP
-  unsigned predStartCycle, nextStartCycle = 0;
-  float predStartTimeInCycle, nextStartTimeInCycle = 0.0f;
-  pred->getAlap(iteration - distance, predStartCycle, predStartTimeInCycle);
-  computeEnd(nextStartCycle, nextStartTimeInCycle, predStartCycle,
-             predStartTimeInCycle, lat, outDelay);
-  computeNextStart(nextStartCycle, nextStartTimeInCycle, incDelay, 0, period);
-  compare(nextAlapCycle, nextAlapTimeInCycle, nextStartCycle,
-          nextStartTimeInCycle, false);
-
-  // ASAP
-  if (pred != op->getControl()) {
-    nextStartCycle = 0;
-    nextStartTimeInCycle = 0.0f;
-    pred->getAsap(iteration - distance, predStartCycle, predStartTimeInCycle);
-    computeEnd(nextStartCycle, nextStartTimeInCycle, predStartCycle,
-               predStartTimeInCycle, lat, outDelay);
-    computeNextStart(nextStartCycle, nextStartTimeInCycle, incDelay, 0, period);
-    compare(nextAsapCycle, nextAsapTimeInCycle, nextStartCycle,
-            nextStartTimeInCycle, gamma);
-  }
-}
-
-} // namespace ConfigurationExcluder
-
 struct ConfigurationExcluderPass
     : public impl::ConfigurationExcluderPassBase<ConfigurationExcluderPass> {
   void runOnOperation() override {
-    auto moduleOp = getOperation();
+    auto circuitOp = getOperation();
+    double targetClock =
+        circuitOp->getAttrOfType<mlir::FloatAttr>("targetClock")
+            .getValueAsDouble();
+    auto &region = circuitOp->getRegion(0);
+    int sumDistances = 0;
 
-    llvm::SmallVector<circt::ssp::InstanceOp> instanceOps;
-    for (auto instOp : moduleOp.getOps<circt::ssp::InstanceOp>()) {
-      float period;
-      if (mlir::FloatAttr periodAttr =
-              instOp->getAttrOfType<mlir::FloatAttr>("SpecHLS.period")) {
-        period = periodAttr.getValue().convertToFloat();
-      } else {
-        llvm::errs() << "Error: ssp instance must have a 'period' attribute.\n";
-        exit(1);
+    for (auto &op : region.getOps()) {
+      for (auto &attr : op.getAttrOfType<mlir::ArrayAttr>("distances")) {
+        auto distanceAttr = llvm::cast<mlir::IntegerAttr>(attr);
+        sumDistances += distanceAttr.getInt();
       }
+    }
+    int iterationCount = 2 * sumDistances + 2;
+    llvm::DenseMap<mlir::Operation *, llvm::SmallVector<int>> startTimes;
+    llvm::DenseMap<mlir::Operation *, llvm::SmallVector<double>>
+        startTimeInCycles;
 
-      llvm::SmallVector<std::unique_ptr<ConfigurationExcluder::Operator>>
-          operators;
-      llvm::SmallVector<std::unique_ptr<ConfigurationExcluder::Operation>>
-          operations;
-      llvm::SmallVector<ConfigurationExcluder::Operation *> gammas;
-      llvm::SmallVector<ConfigurationExcluder::Operation *> mus;
-      llvm::DenseMap<mlir::Operation *, ConfigurationExcluder::Operator *>
-          translationOperator;
-      llvm::DenseMap<mlir::Operation *, ConfigurationExcluder::Operation *>
-          translationOperation;
 
-      for (auto &op : instOp.getOperatorLibrary()) {
-        mlir::StringAttr nameAttr =
-            op.getAttrOfType<mlir::StringAttr>("sym_name");
-        llvm::StringRef name = nameAttr.getValue();
-        mlir::ArrayAttr array =
-            op.getAttrOfType<mlir::ArrayAttr>("sspProperties");
-        unsigned lat = 0;
-        float incDelay = 0.0f, outDelay = 0.0f;
-        for (auto &attr : array) {
-          if (auto latencyAttr =
-                  llvm::dyn_cast<circt::ssp::LatencyAttr>(attr)) {
-            lat = latencyAttr.getValue();
-          } else if (auto incomingDelay =
-                         llvm::dyn_cast<circt::ssp::IncomingDelayAttr>(attr)) {
-            incDelay = incomingDelay.getValue().getValue().convertToFloat();
-          } else if (auto outcommingDelay =
-                         llvm::dyn_cast<circt::ssp::OutgoingDelayAttr>(attr)) {
-            outDelay = outcommingDelay.getValue().getValue().convertToFloat();
-          }
-        }
-        auto ptr = std::make_unique<ConfigurationExcluder::Operator>(
-            name, lat, incDelay, outDelay);
-        translationOperator[&op] = ptr.get();
-        operators.push_back(std::move(ptr));
-      }
-
-      for (auto &&operation : instOp.getDependenceGraph()) {
-        mlir::StringAttr nameAttr =
-            operation.getAttrOfType<mlir::StringAttr>("sym_name");
-        llvm::StringRef name = nameAttr.getValue();
-        bool isGamma =
-            operation.hasAttrOfType<mlir::ArrayAttr>("SpecHLS.gamma");
-        bool isMu = operation.hasAttr("SpecHLS.mu");
-        auto properties =
-            operation.getAttrOfType<mlir::ArrayAttr>("sspProperties");
-        unsigned lat = 0;
-        float incDelay = 0.0f, outDelay = 0.0f;
-        for (auto &&prop : properties) {
-          if (auto opr =
-                  llvm::dyn_cast<circt::ssp::LinkedOperatorTypeAttr>(prop)) {
-            auto *operatorType =
-                instOp.getOperatorLibrary().lookupSymbol(opr.getValue());
-            auto *opType = translationOperator.lookup(operatorType);
-            lat = opType->getLatency();
-            incDelay = opType->getIncDelay();
-            outDelay = opType->getOutDelay();
-          }
-        }
-        auto ptr = std::make_unique<ConfigurationExcluder::Operation>(
-            name, lat, incDelay, outDelay, isGamma, isMu);
-        translationOperation[&operation] = ptr.get();
-        if (isGamma)
-          gammas.push_back(ptr.get());
-        if (isMu)
-          mus.push_back(ptr.get());
-        ptr->setMlirOperation(&operation);
-        for (auto &&op : operation.getOpOperands()) {
-          ptr->addDependences(
-              translationOperation.lookup(op.get().getDefiningOp()));
-        }
-        operations.push_back(std::move(ptr));
-      }
-
-      unsigned sumDistances = 0;
-      for (auto &&operation : operations) {
-        auto *mlirOperation = operation->getMlirOperation();
-        mlir::ArrayAttr controlNodeArray =
-            mlirOperation->getAttrOfType<mlir::ArrayAttr>("SpecHLS.gamma");
-        if (controlNodeArray) {
-          for (auto &&attr : controlNodeArray) {
-            if (auto control = llvm::dyn_cast<mlir::SymbolRefAttr>(attr)) {
-              mlir::Operation *mlirControlOperation =
-                  instOp.getDependenceGraph().lookupSymbol(control);
-              ConfigurationExcluder::Operation *controlOperation =
-                  translationOperation.lookup(mlirControlOperation);
-              operation->setControl(controlOperation);
-            }
-          }
-        }
-
-        if (auto dependences =
-                mlirOperation->getAttrOfType<mlir::ArrayAttr>("dependences")) {
-          for (auto depAttr : dependences) {
-            if (auto dep =
-                    llvm::dyn_cast<circt::ssp::DependenceAttr>(depAttr)) {
-              auto *op =
-                  instOp.getDependenceGraph().lookupSymbol(dep.getSourceRef());
-              mlir::ArrayAttr properties = dep.getProperties();
-              for (auto prop : properties) {
-                if (auto dist =
-                        llvm::dyn_cast<circt::ssp::DistanceAttr>(prop)) {
-                  sumDistances += dist.getValue();
-                  operation->addDependences(translationOperation.lookup(op),
-                                            dist.getValue());
-                }
-              }
-            }
-          }
-        }
-      }
-      for (auto &&op : operations) {
-        op->resize(sumDistances);
-      }
-
-      for (unsigned iteration = 0; iteration < 2 * sumDistances; ++iteration)
-        for (auto &&op : operations) {
-          unsigned nextAsapCycle =
-              op->isGamma() ? std::numeric_limits<unsigned>::max() : 0;
-          float nextAsapTimeInCycle = 0.0f;
-          unsigned nextAlapCycle = 0;
-          float nextAlapTimeInCycle = 0.0f;
-          for (auto &&dep : op->getDependences()) {
-            ConfigurationExcluder::Operation *pred = dep.first;
-            unsigned dist = dep.second;
-            computeNext(op.get(), nextAsapCycle, nextAsapTimeInCycle,
-                        nextAlapCycle, nextAlapTimeInCycle, pred, op->isGamma(),
-                        iteration, dist, period);
-          }
-          op->setAsapCycle(iteration, nextAsapCycle);
-          op->setAsapTimeInCycle(iteration, nextAsapTimeInCycle);
-          op->setAlapCycle(iteration, nextAlapCycle);
-          op->setAlapTimeInCycle(iteration, nextAlapTimeInCycle);
-          if ((iteration > sumDistances) && op->isMu() &&
-              (op->getAsapDelta(iteration) > 1)) {
-            instOp->setAttr("SpecHLS.allowUnitII",
-                            mlir::BoolAttr::get(instOp->getContext(), false));
-            return;
-          }
-        }
-
-      bool allowUnitII = true;
-      for (auto &&m : mus) {
-        if (!m->allowUnitII(sumDistances)) {
-          allowUnitII = false;
-          break;
-        }
-      }
-      instOp->setAttr("SpecHLS.allowUnitII",
-                      mlir::BoolAttr::get(instOp->getContext(), allowUnitII));
+    for (auto &op : region.getOps()) {
+      startTimes.try_emplace(&op, llvm::SmallVector<int>());
+      startTimes[&op].reserve(iterationCount);
+      startTimeInCycles.try_emplace(&op, llvm::SmallVector<double>());
+      startTimeInCycles[&op].reserve(iterationCount);
     }
 
-    llvm::for_each(instanceOps, [](circt::ssp::InstanceOp op) { op.erase(); });
+    for (int iteration = 0; iteration < iterationCount; ++iteration) {
+      for (auto &op : region.getOps()) {
+        auto distanceArray =
+            op.getAttrOfType<mlir::ArrayAttr>("distances").getValue();
+
+        bool isGamma = op.hasAttr("SpecHLS.gamma");
+        bool isMu = op.hasAttr("SpecHLS.mu");
+        int nextCycle = isGamma ? std::numeric_limits<int>::max() : 0;
+        double nextTimeInCycle = 0.0;
+
+        // Compute unrolled schedule
+        for (unsigned predIndex = 0; predIndex < op.getNumOperands();
+             ++predIndex) {
+          int distance =
+              llvm::cast<mlir::IntegerAttr>(distanceArray[predIndex]).getInt();
+          if (iteration - distance < 0) {
+            nextCycle = 0;
+            nextTimeInCycle = 0.0;
+          } else {
+            int predEndCycle = 0;
+            double predEndTimeInCycle = 0.0;
+
+            mlir::Operation *pred = op.getOperand(predIndex).getDefiningOp();
+            int predLatency =
+                pred->getAttrOfType<mlir::IntegerAttr>("latency").getInt();
+            double predInDelay = pred->getAttrOfType<mlir::FloatAttr>("inDelay")
+                                     .getValueAsDouble();
+            double predOutDelay =
+                pred->getAttrOfType<mlir::FloatAttr>("outDelay")
+                    .getValueAsDouble();
+
+            int diff = iteration - distance;
+            if (diff >= 0 &&
+                diff < static_cast<ptrdiff_t>(startTimes[pred].size())) {
+              if (predLatency > 0) {
+                predEndCycle =
+                    startTimes[pred][iteration - distance] + predLatency;
+                predEndTimeInCycle = predOutDelay;
+              } else if (startTimeInCycles[pred][iteration - distance] +
+                             predInDelay + predOutDelay >
+                         targetClock) {
+                predEndCycle = startTimes[pred][iteration - distance] + 1;
+                predEndTimeInCycle = predOutDelay;
+              } else {
+                predEndCycle = startTimes[pred][iteration - distance];
+                predEndTimeInCycle =
+                    startTimeInCycles[pred][iteration - distance] +
+                    predOutDelay;
+              }
+
+              if (isGamma) {
+                if (nextCycle > predEndCycle) {
+                  nextCycle = predEndCycle;
+                  nextTimeInCycle = predEndTimeInCycle;
+                } else if (nextCycle == predEndCycle) {
+                  nextTimeInCycle =
+                      std::min(nextTimeInCycle, predEndTimeInCycle);
+                }
+              } else if (predEndCycle > nextCycle) {
+                nextCycle = predEndCycle;
+                nextTimeInCycle = predEndTimeInCycle;
+              } else if (predEndCycle == nextCycle) {
+                nextTimeInCycle = std::max(nextTimeInCycle, predEndTimeInCycle);
+              }
+            } else {
+              nextCycle = 0;
+              nextTimeInCycle = 0.0;
+            }
+          }
+        }
+
+        if (isMu && (iteration > sumDistances + 1) &&
+            (nextCycle - startTimes[&op][iteration - 1] > 1)) {
+          circuitOp->setAttr(
+              "SpecHLS.allowUnitII",
+              mlir::BoolAttr::get(circuitOp.getContext(), false));
+          return;
+        }
+
+        startTimes[&op].push_back(nextCycle);
+        startTimeInCycles[&op].push_back(nextTimeInCycle);
+      }
+    }
+
+    circuitOp->setAttr("SpecHLS.allowUnitII",
+                       mlir::BoolAttr::get(circuitOp.getContext(), true));
   }
 };
 
-[[maybe_unused]] std::unique_ptr<mlir::Pass> createConfigurationExcluderPass() {
+std::unique_ptr<mlir::Pass> createConfigurationExcluderPass() {
   return std::make_unique<ConfigurationExcluderPass>();
 }
 

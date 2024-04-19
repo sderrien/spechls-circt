@@ -11,7 +11,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "SpecHLS/SpecHLSUtils.h"
+#include "Dialect/SpecHLS/SpecHLSUtils.h"
 #include "Transforms/Passes.h"
 #include "circt/Dialect/Comb/CombDialect.h"
 #include "circt/Dialect/HW/HWInstanceGraph.h"
@@ -161,7 +161,7 @@ void InlineOptimizedModulesPass::runOnOperation() {
           }
 
           inst.erase();
-            hwmodule->erase();
+          hwmodule->erase();
         }
       }
     }

@@ -9,7 +9,7 @@
 #ifndef SpecHLS_OPS
 #define SpecHLS_OPS
 
-include "SpecHLSDialect.td"
+include "Dialect/SpecHLS/SpecHLSDialect.td"
 include "mlir/Interfaces/InferTypeOpInterface.td"
 include "mlir/IR/EnumAttr.td"
 
@@ -38,7 +38,7 @@ include "mlir/Interfaces/InferIntRangeInterface.td"
 include "mlir/Interfaces/InferTypeOpInterface.td"
 include "mlir/Interfaces/LoopLikeInterface.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
-
+include "mlir/IR/AttrTypeBase.td"
 
 // Include the definition of the necessary tablegen constructs for defining
 // our attributes.
@@ -327,7 +327,7 @@ def SpecHLS_ExitOp : SpecHLSOp<"exit", []> {
    let hasCustomAssemblyFormat =1;
 }
 
-  
+
 
 def SpecHLS_SyncOp : SpecHLSOp<"sync", [Pure,
     TypesMatchWith<"Sync data/result types must match'", "result", "data", "$_self">]> {

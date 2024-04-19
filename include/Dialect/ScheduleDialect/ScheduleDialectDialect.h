@@ -6,10 +6,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SpecHLS_SpecHLSDIALECT_H
-#define SpecHLS_SpecHLSDIALECT_H
+#ifndef SpecHLS_ScheduleDialectDIALECT_H
+#define SpecHLS_ScheduleDialectDIALECT_H
 
 #include "mlir/IR/Dialect.h"
 
-#include "SpecHLS/SpecHLSOpsDialect.h.inc"
-#endif // SpecHLS_SpecHLSDIALECT_H
+#include "Dialect/ScheduleDialect/ScheduleDialectOpsDialect.h.inc"
+#endif // SpecHLS_ScheduleDialectDIALECT_H

@@ -10,18 +10,18 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "SpecHLS/SpecHLSDialect.h"
-#include "SpecHLS/SpecHLSOps.h"
-#include "SpecHLS/SpecHLSUtils.h"
+#include "Dialect/SpecHLS/SpecHLSDialect.h"
+#include "Dialect/SpecHLS/SpecHLSOps.h"
+#include "Dialect/SpecHLS/SpecHLSUtils.h"
 #include "Transforms/Passes.h"
 #include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/HW/HWOpInterfaces.h"
 #include "circt/Dialect/HW/HWOps.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/IR/PatternMatch.h"
+#include "mlir/IR/Verifier.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
-#include "mlir/IR/Verifier.h"
 
 using namespace mlir;
 using namespace circt;
@@ -45,7 +45,6 @@ struct GammaMergingPattern : OpRewritePattern<GammaOp> {
 
           auto users = innerGamma->getUsers();
           auto nbUsers = std::distance(users.begin(), users.end());
-
 
           auto nbInnerInputs = innerGamma.getInputs().size();
           int newDepth = int(ceil(log(nbOuterInputs + nbInnerInputs) / log(2)));
@@ -73,36 +72,38 @@ struct GammaMergingPattern : OpRewritePattern<GammaOp> {
           ArrayAttr tab;
           SmallVector<int, 1024> content;
 
-          int innerSelectBW = innerGamma.getSelect().getType().getIntOrFloatBitWidth();
+          int innerSelectBW =
+              innerGamma.getSelect().getType().getIntOrFloatBitWidth();
           int outerSelectBW = op.getSelect().getType().getIntOrFloatBitWidth();
           int offset = 0;
 
           int innerPow2Inputs = 1 << innerSelectBW;
           int outerPow2Inputs = 1 << outerSelectBW;
 
-
           // FIXME :
-          auto outerUB = op.getInputs().size()-1;
-          auto innerUB = innerGamma.getInputs().size()-1;
+          auto outerUB = op.getInputs().size() - 1;
+          auto innerUB = innerGamma.getInputs().size() - 1;
           for (int o = 0; o < i; o++) {
             for (int inner = 0; inner < innerPow2Inputs; inner++) {
               content.push_back(offset);
             }
-            if (o<outerUB) offset++;
+            if (o < outerUB)
+              offset++;
           }
 
           for (int inner = 0; inner < innerPow2Inputs; inner++) {
             content.push_back(offset);
-            if (inner<=innerUB) offset++;
+            if (inner <= innerUB)
+              offset++;
           }
 
-          for (int o = i+1; o < outerPow2Inputs; o++) {
+          for (int o = i + 1; o < outerPow2Inputs; o++) {
             for (int inner = 0; inner < innerPow2Inputs; inner++) {
               content.push_back(offset);
             }
-            if (o<outerUB) offset++;
+            if (o < outerUB)
+              offset++;
           }
-
 
           int lutWidth = APInt(32, offset).getActiveBits();
           mlir::Type lutType = rewriter.getIntegerType(lutWidth);
@@ -115,14 +116,14 @@ struct GammaMergingPattern : OpRewritePattern<GammaOp> {
               op.getLoc(), op.getResult().getType(), op.getNameAttr(),
               lutSelect.getResult(), ValueRange(muxOperands));
 
-          llvm::errs() << "Merging " << innerGamma << " with " << op
-                       << " into " << newGammaOp << "\n";
+          llvm::errs() << "Merging " << innerGamma << " with " << op << " into "
+                       << newGammaOp << "\n";
 
           auto parent = op->getParentOp();
           rewriter.replaceOp(op, newGammaOp);
           if (nbUsers == 1)
             rewriter.eraseOp(innerGamma);
-          mlir::verify(newGammaOp,true);
+          mlir::verify(newGammaOp, true);
           parent->dump();
           return success();
         }
@@ -148,8 +149,7 @@ public:
       signalPassFailure();
     }
 
-    mlir::verify(getOperation(),true);
-
+    mlir::verify(getOperation(), true);
   }
 };
 

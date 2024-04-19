@@ -18,14 +18,14 @@
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/PatternMatch.h"
 
-#include "SpecHLS/SpecHLSOps.h"
-#include "SpecHLS/SpecHLSUtils.h"
+#include "Dialect/SpecHLS/SpecHLSOps.h"
+#include "Dialect/SpecHLS/SpecHLSUtils.h"
 #include "llvm/ADT/MapVector.h"
 #include "llvm/ADT/SetVector.h"
 #include "llvm/ADT/TypeSwitch.h"
 
 #define GET_OP_CLASSES
-#include "SpecHLS/SpecHLSOps.cpp.inc"
+#include "Dialect/SpecHLS/SpecHLSOps.cpp.inc"
 using namespace mlir;
 
 namespace SpecHLS {
@@ -189,7 +189,7 @@ mlir::ParseResult LookUpTableOp::parse(mlir::OpAsmParser &parser,
 #define SPEC_GAMMAOP_MAXOPERANDS 64
 
 mlir::ParseResult parseOperandList(mlir::OpAsmParser &parser,
-                                 mlir::OperationState &result) {
+                                   mlir::OperationState &result) {
   int nbargs = 0;
   ParseResult nok;
   mlir::Type type;
@@ -327,7 +327,7 @@ mlir::ParseResult SyncOp::parse(mlir::OpAsmParser &parser,
     if (nok)
       return mlir::failure();
 
-    if (nbargs==0) {
+    if (nbargs == 0) {
       resultType = dataType;
     }
 
@@ -363,13 +363,16 @@ mlir::ParseResult SyncOp::parse(mlir::OpAsmParser &parser,
 void SyncOp::print(mlir::OpAsmPrinter &printer) {
   //         %res = SpecHLS.delay [i32 -> i32] %a ? %b:%c:%d
 
-  for (int k=0;k<this->getNumOperands();k++) {
-    if (k>0) printer << ",";
-    printer <<" "<< this->getOperand(k) << " : " << this->getOperand(k).getType() ;
+  for (int k = 0; k < this->getNumOperands(); k++) {
+    if (k > 0)
+      printer << ",";
+    printer << " " << this->getOperand(k) << " : "
+            << this->getOperand(k).getType();
   }
 }
 
-mlir::ParseResult PrintOp::parse(mlir::OpAsmParser &parser, mlir::OperationState &result) {
+mlir::ParseResult PrintOp::parse(mlir::OpAsmParser &parser,
+                                 mlir::OperationState &result) {
   // Parse the input operand, the attribute dictionary, and the type of the
   // input.
   SmallVector<mlir::OpAsmParser::UnresolvedOperand, 10> dataOperands;
@@ -381,63 +384,72 @@ mlir::ParseResult PrintOp::parse(mlir::OpAsmParser &parser, mlir::OperationState
 
   ParseResult nok = parser.parseOptionalSymbolName(id);
 
-
-
   // Parse the quote string attribute
   StringAttr quoteStringAttr;
   if (parser.parseAttribute(quoteStringAttr, "format", result.attributes))
     return failure();
 
-  if (parser.parseLParen()) return mlir::failure();
+  if (parser.parseLParen())
+    return mlir::failure();
 
   OpAsmParser::UnresolvedOperand *dataop = new OpAsmParser::UnresolvedOperand();
-  Type datatype ;
+  Type datatype;
   int nbargs = 0;
   while (true) {
     dataop = new OpAsmParser::UnresolvedOperand();
     dataOperands.push_back(*dataop);
-    if (parser.parseOperand(dataOperands[nbargs])) return mlir::failure();
+    if (parser.parseOperand(dataOperands[nbargs]))
+      return mlir::failure();
 
-    if (parser.parseColon()) return mlir::failure();
-    if (parser.parseType(dataType)) return mlir::failure();
+    if (parser.parseColon())
+      return mlir::failure();
+    if (parser.parseType(dataType))
+      return mlir::failure();
     typeOperands.push_back(dataType);
 
-    llvm::outs() << "type "<<dataType <<"\n";
-    llvm::outs() << nbargs <<"\n";
+    llvm::outs() << "type " << dataType << "\n";
+    llvm::outs() << nbargs << "\n";
     nbargs++;
-    if (parser.parseOptionalComma()) break;
-
+    if (parser.parseOptionalComma())
+      break;
   }
 
   llvm::outs() << "done1\n";
 
-  if (parser.parseRParen()) return mlir::failure();
+  if (parser.parseRParen())
+    return mlir::failure();
 
-  if (parser.parseKeyword("from")) return failure();
+  if (parser.parseKeyword("from"))
+    return failure();
   mlir::OpAsmParser::UnresolvedOperand iostateOperand;
   mlir::Type ioType = parser.getBuilder().getI32Type();
-  if (parser.parseOperand(iostateOperand)) return failure();
+  if (parser.parseOperand(iostateOperand))
+    return failure();
   if (parser.resolveOperand(iostateOperand, ioType, result.operands))
     return mlir::failure();
   llvm::outs() << "done2\n";
 
-  if (parser.parseKeyword("when")) return failure();
+  if (parser.parseKeyword("when"))
+    return failure();
   mlir::OpAsmParser::UnresolvedOperand enableOperand;
   mlir::Type enableType = parser.getBuilder().getI1Type();
-  if (parser.parseOperand(enableOperand)) return failure();
+  if (parser.parseOperand(enableOperand))
+    return failure();
   if (parser.resolveOperand(enableOperand, enableType, result.operands))
     return mlir::failure();
 
   llvm::outs() << "done3\n";
   for (int k = 0; k < nbargs; k++) {
-    llvm::outs() << "resolving op " << k << dataOperands[k].name << ":"<< typeOperands[k]<<"\n";
-    if (parser.resolveOperand(dataOperands[k], typeOperands[k], result.operands))
+    llvm::outs() << "resolving op " << k << dataOperands[k].name << ":"
+                 << typeOperands[k] << "\n";
+    if (parser.resolveOperand(dataOperands[k], typeOperands[k],
+                              result.operands))
       return mlir::failure();
   }
   llvm::outs() << "done4\n";
 
   for (int k = 0; k < result.operands.size(); k++) {
-    llvm::outs() << "arg:"<<result.operands[k]  <<"\n";
+    llvm::outs() << "arg:" << result.operands[k] << "\n";
   }
 
   llvm::outs() << "done5\n";
@@ -451,16 +463,17 @@ mlir::ParseResult PrintOp::parse(mlir::OpAsmParser &parser, mlir::OperationState
 }
 
 void PrintOp::print(mlir::OpAsmPrinter &printer) {
-  printer <<" "<< this->getFormat() << " ( ";
+  printer << " " << this->getFormat() << " ( ";
 
-  for (int k=2;k<this->getNumOperands();k++) {
-    if (k>2) printer << ",";
-    printer <<" "<< this->getOperand(k) << " : " << this->getOperand(k).getType() ;
+  for (int k = 2; k < this->getNumOperands(); k++) {
+    if (k > 2)
+      printer << ",";
+    printer << " " << this->getOperand(k) << " : "
+            << this->getOperand(k).getType();
   }
-  printer <<")";
-  printer <<" from "<< this->getOperands()[0] ;
-  printer <<" when "<< this->getOperands()[1];
-
+  printer << ")";
+  printer << " from " << this->getOperands()[0];
+  printer << " when " << this->getOperands()[1];
 }
 
 /*
@@ -740,13 +753,11 @@ void GammaOp::getCanonicalizationPatterns(mlir::RewritePatternSet &results,
   results.add<ConstantControlGammaNode>(ctxt);
 }
 
-
-
 OpFoldResult CastOp::fold(FoldAdaptor adaptor) {
   if (hasOperandsOutsideOfBlock(getOperation()))
     return {};
   auto op = getOperation();
-  if (op->getOperand(0).getType()==op->getResult(0).getType()) {
+  if (op->getOperand(0).getType() == op->getResult(0).getType()) {
     return adaptor.getInput();
   }
   //  if // mux(0, a, b) -> b
@@ -758,10 +769,5 @@ OpFoldResult CastOp::fold(FoldAdaptor adaptor) {
 
   return {};
 }
-
-
-
-
-
 
 } // namespace SpecHLS

@@ -26,7 +26,6 @@ add_mlir_library(SpecHLSTransforms
         Simplifier/GroupControlLogic.cpp
         Scheduling/AutoPipeline.cpp
         Scheduling/MobilityPass.cpp
-        Scheduling/LocalMobilityPass.cpp
         Scheduling/ConfigurationExcluder.cpp
         Scheduling/Schedule.cpp
         DEPENDS
@@ -39,6 +38,7 @@ add_mlir_library(SpecHLSTransforms
 
         LINK_LIBS PUBLIC
         MLIRSpecHLS
+        SpecHLSScheduleDialect
         MLIRTransforms
         CIRCTExportVerilog
         CIRCTComb

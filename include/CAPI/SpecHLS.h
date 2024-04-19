@@ -24,6 +24,7 @@ extern "C" {
 #endif
 
 MLIR_DECLARE_CAPI_DIALECT_REGISTRATION(SpecHLS, spechls);
+MLIR_DECLARE_CAPI_DIALECT_REGISTRATION(ScheduleDialect, scheduledialect);
 
 #ifdef __cplusplus
 }

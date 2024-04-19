@@ -1,4 +1,7 @@
 
+#include "Dialect/ScheduleDialect/ScheduleDialectDialect.h"
+#include "Dialect/ScheduleDialect/ScheduleDialectOps.h"
+
 #include "mlir-c/Conversion.h"
 #include <mlir-c/AffineExpr.h>
 #include <mlir-c/AffineMap.h>
@@ -67,11 +70,22 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "mlir-c/Pass.h"
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "mlir/CAPI/IR.h"
+#include "mlir/CAPI/Pass.h"
+// #include "mlir/CAPI/Support.h"
+// #include "mlir/CAPI/Utils.h"
+#include "mlir/CAPI/Wrap.h"
+#include "mlir/Pass/Pass.h"
+#include "mlir/Pass/PassManager.h"
+
+extern "C" {
 
 // FIXME move into include file
 MlirPass mlirCreateSchedulePass(void);
@@ -87,7 +101,9 @@ MlirPass mlirCreateExportVitisHLS(void);
   MlirModule name(MlirModule module) {                                         \
     MlirContext ctx = mlirModuleGetContext(module);                            \
     MlirOperation op = mlirModuleGetOperation(module);                         \
-    MlirPassManager pm = mlirPassManagerCreate(ctx);                           \
+    MlirPassManager pm = wrap(                                                 \
+        new mlir::PassManager(unwrap(ctx), mlir::ModuleOp::getOperationName(), \
+                              mlir::PassManager::Nesting::Implicit));          \
     MlirPass p = mlirCreate##pass();                                           \
     mlirPassManagerAddOwnedPass(pm, p);                                        \
     MlirLogicalResult success = mlirPassManagerRunOnOp(pm, op);                \
@@ -99,14 +115,13 @@ MlirPass mlirCreateExportVitisHLS(void);
     return module;                                                             \
   }
 
-DEFINE_GECOS_API_PASS(scheduleMLIR, SchedulePass);
-DEFINE_GECOS_API_PASS(canonicalizeMLIR, TransformsCanonicalizer);
-DEFINE_GECOS_API_PASS(mobilityMLIR, MobilityPass);
+DEFINE_GECOS_API_PASS(scheduleMLIR, SchedulePass)
+DEFINE_GECOS_API_PASS(canonicalizeMLIR, TransformsCanonicalizer)
+DEFINE_GECOS_API_PASS(mobilityMLIR, MobilityPass)
 
-DEFINE_GECOS_API_PASS(localMobilityMLIR, LocalMobilityPass);
-DEFINE_GECOS_API_PASS(configurationExcluderMLIR, ConfigurationExcluderPass);
+DEFINE_GECOS_API_PASS(configurationExcluderMLIR, ConfigurationExcluderPass)
 
-DEFINE_GECOS_API_PASS(exportVitisHLS, ExportVitisHLS);
+DEFINE_GECOS_API_PASS(exportVitisHLS, ExportVitisHLS)
 DEFINE_GECOS_API_PASS(yosysOptimizer, YosysOptimizerPass)
 DEFINE_GECOS_API_PASS(groupControl, GroupControlNodePass)
 DEFINE_GECOS_API_PASS(factorGammaInputs, FactorGammaInputsPass)
@@ -115,3 +130,4 @@ DEFINE_GECOS_API_PASS(mergeGammas, MergeGammasPass)
 DEFINE_GECOS_API_PASS(eliminateRedundantGammaInputs,
                       EliminateRedundantGammaInputsPass)
 DEFINE_GECOS_API_PASS(inlineModule, InlineModulesPass)
+}

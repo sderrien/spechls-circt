@@ -85,6 +85,7 @@ set(LIBS
         CIRCTExportVerilog
         MLIROptLib
         MLIRSpecHLS
+        SpecHLSScheduleDialect
         SpecHLSTransforms
         CIRCTSeq
         CIRCTComb

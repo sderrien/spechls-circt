@@ -13,29 +13,27 @@
 // #include "mlir/IR/BuiltinOps.h"
 // #include "mlir/Pass/Pass.h"
 
-#include "SpecHLS/SpecHLSDialect.h"
-#include "SpecHLS/SpecHLSOps.h"
+#include "Dialect/SpecHLS/SpecHLSDialect.h"
+#include "Dialect/SpecHLS/SpecHLSOps.h"
 
 #include "Transforms/Passes.h"
 
 #include "circt/Dialect/Comb/CombOps.h"
-#include "circt/Dialect/Seq/SeqOps.h"
-#include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/HW/HWOpInterfaces.h"
 #include "circt/Dialect/HW/HWOps.h"
+#include "circt/Dialect/Seq/SeqOps.h"
 
+#include "Transforms/VitisExport/CFileContent.h"
+#include "mlir/IR/Attributes.h"
 #include "mlir/IR/BuiltinDialect.h"
 #include "mlir/IR/BuiltinOps.h"
-#include "mlir/IR/Attributes.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Support/LogicalResult.h"
-#include "Transforms/VitisExport/CFileContent.h"
-
 
 #include <algorithm>
-#include <iostream>
-#include <iosfwd>
 #include <fstream>
+#include <iosfwd>
+#include <iostream>
 #include <set>
 #include <sstream>
 #include <string>
@@ -47,20 +45,17 @@ using namespace circt;
 using namespace SpecHLS;
 using namespace circt::hw;
 
-
 void printOperation(CFileContent *p, Operation *op);
 void printHWModule(CFileContent *p, HWModuleOp op);
-//void printTestbench(CFileContent *p, HWModuleOp op);
-
+// void printTestbench(CFileContent *p, HWModuleOp op);
 
 namespace SpecHLS {
 
-
-struct ExportVitisHLSPass : public impl::ExportVitisHLSBase<ExportVitisHLSPass> {
+struct ExportVitisHLSPass
+    : public impl::ExportVitisHLSBase<ExportVitisHLSPass> {
 
 public:
-
-  void runOnOperation()  {
+  void runOnOperation() {
     auto *ctx = &getContext();
     auto module = this->getOperation();
 
@@ -68,14 +63,14 @@ public:
     std::ostringstream out;
 
     for (auto hwop : module.getOps<circt::hw::HWModuleOp>()) {
-      llvm::outs() << "Exporting Vitis-HLS C code for " << hwop.getName() << "\n";
+      llvm::outs() << "Exporting Vitis-HLS C code for " << hwop.getName()
+                   << "\n";
       auto moduleName = hwop.getNameAttr().str();
       auto file = CFileContent("./", moduleName);
-      printHWModule(&file,hwop);
-     // printTestbench(&file,hwop);
+      printHWModule(&file, hwop);
+      // printTestbench(&file,hwop);
       file.save();
     }
-
   }
 };
 

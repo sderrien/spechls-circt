@@ -7,8 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "SpecHLS/SpecHLSDialect.h"
-#include "SpecHLS/SpecHLSOps.h"
+#include "Dialect/SpecHLS/SpecHLSDialect.h"
+#include "Dialect/SpecHLS/SpecHLSOps.h"
 #include "Transforms/Passes.h"
 #include "Transforms/SpecHLSConversion.h"
 #include "circt/Dialect/Comb/CombOps.h"
@@ -25,7 +25,8 @@
 namespace {
 
 // CRTP pattern
-struct ConvertSpecHLSToCombPass : public SpecHLS::impl::SpecHLSToCombBase<ConvertSpecHLSToCombPass> {
+struct ConvertSpecHLSToCombPass
+    : public SpecHLS::impl::SpecHLSToCombBase<ConvertSpecHLSToCombPass> {
   void runOnOperation() override;
 };
 } // namespace
@@ -38,15 +39,15 @@ void ConvertSpecHLSToCombPass::runOnOperation() {
   patterns.insert<LookUpTableToTruthTableOpConversion>(&getContext());
   patterns.insert<GammaToMuxOpConversion>(&getContext());
 
-  if (failed( applyPatternsAndFoldGreedily(op,std::move(patterns)))) {
+  if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns)))) {
     signalPassFailure();
   }
-
 }
 
 namespace SpecHLS {
 
-std::unique_ptr<OperationPass<circt::hw::HWModuleOp>> createConvertSpecHLSToCombPass() {
+std::unique_ptr<OperationPass<circt::hw::HWModuleOp>>
+createConvertSpecHLSToCombPass() {
   return std::make_unique<ConvertSpecHLSToCombPass>();
 }
 

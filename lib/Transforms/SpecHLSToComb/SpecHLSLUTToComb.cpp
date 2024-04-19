@@ -7,20 +7,19 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "SpecHLS/SpecHLSDialect.h"
-#include "SpecHLS/SpecHLSOps.h"
+#include "Dialect/SpecHLS/SpecHLSDialect.h"
+#include "Dialect/SpecHLS/SpecHLSOps.h"
+#include "Transforms/Passes.h"
 #include "Transforms/SpecHLSConversion.h"
 #include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/Seq/SeqOps.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
-#include "Transforms/Passes.h"
 
 //===----------------------------------------------------------------------===//
 // Conversion patterns
 //===----------------------------------------------------------------------===//
-
 
 //===----------------------------------------------------------------------===//
 // Convert Comb to Arith pass
@@ -29,7 +28,8 @@
 namespace {
 
 // CRTP pattern
-struct ConvertSpecHLSLUTToCombPass : public SpecHLS::impl::SpecHLSLUTToCombBase<ConvertSpecHLSLUTToCombPass> {
+struct ConvertSpecHLSLUTToCombPass
+    : public SpecHLS::impl::SpecHLSLUTToCombBase<ConvertSpecHLSLUTToCombPass> {
   void runOnOperation() override;
   //  virtual StringRef getName() ;
   //  virtual std::unique_ptr<Pass> clonePass() ;
@@ -56,15 +56,15 @@ void ConvertSpecHLSLUTToCombPass::runOnOperation() {
 
   populateSpecHLSLUTToCombConversionPatterns(converter, patterns);
 
-
-
-  if (failed(mlir::applyPartialConversion(getOperation(), target,std::move(patterns))))
+  if (failed(mlir::applyPartialConversion(getOperation(), target,
+                                          std::move(patterns))))
     signalPassFailure();
 }
 
 namespace SpecHLS {
 
-std::unique_ptr<OperationPass<SpecHLS::LookUpTableOp>> createConvertSpecHLSLUTToCombPass() {
+std::unique_ptr<OperationPass<SpecHLS::LookUpTableOp>>
+createConvertSpecHLSLUTToCombPass() {
   return std::make_unique<ConvertSpecHLSLUTToCombPass>();
 }
 

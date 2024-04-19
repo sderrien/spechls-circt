@@ -6,8 +6,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "SpecHLS/SpecHLSDialect.h"
-#include "SpecHLS/SpecHLSOps.h"
+#include "Dialect/SpecHLS/SpecHLSDialect.h"
+#include "Dialect/SpecHLS/SpecHLSOps.h"
 #include "Transforms/Passes.h"
 #include "circt/Dialect/Comb/CombDialect.h"
 #include "circt/Dialect/Comb/CombOps.h"
@@ -27,13 +27,12 @@
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
-//#include "mlir/Analysis/Analysis.h"
+// #include "mlir/Analysis/Analysis.h"
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/Value.h"
 #include "llvm/ADT/BitVector.h"
 #include "llvm/ADT/DenseMap.h"
 #include <queue>
-
 
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/SymbolTable.h"
@@ -156,17 +155,14 @@ bool hasConstantOutputs(circt::hw::HWModuleOp op) {
   }
 }
 
-
-
 // Helper function to compute the transitive closure of def/use relationships.
-llvm::DenseMap<Operation *, llvm::BitVector> computeTransitiveClosure(Operation *funcOp) {
+llvm::DenseMap<Operation *, llvm::BitVector>
+computeTransitiveClosure(Operation *funcOp) {
 
   llvm::DenseMap<Operation *, llvm::BitVector> defUseMap;
-  llvm::DenseMap<Operation *, u_int64_t  > opMap;
-  u_int64_t cnt =0;
-  funcOp->walk([&](Operation *op) {
-    defUseMap[op].set(cnt++);
-  });
+  llvm::DenseMap<Operation *, u_int64_t> opMap;
+  u_int64_t cnt = 0;
+  funcOp->walk([&](Operation *op) { defUseMap[op].set(cnt++); });
 
   // Populate the initial def/use relationships.
   funcOp->walk([&](Operation *op) {
@@ -205,16 +201,14 @@ llvm::DenseMap<Operation *, llvm::BitVector> computeTransitiveClosure(Operation 
   return defUseMap;
 }
 
-
 // Helper function to compute the transitive closure of def/use relationships.
-llvm::DenseMap<Operation *, llvm::BitVector> computeReverseTransitiveClosure(Operation *funcOp) {
+llvm::DenseMap<Operation *, llvm::BitVector>
+computeReverseTransitiveClosure(Operation *funcOp) {
 
   llvm::DenseMap<Operation *, llvm::BitVector> useDefMap;
-  llvm::DenseMap<Operation *, u_int64_t  > opMap;
-  u_int64_t cnt =0;
-  funcOp->walk([&](Operation *op) {
-    useDefMap[op].set(cnt++);
-  });
+  llvm::DenseMap<Operation *, u_int64_t> opMap;
+  u_int64_t cnt = 0;
+  funcOp->walk([&](Operation *op) { useDefMap[op].set(cnt++); });
 
   // Populate the initial def/use relationships.
   funcOp->walk([&](Operation *op) {
@@ -230,7 +224,6 @@ llvm::DenseMap<Operation *, llvm::BitVector> computeReverseTransitiveClosure(Ope
   for (auto &entry : useDefMap) {
     worklist.push(entry.first);
   }
-
 
   while (!worklist.empty()) {
     Operation *current = worklist.front();

@@ -6,10 +6,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "SpecHLS/SpecHLSDialect.h"
-#include "SpecHLS/SpecHLSOps.h"
-#include "mlir/IR/DialectImplementation.h"
+#include "Dialect/SpecHLS/SpecHLSDialect.h"
+#include "Dialect/SpecHLS/SpecHLSOps.h"
 #include "circt/Dialect/HW/HWOps.h"
+#include "mlir/IR/DialectImplementation.h"
 
 using namespace mlir;
 using namespace SpecHLS;
@@ -21,12 +21,13 @@ using namespace SpecHLS;
 void SpecHLSDialect::initialize() {
   addOperations<
 #define GET_OP_LIST
-#include "SpecHLS/SpecHLSOps.cpp.inc"
+#include "Dialect/SpecHLS/SpecHLSOps.cpp.inc"
       >();
 }
 
-Operation *SpecHLSDialect::materializeConstant(OpBuilder &builder, Attribute value,
-                                            Type type, Location loc) {
+Operation *SpecHLSDialect::materializeConstant(OpBuilder &builder,
+                                               Attribute value, Type type,
+                                               Location loc) {
   auto coeffs = dyn_cast<mlir::IntegerAttr>(value);
   if (!coeffs)
     return nullptr;

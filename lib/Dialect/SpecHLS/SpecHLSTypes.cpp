@@ -11,17 +11,20 @@
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/PatternMatch.h"
 
-#include "SpecHLS/SpecHLSOps.h"
-#include "SpecHLS/SpecHLSTypes.h"
-#include "SpecHLS/SpecHLSUtils.h"
+#include "Dialect/SpecHLS/SpecHLSOps.h"
+#include "Dialect/SpecHLS/SpecHLSTypes.h"
+#include "Dialect/SpecHLS/SpecHLSUtils.h"
+#include "mlir/IR/Types.h"
 #include "llvm/ADT/MapVector.h"
 #include "llvm/ADT/SetVector.h"
 #include "llvm/ADT/TypeSwitch.h"
 
-#define GET_TYPEDEF_CLASSES
-#include "SpecHLS/SpecHLSOpsTypes.h.inc"
-#include "SpecHLS/SpecHLSOpsTypes.cpp.inc"
 using namespace mlir;
+
+#define GET_TYPEDEF_CLASSES
+#include "Dialect/SpecHLS/SpecHLSOpsTypes.h.inc"
+#define GET_TYPEDEF_CLASSES
+#include "Dialect/SpecHLS/SpecHLSOpsTypes.cpp.inc"
 
 namespace SpecHLS {
 

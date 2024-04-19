@@ -6,9 +6,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "SpecHLS/SpecHLSDialect.h"
-#include "SpecHLS/SpecHLSOps.h"
-#include "SpecHLS/SpecHLSUtils.h"
+#include "Dialect/ScheduleDialect/ScheduleDialectDialect.h"
+#include "Dialect/ScheduleDialect/ScheduleDialectOps.h"
+#include "Dialect/SpecHLS/SpecHLSDialect.h"
+#include "Dialect/SpecHLS/SpecHLSOps.h"
+#include "Dialect/SpecHLS/SpecHLSUtils.h"
 #include "Transforms/Passes.h"
 
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -21,7 +23,8 @@
 // #include "mlir/Transforms/DialectConversion.h"
 // #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
-#include "SpecHLS/SpecHLSOpsDialect.cpp.inc"
+#include "Dialect/ScheduleDialect/ScheduleDialectOps.cpp.inc"
+#include "Dialect/SpecHLS/SpecHLSOpsDialect.cpp.inc"
 #include "mlir/CAPI/Registration.h"
 
 #include "mlir-c/BuiltinAttributes.h"
@@ -41,6 +44,9 @@ extern "C" {
 // }
 
 MLIR_DEFINE_CAPI_DIALECT_REGISTRATION(SpecHLS, spechls, SpecHLS::SpecHLSDialect)
+
+MLIR_DEFINE_CAPI_DIALECT_REGISTRATION(ScheduleDialect, scheduledialect,
+                                      SpecHLS::ScheduleDialectDialect)
 }
 
 // void registerSeqPasses() { SpecHLS::registerTransformsPasses(); }

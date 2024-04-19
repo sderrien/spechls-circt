@@ -5,6 +5,7 @@ get_property(circt_conversion_libs GLOBAL PROPERTY CIRCT_CONVERSION_LIBS)
 
 set(LIBSp
         MLIRSpecHLS.a
+        SpecHLSScheduleDialect.a
         MLIRTargetCustomCEmit.a
         libMLIRTransforms.a
         libMLIRCAPIIR.a
@@ -21,6 +22,7 @@ set(LIBS
         ${mlir_conversion_libs}
         MLIROptLib
         MLIRSpecHLS
+        SpecHLSScheduleDialect
         MLIRTransforms
         MLIRCAPIIR
         SpecHLSTransforms
@@ -120,8 +122,8 @@ set(LIBS
 
 add_library(gecosapi SHARED
         ExtraPassesCAPI.cpp
-        SpecHLSGecosAPI.c
-        SpecHLSGecosAPIPasses.c
+        SpecHLSGecosAPI.cpp
+        SpecHLSGecosAPIPasses.cpp
         BuiltinAttributes.cpp
         BuiltinTypes.cpp
 

@@ -20,7 +20,7 @@
 
 #include "circt/Conversion/ExportVerilog.h"
 
-#include "SpecHLS/SpecHLSUtils.h"
+#include "Dialect/SpecHLS/SpecHLSUtils.h"
 
 #include "Transforms/Passes.h"
 #include "circt/Dialect/Comb/CombDialect.h"
@@ -31,11 +31,11 @@
 #include "mlir/IR/BuiltinTypes.h"          // from @llvm-project
 #include "mlir/IR/DialectRegistry.h"       // from @llvm-project
 #include "mlir/IR/Location.h"              // from @llvm-project
-#include "mlir/IR/Verifier.h"              // from @llvm-project
 #include "mlir/IR/SymbolTable.h"
 #include "mlir/IR/Types.h"              // from @llvm-project
 #include "mlir/IR/Value.h"              // from @llvm-project
 #include "mlir/IR/ValueRange.h"         // from @llvm-project
+#include "mlir/IR/Verifier.h"           // from @llvm-project
 #include "mlir/IR/Visitors.h"           // from @llvm-project
 #include "mlir/Pass/PassManager.h"      // from @llvm-project
 #include "mlir/Pass/PassRegistry.h"     // from @llvm-project
@@ -116,7 +116,8 @@ struct PrefixingInliner : public InlinerInterface {
 
 void listHWModuleOps(mlir::ModuleOp module) {
   module->walk([](circt::hw::HWModuleOp hwop) {
-    if (VERBOSE) llvm::errs() << "HWModuleOp " << hwop.getSymName().str() << "\n";
+    if (VERBOSE)
+      llvm::errs() << "HWModuleOp " << hwop.getSymName().str() << "\n";
   });
 }
 
@@ -126,8 +127,9 @@ bool hasConstantOutputs(circt::hw::HWModuleOp op) {
                   .Case<circt::hw::ConstantOp>([&](auto op) { return true; })
                   .Case<circt::hw::OutputOp>([&](auto op) { return true; })
                   .Default([&](auto op) {
-                    if (VERBOSE) llvm::errs()
-                        << "Operation " << _innerop << "is not constant\n";
+                    if (VERBOSE)
+                      llvm::errs()
+                          << "Operation " << _innerop << "is not constant\n";
                     return false;
                   });
 
@@ -137,9 +139,10 @@ bool hasConstantOutputs(circt::hw::HWModuleOp op) {
   return true;
 }
 
-struct YosysOptimizer : public SpecHLS::impl::YosysOptimizerBase<YosysOptimizer> {
+struct YosysOptimizer
+    : public SpecHLS::impl::YosysOptimizerBase<YosysOptimizer> {
   using YosysOptimizerBase::YosysOptimizerBase;
-  
+
   YosysOptimizer(SpecHLS::YosysOptimizerOptions &options) {
     replace = options.replace;
   }
@@ -164,7 +167,8 @@ circt::hw::HWModuleOp yosysBackend(MLIRContext *context,
 
   string filename = string(op.getName().str()) + ".sv";
   if (!std::filesystem::exists(filename)) {
-    if (VERBOSE) llvm::errs() << "File  " << filename << " does not exists\n";
+    if (VERBOSE)
+      llvm::errs() << "File  " << filename << " does not exists\n";
     return NULL;
   }
 
@@ -174,14 +178,14 @@ circt::hw::HWModuleOp yosysBackend(MLIRContext *context,
   LLVM_DEBUG(Yosys::log_streams.push_back(&std::cout));
 
   auto start = std::chrono::high_resolution_clock::now();
-  auto command =  "read_verilog " + filename ;
+  auto command = "read_verilog " + filename;
   Yosys::run_pass(command);
   Yosys::run_pass("dump;   ");
   Yosys::run_pass("proc; flatten;   ");
   Yosys::run_pass("opt -full;   ");
-//#ifdef USE_YOSYS_ABC
+  // #ifdef USE_YOSYS_ABC
   Yosys::run_pass("synth -noabc ;  ");
-//#endif
+  // #endif
   Yosys::run_pass("abc -exe \"/opt/yosys/yosys-abc\" -g AND,OR");
   Yosys::run_pass("write_verilog " + string(op.getName().str()) + "_yosys.sv");
   Yosys::run_pass("hierarchy -generate * o:Y i:*; opt; opt_clean -purge");
@@ -202,9 +206,11 @@ circt::hw::HWModuleOp yosysBackend(MLIRContext *context,
   auto duration =
       std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
 
-  llvm::errs() << "Yosys synthesis successfull for " << op.getSymName() << " ("<< duration.count() << " ms) \n";
+  llvm::errs() << "Yosys synthesis successfull for " << op.getSymName() << " ("
+               << duration.count() << " ms) \n";
 #ifdef VERBOSE
-  if (VERBOSE) llvm::errs() << "Created module : " << submodule << "  \n";
+  if (VERBOSE)
+    llvm::errs() << "Created module : " << submodule << "  \n";
 #endif
   return submodule;
 }
@@ -214,11 +220,14 @@ SmallVector<circt::hw::InstanceOp> listAllInstances(mlir::ModuleOp module,
   SmallVector<circt::hw::InstanceOp> instances;
 
   module->walk([&instances, &op](circt::hw::HWModuleOp hwop) {
-    if (VERBOSE) llvm::errs() << "in " << hwop.getName() << "\n";
+    if (VERBOSE)
+      llvm::errs() << "in " << hwop.getName() << "\n";
     hwop->walk([&instances, &op](circt::hw::InstanceOp inst) {
-      if (VERBOSE) llvm::errs() << "   - found instance  " << inst << "\n";
+      if (VERBOSE)
+        llvm::errs() << "   - found instance  " << inst << "\n";
       if (inst.getModuleName() == op.getModuleName()) {
-        if (VERBOSE) llvm::errs() << "     - save instance  " << inst << "\n";
+        if (VERBOSE)
+          llvm::errs() << "     - save instance  " << inst << "\n";
         instances.push_back(inst);
       }
       return WalkResult::advance();
@@ -237,9 +246,8 @@ bool isSynthesizableModule(circt::hw::HWModuleOp op) {
   return true;
 }
 
-
 LogicalResult replaceInstance(circt::hw::HWModuleOp old,
-                               circt::hw::HWModuleOp _new) {
+                              circt::hw::HWModuleOp _new) {
 
   auto oldSym = old.getSymNameAttr().getValue();
   auto newSym = _new.getSymNameAttr();
@@ -250,8 +258,9 @@ LogicalResult replaceInstance(circt::hw::HWModuleOp old,
     return failure();
   }
   auto instances = listAllInstances(module, old);
-  if (VERBOSE) llvm::errs() << "Found " << instances.size() << " instances of "
-               << old.getName() << "\n";
+  if (VERBOSE)
+    llvm::errs() << "Found " << instances.size() << " instances of "
+                 << old.getName() << "\n";
   auto isConstant = hasConstantOutputs(_new);
   // Set modul as private to enable inliing using arc inline pass
   if (isConstant)
@@ -259,15 +268,19 @@ LogicalResult replaceInstance(circt::hw::HWModuleOp old,
 
   for (auto inst : instances) {
     // Check if the operation is a CallOp
-    if (VERBOSE) llvm::errs() << "instance " << inst << "\n";
+    if (VERBOSE)
+      llvm::errs() << "instance " << inst << "\n";
     auto instName = inst.getModuleNameAttr().getValue();
-    if (VERBOSE) llvm::errs() << " - replace instance : " << inst;
+    if (VERBOSE)
+      llvm::errs() << " - replace instance : " << inst;
     if (instName == oldSym) {
       // Create a new CallOp with the replacement function
       inst.setModuleName(newSym);
-      if (VERBOSE) llvm::errs() << "\n\t\t by  " << inst;
+      if (VERBOSE)
+        llvm::errs() << "\n\t\t by  " << inst;
     }
-    if (VERBOSE) llvm::errs() << "\n";
+    if (VERBOSE)
+      llvm::errs() << "\n";
 
     if (isConstant) {
     }
@@ -289,10 +302,12 @@ void YosysOptimizer::runOnOperation() {
   // supprime les HWModule qui ne seront pas optimisés via Yosys
 
   module->walk([&](circt::hw::HWModuleOp op) {
-    if (VERBOSE) llvm::errs() << "Analyzing HWModule " << op.getSymName() << "\n";
-    if (SpecHLS::hasControlNodePragma( op)) {
-      if (VERBOSE) llvm::errs() << "   - module " << op.getSymName()
-                   << " has control node pragma\n";
+    if (VERBOSE)
+      llvm::errs() << "Analyzing HWModule " << op.getSymName() << "\n";
+    if (SpecHLS::hasControlNodePragma(op)) {
+      if (VERBOSE)
+        llvm::errs() << "   - module " << op.getSymName()
+                     << " has control node pragma\n";
 
       OpPassManager dynamicPM("hw.module");
 
@@ -301,17 +316,18 @@ void YosysOptimizer::runOnOperation() {
       if (failed(runPipeline(dynamicPM, op))) {
         llvm::errs() << "   - error for " << op.getSymName() << " \n";
       } else {
-        if (VERBOSE) llvm::errs() << "   - module lowered to \n" << op << " \n";
+        if (VERBOSE)
+          llvm::errs() << "   - module lowered to \n" << op << " \n";
       }
     }
 
     return WalkResult::advance();
   });
 
-
   auto clone = dyn_cast<ModuleOp>(getOperation()->clone());
   if (clone == NULL || module == NULL) {
-    if (VERBOSE) llvm::errs() << "op " << clone->getName() << " not supported  \n";
+    if (VERBOSE)
+      llvm::errs() << "op " << clone->getName() << " not supported  \n";
     signalPassFailure();
   }
 
@@ -319,21 +335,25 @@ void YosysOptimizer::runOnOperation() {
 
   // supprime les HWModule qui ne seront pas optimisés via Yosys
   clone->walk([&](circt::hw::HWModuleOp op) {
-    if (VERBOSE) llvm::errs() << "Analyzing HWModule " << op.getSymName() << "\n";
-    if (SpecHLS::hasControlNodePragma( op)) {
-      if (VERBOSE) llvm::errs() << "   - module " << op.getSymName()
-                   << " has control node pragma\n";
-
+    if (VERBOSE)
+      llvm::errs() << "Analyzing HWModule " << op.getSymName() << "\n";
+    if (SpecHLS::hasControlNodePragma(op)) {
+      if (VERBOSE)
+        llvm::errs() << "   - module " << op.getSymName()
+                     << " has control node pragma\n";
 
       if (isSynthesizableModule(op)) {
-        if (VERBOSE) llvm::errs() << "   - module " << op.getSymName()
-                     << " will be optimized through Yosys\n";
-        if (VERBOSE) llvm::errs() << op << "\n";
+        if (VERBOSE)
+          llvm::errs() << "   - module " << op.getSymName()
+                       << " will be optimized through Yosys\n";
+        if (VERBOSE)
+          llvm::errs() << op << "\n";
 
         return WalkResult::advance();
       }
     }
-    if (VERBOSE) llvm::errs() << "   - module " << op.getSymName() << " is ignored\n";
+    if (VERBOSE)
+      llvm::errs() << "   - module " << op.getSymName() << " is ignored\n";
     op->remove();
     return WalkResult::advance();
   });
@@ -341,13 +361,13 @@ void YosysOptimizer::runOnOperation() {
   clone->dump();
   circt::exportSplitVerilog(clone, "./");
 
-
   SmallVector<std::string> optimizedModules;
 
   clone->walk([&](circt::hw::HWModuleOp cloneop) {
     module->walk([&](circt::hw::HWModuleOp op) {
       if (cloneop.getSymName() == op.getSymName()) {
-        if (VERBOSE) llvm::errs() << " match " << op.getName() << "\n";
+        if (VERBOSE)
+          llvm::errs() << " match " << op.getName() << "\n";
         cloneMap[cloneop] = op;
       }
     });
@@ -355,7 +375,8 @@ void YosysOptimizer::runOnOperation() {
   Yosys::yosys_setup();
   // applique Yosys sur tout les HWModules restants
   auto result = clone->walk([&](circt::hw::HWModuleOp op) {
-    if (VERBOSE) llvm::errs() << "Optimizing module " << op.getName() << "\n";
+    if (VERBOSE)
+      llvm::errs() << "Optimizing module " << op.getName() << "\n";
     circt::hw::HWModuleOp optimized = yosysBackend(&getContext(), op, replace);
 
     if (optimized == NULL) {
@@ -366,24 +387,27 @@ void YosysOptimizer::runOnOperation() {
       optimizedModules.push_back(op.getSymName().str());
       module.push_back(optimized);
 
-        if (VERBOSE) llvm::errs() << "replacing " << op.getName() << " by " << optimized.getName() << "\n";
-        auto originalOp = cloneMap[op];
-        if (originalOp == NULL) {
-          op.emitError("error  " + op.getName() + " by " + optimized.getName() +
-                       "\n");
-          return WalkResult::interrupt();
-        }
-        replaceInstance(originalOp, optimized);
+      if (VERBOSE)
+        llvm::errs() << "replacing " << op.getName() << " by "
+                     << optimized.getName() << "\n";
+      auto originalOp = cloneMap[op];
+      if (originalOp == NULL) {
+        op.emitError("error  " + op.getName() + " by " + optimized.getName() +
+                     "\n");
+        return WalkResult::interrupt();
+      }
+      replaceInstance(originalOp, optimized);
     }
     return WalkResult::advance();
   });
   Yosys::yosys_shutdown();
 
   if (result.wasInterrupted()) {
-    if (VERBOSE) llvm::errs() << "Yosys pass failed \n";
+    if (VERBOSE)
+      llvm::errs() << "Yosys pass failed \n";
     signalPassFailure();
   }
-  mlir::verify(mlir::OperationPass<ModuleOp>::getOperation(),true);
+  mlir::verify(mlir::OperationPass<ModuleOp>::getOperation(), true);
 }
 
 } // namespace mlir

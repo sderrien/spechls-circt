@@ -21,16 +21,17 @@
 
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 
-#include "SpecHLS/SpecHLSDialect.h"
-#include "SpecHLS/SpecHLSOpsDialect.cpp.inc"
+#include "Dialect/ScheduleDialect/ScheduleDialectDialect.h"
+#include "Dialect/SpecHLS/SpecHLSDialect.h"
+#include "Dialect/SpecHLS/SpecHLSOpsDialect.cpp.inc"
 
-#include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "circt/Dialect/HW/HWDialect.h"
 #include "circt/Dialect/Comb/CombDialect.h"
+#include "circt/Dialect/HW/HWDialect.h"
 #include "circt/Dialect/HWArith/HWArithDialect.h"
 #include "circt/Dialect/Seq/SeqDialect.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 
-#include "SpecHLS/SpecHLSOps.h"
+#include "Dialect/SpecHLS/SpecHLSOps.h"
 #include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/HW/HWOps.h"
 #include "circt/Dialect/Seq/SeqOps.h"
@@ -68,11 +69,12 @@ int main(int argc, char **argv) {
 
   mlir::DialectRegistry registry;
 
-  //registerAllDialects(registry);
-  registry.insert<SpecHLS::SpecHLSDialect, mlir::func::FuncDialect,
-                  mlir::arith::ArithDialect, mlir::memref::MemRefDialect,
-                  circt::hwarith::HWArithDialect, circt::comb::CombDialect,
-                  circt::seq::SeqDialect, circt::hw::HWDialect, circt::sv::SVDialect,
+  // registerAllDialects(registry);
+  registry.insert<SpecHLS::ScheduleDialectDialect, SpecHLS::SpecHLSDialect,
+                  mlir::func::FuncDialect, mlir::arith::ArithDialect,
+                  mlir::memref::MemRefDialect, circt::hwarith::HWArithDialect,
+                  circt::comb::CombDialect, circt::seq::SeqDialect,
+                  circt::hw::HWDialect, circt::sv::SVDialect,
                   circt::ssp::SSPDialect,
                   //      circt::firrtl::FIRRTLDialect,
                   circt::fsm::FSMDialect>();
