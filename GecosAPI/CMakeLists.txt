@@ -63,6 +63,7 @@ set(LIBS
         CIRCTSV
         CIRCTSVTransforms
         CIRCTSeqToSV
+        CIRCTSeqTransforms
         CIRCTVerifToSV
 
         #        CIRCTSV
