@@ -14,4 +14,16 @@ hw.module @SCC_0() {
   %12 = SpecHLS.exit %11
   hw.output
 }
-  }
+
+hw.module @SCC_1(
+  in %c0 : i2, in %c1 : i1,
+  in %x0 : i32, in %x1 : i32, in %x2 : i32, in %x3 : i32, in %x4 : i32, 
+  out result : i32)
+{
+  %0 = SpecHLS.gamma @g0 %c0 ? %x0, %x1, %x2 : i32
+  %1 = SpecHLS.gamma @g1 %c0 ? %x1, %x2, %x3, %x4 : i32
+  %result = SpecHLS.gamma @g2 %c1 ? %0, %1 : i32
+  hw.output %result : i32
+}
+
+}
