@@ -602,9 +602,10 @@ private:
                            PatternRewriter &rewriter) const {
     /*
      * creates a LUT for reindexing outer Gamma inputs, by skipping
-     * inpouts that have hoisted out to the inner Gamma
+     * inputs that have hoisted out to the inner Gamma
      */
     auto nbInputs = op.getInputs().size();
+    size_t outerLutSize = 1 << (size_t)(std::ceil(log(nbInputs) / log(2)));
     auto firstMatchIndex = matches[0];
     SmallVector<int> outerLutContent;
     u_int32_t pos = 0;
@@ -616,16 +617,25 @@ private:
                         [&](const auto &item) { return (k == item); })) {
         outerLutContent.push_back(firstMatchIndex);
       } else {
+        if (pos == firstMatchIndex)
+        {
+          pos++;
+        }
         outerLutContent.push_back(pos++);
       }
     }
+    for (size_t k = nbInputs; k < outerLutSize; k++)
+    {
+      outerLutContent.push_back(pos);
+    }
 
     if (verbose)
+    {
       llvm::outs() << "Outer gamma " << op << " reindexing  \n";
-    for (int k = 0; k < nbInputs; k++) {
-      if (verbose)
+      for (int k = 0; k < nbInputs; k++) {
         llvm::outs() << " - input " << k << " reindexed to "
-                     << outerLutContent[k] << " \n";
+          << outerLutContent[k] << " \n";
+      }
     }
 
     return rewriter.create<SpecHLS::LookUpTableOp>(
