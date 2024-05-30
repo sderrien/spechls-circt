@@ -40,7 +40,7 @@ def AutoPipelinePass : Pass<"auto-pipeline"> {
 }
 
 
-def EliminateRedundantGammaInputsPass : Pass<"eliminiate-redundant-gamma-inputs"> {
+def EliminateRedundantGammaInputsPass : Pass<"eliminate-redundant-gamma-inputs"> {
   let summary = "Simplify Gamma ops which have multiple identical inputs";
 
   let description = [{
