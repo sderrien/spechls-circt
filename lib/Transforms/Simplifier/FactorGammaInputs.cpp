@@ -79,8 +79,7 @@ private:
     if (a->getName() != b->getName()) {
       return false;
     }
-    if (verbose)
-    {
+    if (verbose) {
       llvm::outs() << "\t- comparing opname " << a->getName() << " and "
         << b->getName() << "\n";
       llvm::outs() << "\t- comparing dialect "
@@ -91,6 +90,16 @@ private:
     if (a->getNumOperands() != b->getNumOperands()) {
       return false;
     }
+    
+    unsigned numOp = a->getNumOperands();
+    for (unsigned i = 0; i < numOp; i++)
+    {
+      if (a->getOperand(i).getType() != b->getOperand(i).getType())
+      {
+          return false;
+      }
+    }
+    
     if (verbose)
       llvm::outs() << "\t- comparing #operands " << a->getNumOperands()
         << " and " << b->getNumOperands() << "\n";
@@ -110,7 +119,8 @@ private:
   //
   bool checkMatch(mlir::Operation::operand_range inputs, int i, int k,
                   SmallVector<int32_t> &matches) const {
-    if (i > inputs.size() || k > inputs.size()) {
+    if (i >= inputs.size() || k >= inputs.size() ||
+        i < 0              || k < 0) {
       if (verbose)
         llvm::outs() << "\t- out of bounds  " << i << "," << k << " in "
                      << inputs.size() << "\n";
@@ -602,7 +612,6 @@ public:
     RewritePatternSet patterns(ctx);
 
     patterns.insert<FactorGammaInputsPattern>(ctx);
-//    patterns.insert<EliminateRedundantGammaInputs>(ctx);
 
     if (failed(applyPatternsAndFoldGreedily(getOperation(),
                                             std::move(patterns)))) {
