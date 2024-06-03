@@ -204,40 +204,43 @@ private:
     SmallVector<Value> args;
     if (verbose)
       llvm::outs() << "-Extracting all " << j << "th args in matched ops \n";
+
     for (auto mid : matches) {
       auto value = op.getInputs()[mid];
-      if (value) {
-        auto matchedOp = value.getDefiningOp();
-        if (matchedOp) {
-          if (j < matchedOp->getNumOperands()) {
-            if (verbose)
-              llvm::outs() << "\t-analyzing match " << *matchedOp
-                           << " at offset  " << j << "\n";
-
-            auto matchedArgValue = matchedOp->getOperand(j);
-            if (matchedArgValue) {
-              if (verbose)
-                llvm::outs()
-                    << "\t-extracting value " << matchedArgValue << " \n";
-              args.push_back(matchedArgValue);
-
-            } else {
-              llvm::errs() << "No valid arrgValue at offset " << j << "\n";
-              return NULL;
-            }
-          }
-        } else {
-          llvm::errs() << "No defining op for value " << value << " at offset "
-                       << mid << "\n";
-          return NULL;
-        }
-      } else {
+      if (!value) {
         llvm::errs() << "Invalid value at " << mid << "\n";
         return NULL;
       }
+
+      auto matchedOp = value.getDefiningOp();
+      if (!matchedOp) {
+        llvm::errs() << "No defining op for value " << value << " at offset "
+          << mid << "\n";
+        return NULL;
+      }
+
+      if (j >= matchedOp->getNumOperands()) {
+        continue;
+      }
+
+      if (verbose)
+        llvm::outs() << "\t-analyzing match " << *matchedOp
+          << " at offset  " << j << "\n";
+
+      auto matchedArgValue = matchedOp->getOperand(j);
+      if (!matchedArgValue) {
+        llvm::errs() << "No valid arrgValue at offset " << j << "\n";
+        return NULL;
+      }
+
+      if (verbose)
+        llvm::outs()
+          << "\t-extracting value " << matchedArgValue << " \n";
+      args.push_back(matchedArgValue);
+
     }
     auto gamma = rewriter.create<SpecHLS::GammaOp>(
-        op->getLoc(), op->getResultTypes(), op.getName(),
+        op->getLoc(), args[0].getType(), op.getName(),
         innerLUT->getResult(0), args);
     if (verbose)
       llvm::outs() << "- Creating inner gamma " << gamma << " at offset  " << j
