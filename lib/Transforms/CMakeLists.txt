@@ -12,6 +12,7 @@ add_mlir_library(SpecHLSTransforms
         Simplifier/YosysOptimizer.cpp
         Simplifier/RTLILImporter.cpp
         Simplifier/FactorGammaInputs.cpp
+        Simplifier/EliminateRedundantGammaInputs.cpp
         Simplifier/InlineOptimizedModules.cpp
         Simplifier/MergeGammas.cpp
         Simplifier/MergeLUTs.cpp

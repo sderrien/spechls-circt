@@ -1,4 +1,4 @@
-//===- MergeGammas.cpp - Arith-to-comb mapping pass ----------*- C++ -*-===//
+//===- FactorGammaInputs.cpp - Arith-to-comb mapping pass -------*- C++ -*-===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -69,53 +69,70 @@ struct FactorGammaInputsPattern : OpRewritePattern<GammaOp> {
   bool verbose = false;
 
 private:
+
+  //
+  //
+  // TODO: Comment
+  //
+  //
   bool isMatch(mlir::Operation *a, mlir::Operation *b) const {
-    if (a->getName() == b->getName()) {
-      if (verbose)
-        llvm::outs() << "\t- comparing opname " << a->getName() << " and "
-                     << b->getName() << "\n";
-      if (verbose)
-        llvm::outs() << "\t- comparing dialect "
-                     << a->getDialect()->getNamespace() << " and "
-                     << b->getDialect()->getNamespace() << "\n";
-      if (a->getNumOperands() == b->getNumOperands()) {
+    if (a->getName() != b->getName()) {
+      return false;
+    }
+    if (verbose)
+    {
+      llvm::outs() << "\t- comparing opname " << a->getName() << " and "
+        << b->getName() << "\n";
+      llvm::outs() << "\t- comparing dialect "
+        << a->getDialect()->getNamespace() << " and "
+        << b->getDialect()->getNamespace() << "\n";
+    }
+    
+    if (a->getNumOperands() != b->getNumOperands()) {
+      return false;
+    }
+    if (verbose)
+      llvm::outs() << "\t- comparing #operands " << a->getNumOperands()
+        << " and " << b->getNumOperands() << "\n";
+
+    if (b->getNumResults() == 1 && a->getNumResults() == 1) {
         if (verbose)
-          llvm::outs() << "\t- comparing #operands " << a->getNumOperands()
-                       << " and " << b->getNumOperands() << "\n";
-        if (b->getNumResults() == 1 && a->getNumResults() == 1) {
-          if (verbose)
-            llvm::outs() << "\t- match !\n";
-          return true;
-        }
-      }
+          llvm::outs() << "\t- match !\n";
+      return true;
     }
     return false;
   }
 
+  //
+  //
+  // TODO: Comment
+  //
+  //
   bool checkMatch(mlir::Operation::operand_range inputs, int i, int k,
                   SmallVector<int32_t> &matches) const {
-    if (i <= inputs.size() && k <= inputs.size()) {
-      Value va = inputs[i];
-      Value vb = inputs[k];
-
-      if (i != k && (va.getType() == vb.getType())) {
-        auto a = va.getDefiningOp();
-        auto b = vb.getDefiningOp();
-
-        if (a != NULL && b != NULL) {
-          if (verbose)
-            llvm::outs() << "\t- comparing  (" << i << "," << k << ") ->" << *a
-                         << " and " << *b << "\n";
-          return isMatch(a, b);
-        }
-      }
-
-    } else {
+    if (i > inputs.size() || k > inputs.size()) {
       if (verbose)
         llvm::outs() << "\t- out of bounds  " << i << "," << k << " in "
                      << inputs.size() << "\n";
+      return false;
     }
-    return false;
+
+    Value va = inputs[i];
+    Value vb = inputs[k];
+    if (i == k || (va.getType() != vb.getType())) {
+      return false;
+    }
+
+    auto a = va.getDefiningOp();
+    auto b = vb.getDefiningOp();
+    if (a == NULL || b == NULL) {
+      return false;
+    }
+    
+    if (verbose)
+      llvm::outs() << "\t- comparing  (" << i << "," << k << ") ->" << *a
+        << " and " << *b << "\n";
+    return isMatch(a, b);
   }
 
   //
@@ -131,35 +148,35 @@ private:
     for (int i = 0; i < nbInputs; i++) {
       auto rootValue = op.getInputs()[i];
       auto root = rootValue.getDefiningOp();
-      if (root != NULL) {
-        if (root->getNumResults() == 1) {
-          if (root->getResult(0).hasOneUse()) {
+      if (root == NULL ||
+          root->getNumResults() != 1 ||
+          !root->getResult(0).hasOneUse()) 
+      {
+        continue;
+      }
 
-            /* build the set of nodes (at pos K>i) that match the current target
-             * node */
-            matches.clear();
-            matches.push_back(i);
-            for (int k = i + 1; k < nbInputs; k++) {
-              if (checkMatch(op.getInputs(), i, k, matches)) {
-                matches.push_back(k);
-              }
-            }
-
-            if (matches.size() > 1) {
-              if (verbose)
-                llvm::outs() << "match {\n";
-              for (auto m : matches) {
-                auto defOp = op.getInputs()[m].getDefiningOp();
-                if (verbose)
-                  llvm::outs() << "\tin[" << m << "] -> " << *defOp << "\n";
-              }
-              if (verbose)
-                llvm::outs() << "}\n";
-
-              return success();
-            }
-          }
+      /* build the set of nodes (at pos K>i) that match the current target
+       * node */
+      matches.clear();
+      matches.push_back(i);
+      for (int k = i + 1; k < nbInputs; k++) {
+        if (checkMatch(op.getInputs(), i, k, matches)) {
+          matches.push_back(k);
         }
+      }
+
+      if (matches.size() > 1) {
+        if (verbose)
+        {
+          llvm::outs() << "match {\n";
+          for (auto m : matches) {
+            auto defOp = op.getInputs()[m].getDefiningOp();
+            llvm::outs() << "\tin[" << m << "] -> " << *defOp << "\n";
+          }
+          llvm::outs() << "}\n";
+        }
+
+        return success();
       }
     }
     return failure();
@@ -231,23 +248,27 @@ private:
     /* computes the number of inputs on matched ops */
     for (auto mid : matches) {
       auto matchedValue = op.getInputs()[mid];
-      if (matchedValue) {
-        auto matchedOp = matchedValue.getDefiningOp();
-        if (matchedOp) {
-          auto nbOperands = matchedOp->getNumOperands();
-          if (nbMatchInputs < 0) {
-            nbMatchInputs = nbOperands;
-            // We keep track of one of the matched op
-            rootMatchedOp = matchedOp;
-            if (verbose)
-              llvm::outs() << "Reference matched op " << *matchedOp << "\n";
-          }
-          if (nbOperands != nbMatchInputs) {
-            llvm::errs() << "Inconsistent arity for " << *matchedOp
-                         << ", expected " << nbOperands << "\n";
-            return -1;
-          }
-        }
+      if (!matchedValue) {
+        continue;
+      }
+
+      auto matchedOp = matchedValue.getDefiningOp();
+      if (!matchedOp) {
+        continue;
+      }
+
+      auto nbOperands = matchedOp->getNumOperands();
+      if (nbMatchInputs < 0) {
+        nbMatchInputs = nbOperands;
+        // We keep track of one of the matched op
+        rootMatchedOp = matchedOp;
+        if (verbose)
+          llvm::outs() << "Reference matched op " << *matchedOp << "\n";
+      }
+      if (nbOperands != nbMatchInputs) {
+        llvm::errs() << "Inconsistent arity for " << *matchedOp
+          << ", expected " << nbOperands << "\n";
+        return -1;
       }
     }
     return nbMatchInputs;
@@ -284,72 +305,81 @@ private:
   }
 
 public:
+  
+  //
+  //
+  // TODO: Comment
+  //
+  //
   LogicalResult matchAndRewrite(GammaOp op,
                                 PatternRewriter &rewriter) const override {
 
     SmallVector<int32_t> matches;
     u_int32_t nbInputs = op.getInputs().size();
-    if (extractMatches(op, matches).succeeded()) {
-      auto firstMatchIndex = matches[0];
-      auto rootValue = op.getInputs()[firstMatchIndex];
-      auto root = rootValue.getDefiningOp();
-      if (root->getNumResults() == 1) {
-        if (root->getResult(0).hasOneUse()) {
-
-          auto innerLUT = createInnerReindexingLUT(op, matches, rewriter);
-          auto nbMatchInputs = analyzeMatchedOps(op, matches);
-
-          SmallVector<Value> newGammas;
-          for (u_int32_t j = 0; j < nbMatchInputs; j++) {
-            auto gamma =
-                createGammaForOperand(j, op, innerLUT, matches, rewriter);
-            newGammas.push_back(gamma);
-          }
-
-          assert(newGammas.size() == nbMatchInputs);
-
-          if (verbose)
-            llvm::outs() << "Rewiring " << nbMatchInputs
-                         << " arguments in the root op " << *root << "\n";
-          for (u_int32_t j = 0; j < nbMatchInputs; j++) {
-            if (verbose)
-              llvm::outs() << "\t-replace arg[" << j
-                           << "]=" << root->getOperand(j) << " by  "
-                           << newGammas[j] << "\n";
-            root->setOperand(j, newGammas[j]);
-          }
-
-          if (verbose)
-            llvm::outs() << "Root op is now " << *root << "\n";
-
-          if (verbose)
-            llvm::outs() << "Before rewiring outer gamma " << op << "\n";
-          for (auto mid : matches) {
-            if (verbose)
-              llvm::outs() << "\t- Update operand from "
-                           << op->getOperand(mid + 1) << " to " << rootValue
-                           << "\n";
-            op->setOperand(mid + 1, rootValue);
-            if (verbose)
-              llvm::outs() << "\t - " << op << "\n";
-          }
-          if (verbose)
-            llvm::outs() << "After rewiring outer gamma " << op << "\n";
-          if (verbose)
-            llvm::outs() << "##################################################"
-                            "############\n\n\n";
-          if (verbose)
-            llvm::outs() << "##################################################"
-                            "############\n";
-
-          if (verbose)
-            llvm::outs() << *op->getParentOp() << "\n";
-
-          return success();
-        }
-      }
+    if (!extractMatches(op, matches).succeeded()) {
+      return failure();
     }
-    return failure();
+
+    auto firstMatchIndex = matches[0];
+    auto rootValue = op.getInputs()[firstMatchIndex];
+    auto root = rootValue.getDefiningOp();
+    if (root->getNumResults() != 1 || !root->getResult(0).hasOneUse()) {
+      return failure();
+    }
+
+    auto innerLUT = createInnerReindexingLUT(op, matches, rewriter);
+    auto nbMatchInputs = analyzeMatchedOps(op, matches);
+
+    SmallVector<Value> newGammas;
+    for (u_int32_t j = 0; j < nbMatchInputs; j++) {
+      auto gamma =
+        createGammaForOperand(j, op, innerLUT, matches, rewriter);
+      newGammas.push_back(gamma);
+    }
+
+    assert(newGammas.size() == nbMatchInputs);
+
+    if (verbose)
+      llvm::outs() << "Rewiring " << nbMatchInputs
+        << " arguments in the root op " << *root << "\n";
+
+    for (u_int32_t j = 0; j < nbMatchInputs; j++) {
+      if (verbose)
+        llvm::outs() << "\t-replace arg[" << j
+          << "]=" << root->getOperand(j) << " by  "
+          << newGammas[j] << "\n";
+
+      root->setOperand(j, newGammas[j]);
+    }
+
+    if (verbose)
+    {
+      llvm::outs() << "Root op is now " << *root << "\n";
+      llvm::outs() << "Before rewiring outer gamma " << op << "\n";
+    }
+
+    for (auto mid : matches) {
+      if (verbose)
+        llvm::outs() << "\t- Update operand from "
+          << op->getOperand(mid + 1) << " to " << rootValue
+          << "\n";
+      op->setOperand(mid + 1, rootValue);
+      if (verbose)
+        llvm::outs() << "\t - " << op << "\n";
+    }
+
+    if (verbose)
+    {
+      llvm::outs() << "After rewiring outer gamma " << op << "\n";
+      llvm::outs() << "##################################################"
+        "############\n\n\n";
+      llvm::outs() << "##################################################"
+        "############\n";
+      llvm::outs() << *op->getParentOp() << "\n";
+    }
+
+    return success();
+  }
 
     //
     //
@@ -561,133 +591,8 @@ public:
     //      }
     //    }
     //    return failure();
-  }
 };
 
-struct EliminateRedundantGammaInputs : OpRewritePattern<GammaOp> {
-  using OpRewritePattern<GammaOp>::OpRewritePattern;
-  bool verbose = false;
-
-private:
-  //
-  //
-  //  Cette fonction construit une liste avec la position des arguments produit
-  //  par des op d'une même classe d'equivalence (definie par checkmatch)
-  //
-  LogicalResult extractMatches(GammaOp op,
-                               SmallVector<int32_t> &matches) const {
-    // llvm::errs() << "analyzing  " << op << " \n";
-    auto nbInputs = op.getInputs().size();
-    for (uint32_t i = 0; i < nbInputs; i++) {
-      auto rootValue = op.getInputs()[i];
-      if (rootValue != NULL) {
-        matches.clear();
-        matches.push_back(i);
-        for (uint32_t k = i + 1; k < nbInputs; k++) {
-          if (op.getInputs()[k] == rootValue) {
-            matches.push_back(k);
-          }
-        }
-        if (matches.size() > 1) {
-          return success();
-        }
-      }
-    }
-
-    return failure();
-  }
-
-  SpecHLS::LookUpTableOp
-  createOuterReindexingLUT(GammaOp op, SmallVector<int32_t> &matches,
-                           PatternRewriter &rewriter) const {
-    /*
-     * creates a LUT for reindexing outer Gamma inputs, by skipping
-     * inputs that have hoisted out to the inner Gamma
-     */
-    auto nbInputs = op.getInputs().size();
-    size_t outerLutSize = 1 << (size_t)(std::ceil(log(nbInputs) / log(2)));
-    auto firstMatchIndex = matches[0];
-    SmallVector<int> outerLutContent;
-    u_int32_t pos = 0;
-    for (int k = 0; k <= firstMatchIndex; k++) {
-      outerLutContent.push_back(k);
-    }
-    for (int k = firstMatchIndex + 1; k < nbInputs; k++) {
-      if (std::count_if(matches.begin(), matches.end(),
-                        [&](const auto &item) { return (k == item); })) {
-        outerLutContent.push_back(firstMatchIndex);
-      } else {
-        if (pos == firstMatchIndex)
-        {
-          pos++;
-        }
-        outerLutContent.push_back(pos++);
-      }
-    }
-    for (size_t k = nbInputs; k < outerLutSize; k++)
-    {
-      outerLutContent.push_back(pos);
-    }
-
-    if (verbose)
-    {
-      llvm::outs() << "Outer gamma " << op << " reindexing  \n";
-      for (int k = 0; k < nbInputs; k++) {
-        llvm::outs() << " - input " << k << " reindexed to "
-          << outerLutContent[k] << " \n";
-      }
-    }
-
-    return rewriter.create<SpecHLS::LookUpTableOp>(
-        op->getLoc(), op.getSelect().getType(), op.getSelect(),
-        rewriter.getI32ArrayAttr(outerLutContent));
-  }
-
-public:
-  LogicalResult matchAndRewrite(GammaOp op,
-                                PatternRewriter &rewriter) const override {
-
-    SmallVector<int32_t> matches;
-    u_int32_t nbInputs = op.getInputs().size();
-    if (extractMatches(op, matches).succeeded()) {
-      if (matches.size() == nbInputs) {
-        llvm::errs() << "Eliminating " << op
-                     << " because it has all the same inputs :\n";
-        op.getResult().replaceAllUsesWith(op.getInputs()[0]);
-        rewriter.eraseOp(op);
-        return success();
-      } else {
-
-        auto lut = createOuterReindexingLUT(op, matches, rewriter);
-
-        // filter out redundant input values
-        SmallVector<Value> args;
-        for (int32_t k = 0; k < nbInputs; k++) {
-          bool found = false;
-          for (u_int32_t j = 1; j < matches.size(); j++) {
-            if (k == matches[j]) {
-              found = true;
-              break;
-            }
-          }
-          if (!found) {
-            args.push_back(op.getInputs()[k]);
-          }
-        }
-        auto gamma = rewriter.create<SpecHLS::GammaOp>(
-            op->getLoc(), op->getResultTypes(), op.getName(), lut->getResult(0),
-            args);
-
-        llvm::errs() << "Simplifying  " << op << " into  " << gamma << "\n";
-        rewriter.replaceOp(op, gamma);
-        return success();
-      }
-
-    } else {
-      return failure();
-    }
-  }
-};
 struct FactorGammaInputsPass
     : public impl::FactorGammaInputsPassBase<FactorGammaInputsPass> {
 public:
@@ -697,7 +602,7 @@ public:
     RewritePatternSet patterns(ctx);
 
     patterns.insert<FactorGammaInputsPattern>(ctx);
-    patterns.insert<EliminateRedundantGammaInputs>(ctx);
+//    patterns.insert<EliminateRedundantGammaInputs>(ctx);
 
     if (failed(applyPatternsAndFoldGreedily(getOperation(),
                                             std::move(patterns)))) {
@@ -707,32 +612,9 @@ public:
     mlir::verify(getOperation(), true);
   }
 };
+
 std::unique_ptr<OperationPass<>> createFactorGammaInputsPass() {
   return std::make_unique<FactorGammaInputsPass>();
-}
-
-struct EliminateRedundantGammaInputsPass
-    : public impl::EliminateRedundantGammaInputsPassBase<
-          EliminateRedundantGammaInputsPass> {
-public:
-  void runOnOperation() override {
-    auto *ctx = &getContext();
-
-    RewritePatternSet patterns(ctx);
-
-    patterns.insert<FactorGammaInputsPattern>(ctx);
-    patterns.insert<EliminateRedundantGammaInputs>(ctx);
-
-    if (failed(applyPatternsAndFoldGreedily(getOperation(),
-                                            std::move(patterns)))) {
-      llvm::errs() << "partial conversion failed pattern  \n";
-      signalPassFailure();
-    }
-    mlir::verify(getOperation(), true);
-  }
-};
-std::unique_ptr<OperationPass<>> createEliminateRedundantGammaInputsPass() {
-  return std::make_unique<EliminateRedundantGammaInputsPass>();
 }
 
 } // namespace SpecHLS
