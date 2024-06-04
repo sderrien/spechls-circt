@@ -37,8 +37,9 @@ namespace {
 struct InlineOptimizedModulesPass
     : public SpecHLS::impl::InlineModulesBase<InlineOptimizedModulesPass> {
   void runOnOperation() override;
+  bool verbose = true;
 };
-
+Fixe
 /// A simple implementation of the `InlinerInterface` that marks all inlining as
 /// legal since we know that we only ever attempt to inline `HWModuleOp` bodies
 /// at `InstanceOp` sites.
@@ -119,8 +120,7 @@ void InlineOptimizedModulesPass::runOnOperation() {
       if (numUsesLeft == 0)
         continue;
 
-      auto hwmodule =
-          dyn_cast_or_null<HWModuleOp>(node->getModule().getOperation());
+      auto hwmodule = dyn_cast_or_null<HWModuleOp>(node->getModule().getOperation());
       // llvm::outs() << "Analyzing  "<< hwmodule.getName() << "\n";
       if (hwmodule) {
         bool inlining = false;
@@ -134,7 +134,6 @@ void InlineOptimizedModulesPass::runOnOperation() {
         }
 
         for (auto *instRecord : node->uses()) {
-          // Only inline private `HWModuleOp`s (no extern or generated modules).
 
           // Only inline at plain old HW `InstanceOp`s.
           auto inst = dyn_cast_or_null<InstanceOp>(
@@ -142,13 +141,12 @@ void InlineOptimizedModulesPass::runOnOperation() {
           if (!inst)
             continue;
 
-          // llvm::outs() << "analyzing instance " << *inst << "\n";
+          if (verbose) {
+            llvm::outs() << "Trying to inline instance  "<< inst << "\n";
+          }
           bool isLastModuleUse = --numUsesLeft == 0;
 
-          // Retrieve the symbolic name associated with the InstanceOp operand
 
-          auto symbolicNameAttr = inst.getInnerSymAttr();
-          // llvm::outs() << "inlining " << inst << "\n";
           PrefixingInliner inliner(&getContext(), inst.getInstanceName());
 
           if (failed(mlir::inlineRegion(inliner, &hwmodule.getBody(), inst,
@@ -159,10 +157,13 @@ void InlineOptimizedModulesPass::runOnOperation() {
                 << inst.getInstanceName() << "'";
             return signalPassFailure();
           }
+          if (verbose) {
+            llvm::outs() << "Inlining successfull\n";
+          }
 
           inst.erase();
-          hwmodule->erase();
         }
+        hwmodule->erase();
       }
     }
   }
