@@ -29,13 +29,125 @@
 using namespace mlir;
 
 namespace SpecHLS {
+#define SPEC_GAMMAOP_MAXOPERANDS 64
+
+mlir::ParseResult parseOperandList(mlir::OpAsmParser &parser,
+                                   mlir::OperationState &result) {
+  int nbargs = 0;
+  ParseResult nok;
+  mlir::Type type;
+
+  while (nbargs < SPEC_GAMMAOP_MAXOPERANDS) {
+    auto dataop = OpAsmParser::UnresolvedOperand();
+    nok = parser.parseOperand(dataop);
+    if (nok)
+      return mlir::failure();
+
+    nok = parser.parseColon();
+    if (nok)
+      return mlir::failure();
+
+    nok = parser.parseType(type);
+    if (nok)
+      return mlir::failure();
+
+    nbargs++;
+    if (parser.parseOptionalComma()) {
+      break;
+    }
+    if (parser.resolveOperand(dataop, type, result.operands)) {
+      return mlir::failure();
+    }
+  }
+  return mlir::success();
+}
+
+/*
+ *  ExitOP
+ *
+ *
+ */
+
+mlir::ParseResult SuperNodeOp::parse(mlir::OpAsmParser &parser,
+                                     mlir::OperationState &result) {
+  // Parse the input operand, the attribute dictionary, and the type of the
+  // input.
+  mlir::OpAsmParser::UnresolvedOperand enableOperand;
+  mlir::Region region;
+  ParseResult nok;
+  SmallVector<mlir::OpAsmParser::Argument, 16> args;
+
+  nok = parser.parseArgumentList(args,
+                                 mlir::OpAsmParser::Delimiter::OptionalParen);
+
+  nok = parser.parseOptionalLParen();
+  if (!nok) {
+    if (parseOperandList(parser, result)) {
+      return mlir::failure();
+    };
+    nok = parser.parseRParen();
+    if (nok) {
+      return mlir::failure();
+    }
+  }
+
+  //  nok = parser.parseKeyword("when");
+  //
+  //  nok = parser.parseOperand(enableOperand);
+  //  if (nok)
+  //    return mlir::failure();
+  //  if (parser.resolveOperand(firstOperand,
+  //  parser.getBuilder().getIntegerType(1),
+  //                            result.operands))
+  //    return mlir::failure();
+
+  parser.parseRegion(region, args);
+
+  NamedAttrList attrs;
+  nok = parser.parseOptionalAttrDict(attrs);
+  result.addTypes(parser.getBuilder().getIntegerType(1));
+  result.addAttributes(attrs);
+  return mlir::success();
+}
+/// The 'OpAsmPrinter' class is a stream that will allows for formatting
+/// strings, attributes, operands, types, etc.
+void SuperNodeOp::print(mlir::OpAsmPrinter &printer) {
+  //         %res = SpecHLS.delay [i32 -> i32] %a ? %b:%c:%d
+  int nbOperands = this->getOperands().size();
+  int nbResults = this->getResults().size();
+  printer.printOptionalAttrDict(this->getOperation()->getAttrs(), {"name"});
+
+  printer << "(";
+  for (int i = 1; i < nbOperands; i++) {
+    if (i > 1)
+      printer << ",";
+    auto operand = this->getOperands()[i];
+    printer << operand << ":" << operand.getType();
+  }
+  printer << ")";
+  printer << " -> ";
+  printer << "(";
+  for (int i = 1; i < nbResults; i++) {
+    if (i > 1)
+      printer << ",";
+    auto result = this->getResult(i);
+    printer << result << ":" << result.getType();
+  }
+  Region &body = (*this)->getRegion(0);
+  if (!body.empty()) {
+    printer << " ";
+    printer.printRegion(body, /*printEntryBlockArgs=*/false,
+                        /*printBlockTerminators=*/true);
+  }
+}
 
 /// The 'OpAsmPrinter' class is a stream that will allows for formatting
 /// strings, attributes, operands, types, etc.
 void GammaOp::print(mlir::OpAsmPrinter &printer) {
   //         %res = SpecHLS.gamma [i32 -> i32] %a ? %b:%c:%d
   printer << " @" << this->getName();
-  printer << " " << this->getSelect() << " ? ";
+  printer << " " << this->getSelect() << ":" << this->getSelect().getType()
+          << " ? ";
   int size = this->getInputs().size();
   for (int i = 0; i < (size - 1); i++) {
     printer << this->getInputs()[i] << ",";
@@ -50,8 +162,8 @@ void GammaOp::print(mlir::OpAsmPrinter &printer) {
 /// strings, attributes, operands, types, etc.
 void LookUpTableOp::print(mlir::OpAsmPrinter &printer) {
   //         %res = SpecHLS.gamma [i32 -> i32] %a ? %b:%c:%d
-  printer << " [" << this->getInput() << " ] :" << this->getResult().getType()
-          << "= {";
+  printer << " [" << this->getInput() << " : " << this->getInput().getType()
+          << "] :" << this->getResult().getType() << "= {";
 
   ArrayAttr content = this->getContent();
 
@@ -82,10 +194,10 @@ LogicalResult LookUpTableOp::verify() {
 
   // auto bw = getResult().getType().getIntOrFloatBitWidth();
   auto inbw = getInput().getType().getIntOrFloatBitWidth();
-  if (getContent().size() < (1 << inbw)) {
-    return emitOpError("Inconsistent LUT content with " +
-                       std::to_string(content.size()) +
-                       " entry, with address on  " + std::to_string(inbw));
+  if (getContent().size() != (1 << inbw)) {
+    return emitOpError(
+        "Inconsistent LUT content with " + std::to_string(content.size()) +
+        " entries, with address on " + std::to_string(inbw) + " bits");
   }
   auto outbw = getResult().getType().getIntOrFloatBitWidth();
   if (outbw > 32) {
@@ -121,6 +233,14 @@ mlir::ParseResult LookUpTableOp::parse(mlir::OpAsmParser &parser,
   nok = parser.parseOperand(selectOperand);
   if (nok)
     return mlir::failure();
+
+  nok = parser.parseColon();
+  if (nok)
+    return mlir::failure();
+
+  mlir::Type addrType;
+  parser.parseType(addrType);
+
   nok = parser.parseRSquare();
   if (nok)
     return mlir::failure();
@@ -173,7 +293,6 @@ mlir::ParseResult LookUpTableOp::parse(mlir::OpAsmParser &parser,
                  << nbelt;
     return mlir::failure();
   }
-  mlir::Type addrType = parser.getBuilder().getIntegerType(depth);
 
   if (parser.resolveOperand(selectOperand, addrType, result.operands))
     return mlir::failure();
@@ -186,39 +305,6 @@ mlir::ParseResult LookUpTableOp::parse(mlir::OpAsmParser &parser,
   return mlir::success();
 }
 
-#define SPEC_GAMMAOP_MAXOPERANDS 64
-
-mlir::ParseResult parseOperandList(mlir::OpAsmParser &parser,
-                                   mlir::OperationState &result) {
-  int nbargs = 0;
-  ParseResult nok;
-  mlir::Type type;
-
-  while (nbargs < SPEC_GAMMAOP_MAXOPERANDS) {
-    auto dataop = OpAsmParser::UnresolvedOperand();
-    nok = parser.parseOperand(dataop);
-    if (nok)
-      return mlir::failure();
-
-    nok = parser.parseColon();
-    if (nok)
-      return mlir::failure();
-
-    nok = parser.parseType(type);
-    if (nok)
-      return mlir::failure();
-
-    nbargs++;
-    if (parser.parseOptionalComma()) {
-      break;
-    }
-    if (parser.resolveOperand(dataop, type, result.operands)) {
-      return mlir::failure();
-    }
-  }
-  return mlir::success();
-}
-
 mlir::ParseResult GammaOp::parse(mlir::OpAsmParser &parser,
                                  mlir::OperationState &result) {
   // Parse the input operand, the attribute dictionary, and the type of the
@@ -228,7 +314,9 @@ mlir::ParseResult GammaOp::parse(mlir::OpAsmParser &parser,
       dataOperands;
 
   mlir::Type dataType;
-
+  mlir::Type userSelType;
+  mlir::Type selType;
+  bool userDefinedSelType = false;
   StringAttr id = parser.getBuilder().getStringAttr("\"undef\"");
 
   ParseResult nok = parser.parseOptionalSymbolName(id);
@@ -240,6 +328,15 @@ mlir::ParseResult GammaOp::parse(mlir::OpAsmParser &parser,
   nok = parser.parseOperand(selectOperand);
   if (nok)
     return mlir::failure();
+
+  if (!parser.parseOptionalColon()) {
+    userDefinedSelType = true;
+    parser.parseType(userSelType);
+    // llvm::errs() << "found :\n";
+  } else {
+    // llvm::errs() << "no : found\n";
+  }
+
   if (parser.parseQuestion())
     return mlir::failure();
   // llvm::errs() << "Parsed select operand \n" ;
@@ -270,8 +367,22 @@ mlir::ParseResult GammaOp::parse(mlir::OpAsmParser &parser,
   if (nok)
     return mlir::failure();
 
-  mlir::Type selType =
-      parser.getBuilder().getIntegerType(int(ceil(log(nbargs) / log(2))));
+  uint32_t selWL = int(ceil(log(nbargs) / log(2)));
+  // llvm::errs() << "Gamma with  " << nbargs << " inputs \n";
+  if (userDefinedSelType) {
+    if (userSelType.getIntOrFloatBitWidth() < selWL) {
+      parser.emitError(parser.getCurrentLocation())
+          << "Inconsistent wordlength for select input, gamma has " << nbargs
+          << " inputs, user provided select type is " << userSelType;
+      return mlir::failure();
+    } else {
+      // llvm::outs() << "Valid  wordlength for select input, gamma has " <<
+      // nbargs << " inputs, user provided type is " << userSelType;
+      selType = userSelType;
+    }
+  } else {
+    selType = parser.getBuilder().getIntegerType(selWL);
+  }
 
   // llvm::errs() << "parsed " << nbargs << " operands\n" ;
 
@@ -291,8 +402,6 @@ mlir::ParseResult GammaOp::parse(mlir::OpAsmParser &parser,
   NamedAttrList attrs;
   parser.parseOptionalAttrDict(attrs);
   result.addAttributes(attrs);
-
-  // llvm::errs() << "parsed data operands\n" ;
 
   return mlir::success();
 }
@@ -414,8 +523,6 @@ mlir::ParseResult PrintOp::parse(mlir::OpAsmParser &parser,
       break;
   }
 
-  llvm::outs() << "done1\n";
-
   if (parser.parseRParen())
     return mlir::failure();
 
@@ -427,7 +534,6 @@ mlir::ParseResult PrintOp::parse(mlir::OpAsmParser &parser,
     return failure();
   if (parser.resolveOperand(iostateOperand, ioType, result.operands))
     return mlir::failure();
-  llvm::outs() << "done2\n";
 
   if (parser.parseKeyword("when"))
     return failure();
@@ -438,21 +544,13 @@ mlir::ParseResult PrintOp::parse(mlir::OpAsmParser &parser,
   if (parser.resolveOperand(enableOperand, enableType, result.operands))
     return mlir::failure();
 
-  llvm::outs() << "done3\n";
   for (int k = 0; k < nbargs; k++) {
-    llvm::outs() << "resolving op " << k << dataOperands[k].name << ":"
-                 << typeOperands[k] << "\n";
+    // llvm::outs() << "resolving op " << k << dataOperands[k].name << ":"<<
+    // typeOperands[k]<<"\n";
     if (parser.resolveOperand(dataOperands[k], typeOperands[k],
                               result.operands))
       return mlir::failure();
   }
-  llvm::outs() << "done4\n";
-
-  for (int k = 0; k < result.operands.size(); k++) {
-    llvm::outs() << "arg:" << result.operands[k] << "\n";
-  }
-
-  llvm::outs() << "done5\n";
   result.addTypes({ioType});
 
   NamedAttrList attrs;
@@ -462,8 +560,23 @@ mlir::ParseResult PrintOp::parse(mlir::OpAsmParser &parser,
   return mlir::success();
 }
 
+void findAndReplaceAll(std::string &data, const std::string &match,
+                       const std::string &replace) {
+  // Get the first occurrence
+  size_t pos = data.find(match);
+
+  // Repeat till end is reached
+  while (pos != std::string::npos) {
+    data.replace(pos, match.size(), replace);
+
+    // Get the next occurrence from the current position
+    pos = data.find(match, pos + replace.size());
+  }
+}
 void PrintOp::print(mlir::OpAsmPrinter &printer) {
-  printer << " " << this->getFormat() << " ( ";
+  auto format = this->getFormat().str();
+  findAndReplaceAll(format, "\n", "\\n");
+  printer << " \"" << format << "\" ( ";
 
   for (int k = 2; k < this->getNumOperands(); k++) {
     if (k > 2)
@@ -541,7 +654,6 @@ mlir::ParseResult DelayOp::parse(mlir::OpAsmParser &parser,
   SmallVector<int, 3> content = {1, !noEnable, !noInit};
   auto attr = parser.getBuilder().getDenseI32ArrayAttr(content);
 
-  llvm::errs() << "Data type " << dataType << "\n";
   result.addAttribute("operandSegmentSizes", attr);
   NamedAttrList attrs;
   nok = parser.parseOptionalAttrDict(attrs);
@@ -554,27 +666,28 @@ mlir::ParseResult DelayOp::parse(mlir::OpAsmParser &parser,
                               parser.getBuilder().getIntegerType(1),
                               result.operands))
       return mlir::failure();
-    llvm::errs() << "With data  " << secondOperand.name << ":" << dataType
-                 << "\n";
-    llvm::errs() << "With enable  " << firstOperand.name << ":" << dataType
-                 << "\n";
+    //    llvm::errs() << "With data  " << secondOperand.name << ":" << dataType
+    //                 << "\n";
+    //    llvm::errs() << "With enable  " << firstOperand.name << ":" <<
+    //    dataType
+    //                 << "\n";
     if (!noInit) {
       if (parser.resolveOperand(thirdOperand, dataType, result.operands))
         return mlir::failure();
-      llvm::errs() << "With init  " << thirdOperand.name << ":" << dataType
-                   << "\n";
+      //      llvm::errs() << "With init  " << thirdOperand.name << ":" <<
+      //      dataType
+      //                   << "\n";
     }
   } else {
     if (parser.resolveOperand(firstOperand, dataType, result.operands))
       return mlir::failure();
-    llvm::errs() << "With data  " << firstOperand.name << ":" << dataType
-                 << "\n";
+    //    llvm::errs() << "With data  " << firstOperand.name << ":" << dataType
+    //                 << "\n";
   }
 
   result.addTypes({dataType});
 
   result.addAttributes(attrs);
-  llvm::errs() << "Done !\n";
   return mlir::success();
 }
 
@@ -634,14 +747,173 @@ mlir::ParseResult ExitOp::parse(mlir::OpAsmParser &parser,
       return mlir::failure();
     };
   }
+
   NamedAttrList attrs;
   nok = parser.parseOptionalAttrDict(attrs);
-
   result.addTypes(parser.getBuilder().getIntegerType(1));
-
   result.addAttributes(attrs);
-
   return mlir::success();
+}
+
+/*
+ *  ExitOP
+ *
+ *
+ */
+
+mlir::ParseResult CommitOp::parse(mlir::OpAsmParser &parser,
+                                  mlir::OperationState &result) {
+  // Parse the input operand, the attribute dictionary, and the type of the
+  // input.
+  mlir::OpAsmParser::UnresolvedOperand enableOperand;
+
+  ParseResult nok;
+  mlir::Type type;
+
+  SmallVector<OpAsmParser::UnresolvedOperand, 16> operands;
+  SmallVector<mlir::Type, 16> types;
+
+  nok = parser.parseOptionalLParen();
+  if (!nok) {
+
+    while (1) {
+      auto dataop = OpAsmParser::UnresolvedOperand();
+      nok = parser.parseOperand(dataop);
+      if (nok)
+        return mlir::failure();
+
+      nok = parser.parseColon();
+      if (nok)
+        return mlir::failure();
+
+      nok = parser.parseType(type);
+      if (nok)
+        return mlir::failure();
+
+      if (parser.parseOptionalComma()) {
+        break;
+      }
+
+      types.push_back(type);
+      operands.push_back(dataop);
+    }
+
+    nok = parser.parseRParen();
+    if (nok) {
+      return mlir::failure();
+    }
+  }
+
+  nok = parser.parseKeyword("when");
+
+  nok = parser.parseOperand(enableOperand);
+  if (nok)
+    return mlir::failure();
+  auto boolType = parser.getBuilder().getIntegerType(1);
+  if (parser.resolveOperand(enableOperand, boolType, result.operands)) {
+    return mlir::failure();
+  }
+
+  for (int i = 0; operands.size(); i++) {
+    if (parser.resolveOperand(operands[i], types[i], result.operands)) {
+      return mlir::failure();
+    }
+  }
+
+  NamedAttrList attrs;
+  nok = parser.parseOptionalAttrDict(attrs);
+  result.addTypes(parser.getBuilder().getIntegerType(1));
+  result.addAttributes(attrs);
+  return mlir::success();
+}
+
+/// The 'OpAsmPrinter' class is a stream that will allows for formatting
+/// strings, attributes, operands, types, etc.
+void CommitOp::print(mlir::OpAsmPrinter &printer) {
+  //         %res = SpecHLS.delay [i32 -> i32] %a ? %b:%c:%d
+  int nbOperands = this->getOperands().size();
+  if (nbOperands > 1) {
+    printer << "(";
+    for (int i = 1; i < nbOperands; i++) {
+      if (i > 1)
+        printer << ",";
+      auto operand = this->getOperands()[i];
+      printer << operand << ":" << operand.getType();
+    }
+    printer << ")";
+  }
+  printer << " when ";
+
+  printer << this->getOperand(0);
+}
+
+/*
+ *  ExitOP
+ *
+ *
+ */
+
+mlir::ParseResult GecosOp::parse(mlir::OpAsmParser &parser,
+                                 mlir::OperationState &result) {
+  // Parse the input operand, the attribute dictionary, and the type of the
+  // input.
+  mlir::OpAsmParser::UnresolvedOperand enableOperand;
+
+  ParseResult nok;
+  mlir::Type type;
+
+  SmallVector<OpAsmParser::UnresolvedOperand, 16> operands;
+  SmallVector<mlir::Type, 16> types;
+  std::string name;
+  if (parser.parseString(&name)) {
+    return mlir::failure();
+  }
+
+  while (1) {
+    auto dataop = OpAsmParser::UnresolvedOperand();
+    nok = parser.parseOperand(dataop);
+    if (nok)
+      return mlir::failure();
+
+    nok = parser.parseColon();
+    if (nok)
+      return mlir::failure();
+
+    nok = parser.parseType(type);
+    if (nok)
+      return mlir::failure();
+
+    if (parser.parseOptionalComma()) {
+      break;
+    }
+
+    types.push_back(type);
+    operands.push_back(dataop);
+  }
+
+  for (int i = 0; operands.size(); i++) {
+    if (parser.resolveOperand(operands[i], types[i], result.operands)) {
+      return mlir::failure();
+    }
+  }
+
+  NamedAttrList attrs;
+  nok = parser.parseOptionalAttrDict(attrs);
+  result.addTypes(parser.getBuilder().getIntegerType(1));
+  result.addAttributes(attrs);
+  return mlir::success();
+}
+
+/// The 'OpAsmPrinter' class is a stream that will allows for formatting
+/// strings, attributes, operands, types, etc.
+void GecosOp::print(mlir::OpAsmPrinter &printer) {
+    printer << this->getName() << " ";
+    for (int i = 0; i < this->getOperands().size(); i++) {
+      if (i > 1) printer << ",";
+      auto operand = this->getOperands()[i];
+      printer << operand << ":" << operand.getType();
+    }
+    printer.printOptionalAttrDict(this->getOperation()->getAttrs(),{});
 }
 
 /// The 'OpAsmPrinter' class is a stream that will allows for formatting
@@ -678,7 +950,7 @@ OpFoldResult LookUpTableOp::fold(FoldAdaptor adaptor) {
   auto content = adaptor.getContent();
   auto first = content[0];
   auto different = false;
-  for (int k = 1; k < content.size(); k++) {
+  for (u_int32_t k = 1; k < content.size(); k++) {
     if (content[k] != first) {
       different = true;
       break;
@@ -756,16 +1028,13 @@ void GammaOp::getCanonicalizationPatterns(mlir::RewritePatternSet &results,
 OpFoldResult CastOp::fold(FoldAdaptor adaptor) {
   if (hasOperandsOutsideOfBlock(getOperation()))
     return {};
+
   auto op = getOperation();
+
   if (op->getOperand(0).getType() == op->getResult(0).getType()) {
+    // llvm::outs() << "simplifying " << *op << "\n";
     return adaptor.getInput();
   }
-  //  if // mux(0, a, b) -> b
-  //  // mux(1, a, b) -> a
-  //  if (auto pred = adaptor.getSelect().dyn_cast_or_null<IntegerAttr>()) {
-  //    auto index = pred.getValue().getZExtValue();
-  //    return getInputs()[index];
-  //  }
 
   return {};
 }

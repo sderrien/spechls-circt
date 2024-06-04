@@ -40,9 +40,17 @@ include "mlir/Interfaces/LoopLikeInterface.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 include "mlir/IR/AttrTypeBase.td"
 
+// include "circt/Dialect/HW/HWAttributes.td"
+// include "circt/Dialect/HW/HWDialect.td"
+// include "circt/Dialect/HW/HWOpInterfaces.td"
+// include "circt/Dialect/HW/HWTypes.td"
+
 // Include the definition of the necessary tablegen constructs for defining
 // our attributes.
 include "mlir/IR/AttrTypeBase.td"
+
+
+
 
 
 class SpecHLS_Type<string name, string typeMnemonic, list<Trait> traits = []>
@@ -70,16 +78,31 @@ def SpecHLS_SpecArrayType : SpecHLS_Type<"SpecArray", "specmemref", [
   let hasCustomAssemblyFormat =1;
 }
 
-/*
-def SpecHLS_SeqBlock : SpecHLSOp<"block", [Pure,SingleBlock]> {
+def SpecHLS_SuperNodeOp : SpecHLSOp<"supernode", [Pure,SingleBlock,IsolatedFromAbove,RegionKindInterface,
+       SingleBlockImplicitTerminator<"CommitOp">]> {
     let arguments = (ins FlatSymbolRefAttr:$name, I1:$enable, Variadic<AnyType>:$inputs, I32Attr:$latency);
     let results = (outs Variadic<AnyType>:$outputs);
+    let regions = (region SizedRegion<1>:$region);
+
+  let extraClassDeclaration = [{
+    static ::mlir::RegionKind getRegionKind(unsigned index) {
+      return ::mlir::RegionKind::Graph;
+    }
+  }];
+     // let hasCanonicalizer = 1;
+    // let hasFolder = 1;
+  let hasCustomAssemblyFormat = 1;
+}
+
+def SpecHLS_Kernel : SpecHLSOp<"kernel", [SingleBlock]> {
+    let arguments = (ins FlatSymbolRefAttr:$name);
     let regions = (region SizedRegion<1>:$region);
     // let hasCanonicalizer = 1;
     // let hasFolder = 1;
     // let hasCustomAssemblyFormat = 1;
 }
 
+/*
 def SpecHLS_PipeBlock : SpecHLSOp<"block", [Pure,SingleBlock]> {
     let arguments = (ins FlatSymbolRefAttr:$name, I1:$enable, Variadic<AnyType>:$inputs, I32Attr:$II, I32Attr:$depth);
     let results = (outs Variadic<AnyType>:$outputs);
@@ -89,17 +112,134 @@ def SpecHLS_PipeBlock : SpecHLSOp<"block", [Pure,SingleBlock]> {
     // let hasCustomAssemblyFormat = 1;
 }
 
-def SpecHLS_RootBlock : SpecHLSOp<"block", [Pure,SingleBlock]> {
-    let arguments = (ins FlatSymbolRefAttr:$name);
-    let results = (outs );
-
-    let regions = (region SizedRegion<1>:$region);
-    // let hasCanonicalizer = 1;
-    // let hasFolder = 1;
-    // let hasCustomAssemblyFormat = 1;
-}
 */
 
+/*
+def HWModuleOp : HWModuleOpBase<"module",
+      [IsolatedFromAbove, RegionKindInterface,
+       SingleBlockImplicitTerminator<"OutputOp">]>{
+  let summary = "HW Module";
+  let description = [{
+    The "hw.module" operation represents a Verilog module, including a given
+    name, a list of ports, a list of parameters, and a body that represents the
+    connections within the module.
+  }];
+  let arguments = (ins SymbolNameAttr:$sym_name,
+                       TypeAttrOf<ModuleType>:$module_type,
+                       OptionalAttr<DictArrayAttr>:$per_port_attrs,
+                       OptionalAttr<LocationArrayAttr>:$result_locs,
+                       ParamDeclArrayAttr:$parameters,
+                       OptionalAttr<StrAttr>:$comment);
+  let results = (outs);
+  let regions = (region SizedRegion<1>:$body);
+
+  let skipDefaultBuilders = 1;
+  let builders = [
+    OpBuilder<(ins "StringAttr":$name, "ArrayRef<PortInfo>":$ports,
+                   CArg<"ArrayAttr", "{}">:$parameters,
+                   CArg<"ArrayRef<NamedAttribute>", "{}">:$attributes,
+                   CArg<"StringAttr", "{}">:$comment)>,
+    OpBuilder<(ins "StringAttr":$name, "const ModulePortInfo &":$ports,
+                   CArg<"ArrayAttr", "{}">:$parameters,
+                   CArg<"ArrayRef<NamedAttribute>", "{}">:$attributes,
+                   CArg<"StringAttr", "{}">:$comment,
+		   CArg<"bool", "true">:$shouldEnsureTerminator)>,
+    OpBuilder<(ins "StringAttr":$name, "const ModulePortInfo &":$ports,
+                   "HWModuleBuilder":$modBuilder,
+                   CArg<"ArrayAttr", "{}">:$parameters,
+                   CArg<"ArrayRef<NamedAttribute>", "{}">:$attributes,
+                   CArg<"StringAttr", "{}">:$comment)>
+  ];
+
+  let extraModuleClassDeclaration = [{
+
+    // Implement RegionKindInterface.
+    static RegionKind getRegionKind(unsigned index) { return RegionKind::Graph;}
+
+    /// Append an input with a given name and type to the port list.
+    /// If the name is not unique, a unique name is created and returned.
+    std::pair<StringAttr, BlockArgument>
+    appendInput(const Twine &name, Type ty) {
+      return insertInput(getNumInputPorts(), name, ty);
+    }
+
+    std::pair<StringAttr, BlockArgument>
+    appendInput(StringAttr name, Type ty) {
+      return insertInput(getNumInputPorts(), name.getValue(), ty);
+    }
+
+    /// Prepend an input with a given name and type to the port list.
+    /// If the name is not unique, a unique name is created and returned.
+    std::pair<StringAttr, BlockArgument>
+    prependInput(const Twine &name, Type ty) {
+      return insertInput(0, name, ty);
+    }
+
+    std::pair<StringAttr, BlockArgument>
+    prependInput(StringAttr name, Type ty) {
+      return insertInput(0, name.getValue(), ty);
+    }
+
+    /// Insert an input with a given name and type into the port list.
+    /// The input is added at the specified index.
+    std::pair<StringAttr, BlockArgument>
+    insertInput(unsigned index, StringAttr name, Type ty);
+
+    std::pair<StringAttr, BlockArgument>
+    insertInput(unsigned index, const Twine &name, Type ty) {
+      ::mlir::StringAttr nameAttr = ::mlir::StringAttr::get(getContext(), name);
+      return insertInput(index, nameAttr, ty);
+    }
+
+    /// Append an output with a given name and type to the port list.
+    /// If the name is not unique, a unique name is created.
+    void appendOutput(StringAttr name, Value value) {
+      return insertOutputs(getNumOutputPorts(), {{name, value}});
+    }
+
+    void appendOutput(const Twine &name, Value value) {
+      ::mlir::StringAttr nameAttr = ::mlir::StringAttr::get(getContext(), name);
+      return insertOutputs(getNumOutputPorts(), {{nameAttr, value}});
+    }
+
+    /// Prepend an output with a given name and type to the port list.
+    /// If the name is not unique, a unique name is created.
+    void prependOutput(StringAttr name, Value value) {
+      return insertOutputs(0, {{name, value}});
+    }
+
+    void prependOutput(const Twine &name, Value value) {
+      ::mlir::StringAttr nameAttr = ::mlir::StringAttr::get(getContext(), name);
+      return insertOutputs(0, {{nameAttr, value}});
+    }
+
+    /// Inserts a list of output ports into the port list at a specific
+    /// location, shifting all subsequent ports.  Rewrites the output op
+    /// to return the associated values.
+    void insertOutputs(unsigned index,
+                       ArrayRef<std::pair<StringAttr, Value>> outputs);
+
+    // Get the module's symbolic name as StringAttr.
+    StringAttr getNameAttr() {
+      return (*this)->getAttrOfType<StringAttr>(
+        ::mlir::SymbolTable::getSymbolAttrName());
+    }
+
+    // Get the module's symbolic name.
+    StringRef getName() {
+      return getNameAttr().getValue();
+    }
+    void getAsmBlockArgumentNames(mlir::Region &region,
+                                  mlir::OpAsmSetValueNameFn setNameFn);
+
+    /// Verifies the body of the function.
+    LogicalResult verifyBody();
+  }];
+
+  let hasCustomAssemblyFormat = 1;
+  let hasVerifier = 1;
+}
+*/
 def SpecHLS_GammaOp : SpecHLSOp<"gamma", [Pure]> {
     let summary = "Illustrates how to define an operation.";
     let description = [{
@@ -118,7 +258,7 @@ def SpecHLS_GammaOp : SpecHLSOp<"gamma", [Pure]> {
         ```
     }];
 
-    let arguments = (ins FlatSymbolRefAttr:$name, SignlessIntegerLike:$select, Variadic<AnyType>:$inputs);
+    let arguments = (ins FlatSymbolRefAttr:$name, AnyInteger   :$select, Variadic<AnyType>:$inputs);
     let results = (outs AnyType:$res);
 
     let hasCanonicalizer = 1;
@@ -159,6 +299,7 @@ def SpecHLS_AlphaOp : SpecHLSOp<"alpha", [Pure,AttrSizedOperandSegments,
     $name `:` $we `->` $memref `[` $indices `]` `,` $value attr-dict `:` type($memref)
     }];
 }
+
 
 def SpecHLS_ArrayReadOp : SpecHLSOp<"read", [Pure,
     TypesMatchWith<"value type must match element type of 'memref'","memref", "result","::llvm::cast<mlir::MemRefType>($_self).getElementType()">,
@@ -293,7 +434,7 @@ def SpecHLS_LookUpTableOp : SpecHLSOp<"lookUpTable", [Pure]> {
     let summary = "Array update operation.";
     let description = [{}];
 
-   let arguments = (ins AnySignlessInteger:$input, I32ArrayAttr:$content);
+   let arguments = (ins AnyInteger:$input, I32ArrayAttr:$content);
    let results = (outs AnyInteger:$result);
 
     let hasVerifier = 1;
@@ -327,7 +468,25 @@ def SpecHLS_ExitOp : SpecHLSOp<"exit", []> {
    let hasCustomAssemblyFormat =1;
 }
 
+def SpecHLS_CommitOp : SpecHLSOp<"commit", []> {
+    let summary = "Exit.";
+    let description = [{}];
 
+   let arguments = (ins I1:$enable, Variadic<AnyType>:$values);
+   let results = (outs );
+
+   let hasCustomAssemblyFormat =1;
+}
+
+def SpecHLS_GecosOp : SpecHLSOp<"custom", []> {
+    let summary = "Exit";
+    let description = [{}];
+
+   let arguments = (ins StrAttr:$name,Variadic<AnyType>:$values);
+   let results = (outs AnyType:$result);
+
+   let hasCustomAssemblyFormat =1;
+}
 
 def SpecHLS_SyncOp : SpecHLSOp<"sync", [Pure,
     TypesMatchWith<"Sync data/result types must match'", "result", "data", "$_self">]> {
