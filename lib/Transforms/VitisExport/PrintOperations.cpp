@@ -97,7 +97,7 @@ void printDelay(CFileContent *p, SpecHLS::DelayOp op) {
   p->appendDeclarations(type2str(op.getType()) + " " + p->getValueId(&res) +
                         ";");
 
-  p->appendDeclarations("DelayLine <" + type + "," + to_string(op.getDepth()) +
+  p->appendDeclarations("spechls::Delay<" + type + "," + to_string(op.getDepth()) +
                         "> " + p->getOpId(pop) + ";\n");
   p->appendSyncUpdate("// " + op2str(op.getOperation()));
   p->appendSyncUpdate(p->getValueId(&res) + "=" + p->getOpId(pop) +
@@ -394,6 +394,7 @@ void printOperation(CFileContent *p, Operation *op) {
       });
 }
 
+
 void printHWModule(CFileContent *p, circt::hw::HWModuleOp hwop) {
 
   auto bodyBlock = hwop.getBodyBlock();
@@ -401,6 +402,8 @@ void printHWModule(CFileContent *p, circt::hw::HWModuleOp hwop) {
   llvm::outs() << "Generating C code for " << hwop.getSymName().str() << "\n";
 
   p->appendIncludesUpdate("#include<ac_int.h>");
+  p->appendIncludesUpdate("#include<Delay.h>");
+  p->appendIncludesUpdate("#include<Mux.h>");
   p->appendIncludesUpdate("");
   //  if (hwop->getNumResults() == 0) {
   //    moduleDecl += "void ";
@@ -418,8 +421,8 @@ void printHWModule(CFileContent *p, circt::hw::HWModuleOp hwop) {
       nbout++;
     }
   }
-
   moduleDecl += "};\n\n ";
+
 
   moduleDecl += "struct " + name + "_res " + name + "(";
 
@@ -432,10 +435,10 @@ void printHWModule(CFileContent *p, circt::hw::HWModuleOp hwop) {
           (i == 0 ? "" : ", ") + type2str(arg_type) + " " + p->getValueId(&arg);
     }
   }
-  moduleDecl += ") {";
+  moduleDecl += ");";
+
   p->appendDeclarations(moduleDecl);
 
-  llvm::outs() << moduleDecl << " {\n";
 
   for (Operation &op : *bodyBlock) {
     llvm::outs() << "\t- print for " << op << "\n";
