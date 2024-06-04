@@ -39,7 +39,6 @@ struct InlineOptimizedModulesPass
   void runOnOperation() override;
   bool verbose = true;
 };
-Fixe
 /// A simple implementation of the `InlinerInterface` that marks all inlining as
 /// legal since we know that we only ever attempt to inline `HWModuleOp` bodies
 /// at `InstanceOp` sites.
