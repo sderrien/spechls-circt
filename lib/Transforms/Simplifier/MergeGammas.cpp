@@ -55,13 +55,14 @@ struct GammaMergingPattern : OpRewritePattern<GammaOp> {
           /* The pass first collects both inner and outer gamma operands and store
            * them into the muxOperands vector*/
 
+          for (int pos = 0; pos < i; pos++) {
+              muxOperands.push_back(outerGamma.getInputs()[pos]);
+          }
           for (int pos = 0; pos < nbInnerInputs; pos++) {
             muxOperands.push_back(innerGamma.getInputs()[pos]);
           }
-          for (int pos = 0; pos < nbOuterInputs; pos++) {
-            if (pos != i) {
+          for (int pos = i + 1; pos < nbOuterInputs; pos++) {
               muxOperands.push_back(outerGamma.getInputs()[pos]);
-            }
           }
 
           auto outerGammaSelType = outerGamma.getSelect().getType();
@@ -104,30 +105,30 @@ struct GammaMergingPattern : OpRewritePattern<GammaOp> {
                   llvm::errs() << "rewiring outer " << o << " to " << offset << " at " << content.size() << "\n";
               content.push_back(offset);
             }
-            if (o < outerUB)
-              offset++;
+            //if (o < outerUB)
+            offset++;
           }
 
           for (int inner = 0; inner < innerPow2Inputs; inner++) {
-            content.push_back(offset);
             if (verbose) 
                 llvm::errs() << "rewiring inner " << inner << " to " << offset << " at " << content.size() << "\n";
-            if (inner < innerUB)
-              offset++;
+            content.push_back(offset);
+            //if (inner < innerUB)
+            offset++;
           }
 
           for (int o = i + 1; o < outerPow2Inputs; o++) {
             for (int inner = 0; inner < innerPow2Inputs; inner++) {
-              content.push_back(offset);
               if (verbose) 
                   llvm::errs() << "rewiring outer " << o << " to " << offset << " at " << content.size() << "\n";
+              content.push_back(offset);
             }
-            if (o < outerUB)
-              offset++;
+            //if (o < outerUB)
+            offset++;
           }
 
 
-          int lutWidth = APInt(32, muxOperands.size()-1).getActiveBits();
+          int lutWidth = APInt(32, content.size() - 1).getActiveBits();
           if (verbose) 
               llvm::errs() << "LUT content size " << content.size() << " -> address width " << lutWidth << "\n";
 
