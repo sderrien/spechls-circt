@@ -100,7 +100,8 @@ struct GammaMergingPattern : OpRewritePattern<GammaOp> {
 
           for (int o = 0; o < i; o++) {
             for (int inner = 0; inner < innerPow2Inputs; inner++) {
-              if (verbose) llvm::outs() << "rewiring outer " << o << " to " << offset << " at " << content.size() << "\n";
+              if (verbose) 
+                  llvm::errs() << "rewiring outer " << o << " to " << offset << " at " << content.size() << "\n";
               content.push_back(offset);
             }
             if (o < outerUB)
@@ -109,7 +110,8 @@ struct GammaMergingPattern : OpRewritePattern<GammaOp> {
 
           for (int inner = 0; inner < innerPow2Inputs; inner++) {
             content.push_back(offset);
-            if (verbose) llvm::outs() << "rewiring inner " << inner << " to " << offset << " at " << content.size() << "\n";
+            if (verbose) 
+                llvm::errs() << "rewiring inner " << inner << " to " << offset << " at " << content.size() << "\n";
             if (inner < innerUB)
               offset++;
           }
@@ -117,7 +119,8 @@ struct GammaMergingPattern : OpRewritePattern<GammaOp> {
           for (int o = i + 1; o < outerPow2Inputs; o++) {
             for (int inner = 0; inner < innerPow2Inputs; inner++) {
               content.push_back(offset);
-              if (verbose) llvm::outs() << "rewiring outer " << o << " to " << offset << " at " << content.size() << "\n";
+              if (verbose) 
+                  llvm::errs() << "rewiring outer " << o << " to " << offset << " at " << content.size() << "\n";
             }
             if (o < outerUB)
               offset++;
@@ -125,10 +128,12 @@ struct GammaMergingPattern : OpRewritePattern<GammaOp> {
 
 
           int lutWidth = APInt(32, muxOperands.size()-1).getActiveBits();
-          if (verbose) llvm::outs() << "LUT content size " << content.size() << " -> address width " << lutWidth << "\n";
+          if (verbose) 
+              llvm::errs() << "LUT content size " << content.size() << " -> address width " << lutWidth << "\n";
 
           for (int o = content.size(); o < (1<<lutWidth); o++) {
-            if (verbose)  llvm::outs() << "padding lut content at " << content.size() << "with"  << offset << "\n";
+            if (verbose)
+                llvm::errs() << "padding lut content at " << content.size() << "with"  << offset << "\n";
             content.push_back(offset);
           }
 
