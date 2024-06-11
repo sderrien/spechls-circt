@@ -141,7 +141,7 @@ void InlineOptimizedModulesPass::runOnOperation() {
             continue;
 
           if (verbose) {
-            llvm::outs() << "Trying to inline instance  "<< inst << "\n";
+            llvm::errs() << "Trying to inline instance  "<< inst << "\n";
           }
           bool isLastModuleUse = --numUsesLeft == 0;
 
@@ -157,7 +157,7 @@ void InlineOptimizedModulesPass::runOnOperation() {
             return signalPassFailure();
           }
           if (verbose) {
-            llvm::outs() << "Inlining successfull\n";
+            llvm::errs() << "Inlining successfull\n";
           }
 
           inst.erase();

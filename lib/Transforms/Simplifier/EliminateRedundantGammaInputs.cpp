@@ -180,4 +180,4 @@ std::unique_ptr<OperationPass<>> createEliminateRedundantGammaInputsPass() {
   return std::make_unique<EliminateRedundantGammaInputsPass>();
 }
 
-} // SpecHLS
+} // namespace SpecHLS

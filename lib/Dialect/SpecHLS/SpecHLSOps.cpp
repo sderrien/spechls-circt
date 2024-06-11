@@ -516,8 +516,8 @@ mlir::ParseResult PrintOp::parse(mlir::OpAsmParser &parser,
       return mlir::failure();
     typeOperands.push_back(dataType);
 
-    llvm::outs() << "type " << dataType << "\n";
-    llvm::outs() << nbargs << "\n";
+    llvm::errs() << "type " << dataType << "\n";
+    llvm::errs() << nbargs << "\n";
     nbargs++;
     if (parser.parseOptionalComma())
       break;
