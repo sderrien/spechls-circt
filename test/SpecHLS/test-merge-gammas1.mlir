@@ -5,8 +5,8 @@ module {
 hw.module @SCC_0() {
 // CHECK-LABEL: SCC_0
 // CHECK-NOT: {{.*}}SpecHLS.gamma{{.*}}
-// CHECK: %{{[0-9]+}} = SpecHLS.lookUpTable {{.*}}= {0,1,2,2,3,3,4,4 }
-// CHECK: %{{[0-9]+}} = SpecHLS.gamma {{.*}}? %1,%0,%2,%3{{[ ]*}}:i1
+// CHECK: %LUT{{(_[0-9]+)?}} = SpecHLS.lookUpTable {{.*}}= {0,1,2,2,3,3,4,4 }
+// CHECK: %gamma = SpecHLS.gamma {{.*}}? %1,%0,%2,%3{{[ ]*}}:i1
 // CHECK-NOT: {{.*}}SpecHLS.gamma{{.*}}
   %0 = SpecHLS.init @x0 : i1
   %1 = SpecHLS.init @x1 : i1
@@ -23,8 +23,8 @@ hw.module @SCC_0() {
 hw.module @SCC_1() {
 // CHECK-LABEL: SCC_1
 // CHECK-NOT: {{.*}}SpecHLS.gamma{{.*}}
-// CHECK: %{{[0-9]+}} = SpecHLS.lookUpTable {{.*}}= {0,0,1,2,3,3,4,4 }
-// CHECK: %{{[0-9]+}} = SpecHLS.gamma {{.*}}? %2,%1,%0,%3{{[ ]*}}:i1
+// CHECK: %LUT{{(_[0-9]+)?}} = SpecHLS.lookUpTable {{.*}}= {0,0,1,2,3,3,4,4 }
+// CHECK: %gamma = SpecHLS.gamma {{.*}}? %2,%1,%0,%3{{[ ]*}}:i1
 // CHECK-NOT: {{.*}}SpecHLS.gamma{{.*}}
   %0 = SpecHLS.init @x0 : i1
   %1 = SpecHLS.init @x1 : i1
@@ -41,8 +41,8 @@ hw.module @SCC_1() {
 hw.module @SCC_2() {
 // CHECK-LABEL: SCC_2
 // CHECK-NOT: {{.*}}SpecHLS.gamma{{.*}}
-// CHECK: %{{[0-9]+}} = SpecHLS.lookUpTable {{.*}}= {0,0,1,1,2,3,4,4 }
-// CHECK: %{{[0-9]+}} = SpecHLS.gamma {{.*}}? %2,%3,%1,%0{{[ ]*}}:i1
+// CHECK: %LUT{{(_[0-9]+)?}} = SpecHLS.lookUpTable {{.*}}= {0,0,1,1,2,3,4,4 }
+// CHECK: %gamma = SpecHLS.gamma {{.*}}? %2,%3,%1,%0{{[ ]*}}:i1
 // CHECK-NOT: {{.*}}SpecHLS.gamma{{.*}}
   %0 = SpecHLS.init @x0 : i1
   %1 = SpecHLS.init @x1 : i1
@@ -59,9 +59,9 @@ hw.module @SCC_2() {
 hw.module @SCC_3 () {
 // CHECK-LABEL: SCC_3
 // CHECK-NOT: {{.*}}SpecHLS.gamma{{.*}}
-// CHECK: %{{[0-9]+}} = SpecHLS.lookUpTable {{.*}}= {0,1,2,2,3,3,4,4 }
-// CHECK: %{{[0-9]+}} = SpecHLS.lookUpTable {{.*}}= {0,0,1,1,2,2,3,4,5,5,6,6,7,7,8,8 }
-// CHECK: %{{[0-9]+}} = SpecHLS.gamma {{.*}}? %0,%1,%6,%3,%4{{[ ]*}}:i1
+// CHECK: %LUT = SpecHLS.lookUpTable {{.*}}= {0,1,2,2,3,3,4,4 }
+// CHECK: %LUT{{(_[0-9]+)?}} = SpecHLS.lookUpTable {{.*}}= {0,0,1,1,2,2,3,4,5,5,6,6,7,7,8,8 }
+// CHECK: %gamma = SpecHLS.gamma {{.*}}? %0,%1,%6,%3,%4{{[ ]*}}:i1
 // CHECK-NOT: {{.*}}SpecHLS.gamma{{.*}}
   %0 = SpecHLS.init @x0 : i1
   %1 = SpecHLS.init @x1 : i1

@@ -1,8 +1,8 @@
 // RUN: spechls-opt --merge-luts %s | spechls-opt | FileCheck %s
 // CHECK:module {
 // CHECK:  hw.module @bar(in %a : i3, out out0 : i32) {
-// CHECK:    %0 = SpecHLS.lookUpTable [%a : i3] :i32= {1234,3334,4564,3334,7896,3334,7896,1234 }
-// CHECK:    hw.output %0 : i32
+// CHECK:    %LUT = SpecHLS.lookUpTable [%a : i3] :i32= {1234,3334,4564,3334,7896,3334,7896,1234 }
+// CHECK:    hw.output %LUT : i32
 // CHECK:  }
 // CHECK:}
 

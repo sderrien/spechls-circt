@@ -6,7 +6,7 @@ module
   {
 // CHECK-LABEL: test1
 // CHECK-SAME: {{.*}}%{{.*}}[[ARG1:%[a-z0-9]*]]{{.*}}[[ARG2:%[a-z0-9]*]]{{.*}}
-// CHECK: [[RES:%[0-9]+]] = SpecHLS.gamma @gamma0 {{.*}} ? [[ARG1]],[[ARG2]] :i32
+// CHECK: [[RES:%gamma]] = SpecHLS.gamma @gamma0 {{.*}} ? [[ARG1]],[[ARG2]] :i32
 // CHECK: return [[RES]] : i32
     %0 = SpecHLS.gamma @gamma0 %arg0 ? %arg1, %arg2, %arg1, %arg2 : i32
     return %0 : i32
@@ -25,7 +25,7 @@ module
   {
 // CHECK-LABEL: test3
 // CHECK-SAME: {{.*}}%{{.*}}[[ARG1:%[a-z]*[0-9]+]]{{.*}}[[ARG2:%[a-z]*[0-9]+]]{{.*}}
-// CHECK: [[RES:%[0-9]+]] = SpecHLS.gamma{{.*}}? [[ARG2]],[[ARG1]] :i32
+// CHECK: [[RES:%gamma]] = SpecHLS.gamma{{.*}}? [[ARG2]],[[ARG1]] :i32
 // CHECK-NOT: {{.*}} SpecHLS.gamma {{.*}}
 // CHECK: return [[RES]]{{.*}}
     %0 = SpecHLS.gamma @gamma0 %arg0 ? %arg1, %arg2 : i32

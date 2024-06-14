@@ -58,6 +58,7 @@ class SpecHLS_Type<string name, string typeMnemonic, list<Trait> traits = []>
   let mnemonic = typeMnemonic;
 }
 
+def hasCustomSSAName : DeclareOpInterfaceMethods<OpAsmOpInterface, ["getAsmResultNames"]>;
 
 def SpecHLS_SpecArrayType : SpecHLS_Type<"SpecArray", "specmemref", [
     ShapedTypeInterface
@@ -240,7 +241,7 @@ def HWModuleOp : HWModuleOpBase<"module",
   let hasVerifier = 1;
 }
 */
-def SpecHLS_GammaOp : SpecHLSOp<"gamma", [Pure]> {
+def SpecHLS_GammaOp : SpecHLSOp<"gamma", [Pure,hasCustomSSAName]> {
     let summary = "Illustrates how to define an operation.";
     let description = [{
         The `SpecHLS.foo` operation illustrates how to define a new
@@ -266,6 +267,13 @@ def SpecHLS_GammaOp : SpecHLSOp<"gamma", [Pure]> {
 
     let hasCustomAssemblyFormat = 1;
     //let assemblyFormat = "attr-dict  `(` $select `:` type($select) `,` ($inputs^ `:` type($inputs))? `)` `:`  type($res)";
+
+    let extraClassDefinition = [{
+        void $cppClass::getAsmResultNames(llvm::function_ref<void(mlir::Value, llvm::StringRef)> setNameFn)
+        {
+            setNameFn(getResult(), "gamma");
+        }
+    }];
 }
 
 def SpecHLS_CastOp : SpecHLSOp<"cast", [Pure]> {
@@ -285,7 +293,8 @@ def SpecHLS_AlphaOp : SpecHLSOp<"alpha", [Pure,AttrSizedOperandSegments,
                      "::llvm::cast<mlir::MemRefType>($_self).getElementType()">,
     TypesMatchWith<"result type must match input 'memref' type",
                      "memref", "result",
-                     "($_self)">
+                     "($_self)">,
+    hasCustomSSAName
 ]> {
     let summary = "Array update operation.";
     let description = [{}];
@@ -297,6 +306,13 @@ def SpecHLS_AlphaOp : SpecHLSOp<"alpha", [Pure,AttrSizedOperandSegments,
 
     let assemblyFormat = [{
     $name `:` $we `->` $memref `[` $indices `]` `,` $value attr-dict `:` type($memref)
+    }];
+
+    let extraClassDefinition = [{
+        void $cppClass::getAsmResultNames(llvm::function_ref<void(mlir::Value, llvm::StringRef)> setNameFn)
+        {
+            setNameFn(getResult(), "alpha");
+        }
     }];
 }
 
@@ -319,7 +335,8 @@ def SpecHLS_ArrayReadOp : SpecHLSOp<"read", [Pure,
 def SpecHLS_MuOp : SpecHLSOp<"mu", [Pure,SameOperandsAndResultType,
     TypesMatchWith<"mu inputs type must match'",
                      "next", "init",
-                     "$_self">
+                     "$_self">,
+    hasCustomSSAName
 ]> {
     let summary = "Array update operation.";
     let description = [{}];
@@ -330,6 +347,13 @@ def SpecHLS_MuOp : SpecHLSOp<"mu", [Pure,SameOperandsAndResultType,
  let assemblyFormat = [{
     $name `:` $next `,` $init attr-dict `:` type($init)
  }];
+
+    let extraClassDefinition = [{
+        void $cppClass::getAsmResultNames(llvm::function_ref<void(mlir::Value, llvm::StringRef)> setNameFn)
+        {
+            setNameFn(getResult(), "mu");
+        }
+    }];
 
 }
 
@@ -430,7 +454,7 @@ def SpecHLS_DelayOp : SpecHLSOp<"delay", [AttrSizedOperandSegments,
 
 
 
-def SpecHLS_LookUpTableOp : SpecHLSOp<"lookUpTable", [Pure]> {
+def SpecHLS_LookUpTableOp : SpecHLSOp<"lookUpTable", [Pure,hasCustomSSAName]> {
     let summary = "Array update operation.";
     let description = [{}];
 
@@ -440,6 +464,13 @@ def SpecHLS_LookUpTableOp : SpecHLSOp<"lookUpTable", [Pure]> {
     let hasVerifier = 1;
     let hasFolder = 1;
    let hasCustomAssemblyFormat =1;
+
+   let extraClassDefinition = [{
+        void $cppClass::getAsmResultNames(llvm::function_ref<void(mlir::Value, llvm::StringRef)> setNameFn)
+        {
+            setNameFn(getResult(), "LUT");
+        }
+   }];
 }
 
 

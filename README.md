@@ -102,8 +102,8 @@ To build and launch the tests, run
 
 mkdir build && cd build
 cmake -G Ninja .. \
--DYOSYS_LIBRARY_DIRS=/usr/local/lib/yosys/ \ 
--DYOSYS_INCLUDE_DIRS=/opt/yosys/share/include/  \
+-DYOSYS_LIBRARY_DIR=/usr/local/lib/yosys/ \ 
+-DYOSYS_INCLUDE_DIR=/opt/yosys/share/include/  \
 -DMLIR_DIR=$PREFIX/lib/cmake/mlir  \
 -DCIRCT_DIR=$PREFIX/lib/cmake/mlir  \
 -DLLVM_EXTERNAL_LIT=/opt/circt/llvm/build/bin/llvm-lit  \
