@@ -187,7 +187,7 @@ circt::hw::HWModuleOp yosysBackend(MLIRContext *context,
   //Yosys::run_pass("synth -noabc ;  ");
   // #endif
   Yosys::run_pass("abc -exe \"/opt/yosys/yosys-abc\" -g AND,OR ;");
-  Yosys::run_pass("write_verilog " + string(op.getName().str()) + "_yosys.sv ;");
+  //Yosys::run_pass("write_verilog " + string(op.getName().str()) + "_yosys.sv ;");
   Yosys::run_pass("hierarchy -generate * o:Y i:*; opt; opt_clean -purge ;");
   Yosys::run_pass("clean -purge ;");
 
