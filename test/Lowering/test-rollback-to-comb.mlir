@@ -12,7 +12,7 @@ module
         %0 = SpecHLS.init @x0    : i1
         %1 = SpecHLS.init @stall : i1
         %2 = SpecHLS.init @idx   : i1
-        %3 = SpecHLS.rollback %0:i1 by %2:i1 in [3 :i32] ctrl by %1
+        %3 = SpecHLS.rollback %0:i1 by depths [ %2:i1 ] in [3 :i32] shifted if %1
         hw.output %3 : i1
     }
 
@@ -25,7 +25,7 @@ module
         %0 = SpecHLS.init @x0    : i1
         %1 = SpecHLS.init @stall : i1
         %2 = SpecHLS.init @idx   : i2
-        %3 = SpecHLS.rollback %0:i1 by %2:i2 in [3 :i32, 5 :i32] ctrl by %1
+        %3 = SpecHLS.rollback %0:i1 by depths [ %2:i2 ] in [3 :i32, 5 :i32] shifted if %1
         hw.output %3 : i1
     }
 }

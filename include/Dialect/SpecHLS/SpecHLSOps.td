@@ -370,7 +370,7 @@ def SpecHLS_RollbackOp : SpecHLSOp<"rollback", [Pure,
 //   let hasCustomAssemblyFormat =1;
 
  let assemblyFormat = [{
-    $data `:` type($data) `by` $idx `:` type($idx) `in` $depths `ctrl` `by` $stall attr-dict
+    $data `:` type($data) `by`  `depths` `[` $idx `:` type($idx) `]` `in` $depths `shifted` `if` $stall attr-dict
  }];
 
 }
