@@ -364,13 +364,13 @@ def SpecHLS_RollbackOp : SpecHLSOp<"rollback", [Pure,
     let summary = "Rollback operation.";
     let description = [{}];
 
-   let arguments = (ins AnyType:$data,AnyInteger:$command,I32ArrayAttr:$depths);
+   let arguments = (ins AnyType:$data,I1:$stall,AnyInteger:$idx,I32ArrayAttr:$depths);
    let results = (outs AnyType:$result);
 
 //   let hasCustomAssemblyFormat =1;
 
  let assemblyFormat = [{
-    $data `:` type($data) `by` $command`:` type($command) `in` $depths attr-dict
+    $data `:` type($data) `by` $idx `:` type($idx) `in` $depths `ctrl` `by` $stall attr-dict
  }];
 
 }

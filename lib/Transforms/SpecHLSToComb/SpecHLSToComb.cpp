@@ -38,6 +38,7 @@ void ConvertSpecHLSToCombPass::runOnOperation() {
   mlir::RewritePatternSet patterns(&getContext());
   patterns.insert<LookUpTableToTruthTableOpConversion>(&getContext());
   patterns.insert<GammaToMuxOpConversion>(&getContext());
+  patterns.insert<RollbackToCombConversion>(&getContext());
 
   if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns)))) {
     signalPassFailure();

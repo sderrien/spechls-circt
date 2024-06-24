@@ -31,4 +31,10 @@ struct GammaToMuxOpConversion : OpRewritePattern<GammaOp> {
                                 PatternRewriter &rewriter) const override;
 };
 
+struct RollbackToCombConversion : OpRewritePattern<RollbackOp> {
+  using OpRewritePattern<RollbackOp>::OpRewritePattern;
+  LogicalResult matchAndRewrite(RollbackOp op,
+                                PatternRewriter &rewriter) const override;
+};
+
 #endif // SPECHLS_DIALECT_SPECHLSCONVERSION_H

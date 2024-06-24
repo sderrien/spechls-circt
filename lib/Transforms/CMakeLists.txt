@@ -19,6 +19,7 @@ add_mlir_library(SpecHLSTransforms
         SpecHLSToComb/SpecHLSToComb.cpp
         SpecHLSToComb/SpecHLSLUTToComb.cpp
         SpecHLSToComb/GammaConversion.cpp
+        SpecHLSToComb/RollbackConversion.cpp
         SpecHLSToComb/LUTConversion.cpp
         VitisExport/CFileContent.cpp
         VitisExport/PrintOperations.cpp
