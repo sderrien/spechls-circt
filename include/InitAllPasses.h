@@ -26,6 +26,7 @@ inline void registerAllPasses() {
   static bool initOnce = []() {
     registerSpecHLSToCombPass();
     registerSpecHLSLUTToComb();
+    registerSpecHLSToSeq();
     registerMergeGammasPass();
     registerMergeLookUpTablesPass();
     registerFactorGammaInputsPass();
@@ -38,7 +39,7 @@ inline void registerAllPasses() {
     registerSchedulePass();
     registerConfigurationExcluderPass();
     registerExportVitisHLS();
-
+    registerGuardLogicAnalyzerPass();
     return true;
   }();
   (void)initOnce;

@@ -58,13 +58,22 @@ std::unique_ptr<mlir::Pass> createConfigurationExcluderPass();
 // std::unique_ptr<mlir::Pass> createControlOptimizer();
 
 std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>>
+createGuardLogicAnalyzerPass();
+
+std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>>
 createGroupControlNodePass();
 
 std::unique_ptr<mlir::OperationPass<circt::hw::HWModuleOp>>
 createConvertSpecHLSToCombPass();
+
+std::unique_ptr<mlir::OperationPass<circt::hw::HWModuleOp>>
+createConvertSpecHLSToSeqPass();
+
 std::unique_ptr<mlir::OperationPass<SpecHLS::LookUpTableOp>>
 createConvertSpecHLSLUTToCombPass();
+
 std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>> createExportVitisHLS();
+std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>> createExportElkJS();
 
 void registerYosysOptimizerPipeline();
 
@@ -86,6 +95,9 @@ void registerYosysOptimizerPipeline();
 #define GEN_PASS_DECL_ELIMINATEREDUNDANTGAMMAINPUTSPASS
 
 #define GEN_PASS_DEF_GROUPCONTROLNODEPASS
+
+#define GEN_PASS_DEF_GUARDLOGICANALYZERPASS
+#define GEN_PASS_DECL_GUARDLOGICANALYZERPASS
 #define GEN_PASS_DEF_GENERATECPASS
 #define GEN_PASS_DECL_YOSYSOPTIMIZER
 #define GEN_PASS_DEF_YOSYSOPTIMIZER
@@ -99,11 +111,17 @@ void registerYosysOptimizerPipeline();
 #define GEN_PASS_DECL_EXPORTVITISHLS
 #define GEN_PASS_DEF_EXPORTVITISHLS
 
+#define GEN_PASS_DECL_EXPORTELKJS
+#define GEN_PASS_DEF_EXPORTELKJS
+
 #define GEN_PASS_DECL_SPECHLSLUTTOCOMB
 #define GEN_PASS_DEF_SPECHLSLUTTOCOMB
 
 #define GEN_PASS_DECL_SPECHLSTOCOMB
 #define GEN_PASS_DEF_SPECHLSTOCOMB
+
+#define GEN_PASS_DECL_SPECHLSTOSEQ
+#define GEN_PASS_DEF_SPECHLSTOSEQ
 
 #define GEN_PASS_DECL_MOBILITYPASS
 #define GEN_PASS_DEF_MOBILITYPASS

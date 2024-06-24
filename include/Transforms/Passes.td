@@ -100,6 +100,13 @@ def GroupControlNodePass : Pass<"group-control","mlir::ModuleOp"> {
 }
 
 
+def GuardLogicAnalyzerPass : Pass<"guard-analyzer","mlir::ModuleOp"> {
+  let summary = "";
+  let description = [{}];
+  let constructor = "SpecHLS::createGuardLogicAnalyzerPass()";
+  let dependentDialects = ["circt::hw::HWDialect, mlir::arith::ArithDialect, circt::comb::CombDialect,circt::seq::SeqDialect,SpecHLS::SpecHLSDialect"];
+}
+
 
 
 def YosysOptimizer : Pass<"yosys-optimizer","mlir::ModuleOp"> {
@@ -154,9 +161,28 @@ def ExportVitisHLS : Pass<"export-vitis-hls", "mlir::ModuleOp"> {
 
 }
 
+def ExportElkJS : Pass<"export-elkjs", "mlir::ModuleOp"> {
+  let summary = "Export ElkT for ElkJS viewer .";
+
+  let constructor = "createExportElkJS()";
+
+  let description = [{ }];
+
+  let dependentDialects = ["circt::hw::HWDialect, circt::sv::SVDialect,SpecHLS::SpecHLSDialect, mlir::arith::ArithDialect, circt::comb::CombDialect,circt::seq::SeqDialect"];
+
+}
+
 def SpecHLSToComb : Pass<"lower-spechls-to-comb", "circt::hw::HWModuleOp"> {
   let summary = "Lower SPECHLS to comb";
   let constructor = "createConvertSpecHLSToCombPass()";
+  let dependentDialects = [
+    "circt::hw::HWDialect,circt::comb::CombDialect,SpecHLS::SpecHLSDialect"
+  ];
+}
+
+def SpecHLSToSeq : Pass<"lower-spechls-to-seq", "circt::hw::HWModuleOp"> {
+  let summary = "Lower SPECHLS to Seq";
+  let constructor = "createConvertSpecHLSToSeqPass()";
   let dependentDialects = [
     "circt::hw::HWDialect,circt::comb::CombDialect,SpecHLS::SpecHLSDialect"
   ];
