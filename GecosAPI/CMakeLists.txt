@@ -20,6 +20,11 @@ set(LIBSp
 set(LIBS
         ${mlir_dialect_libs}
         ${mlir_conversion_libs}
+        ${Z3_LIBRARIES}
+        ${Z3_LIBRARIES}
+        CIRCTLogicalEquivalence
+        CIRCTExportVerilog
+
         MLIROptLib
         MLIRSpecHLS
         SpecHLSScheduleDialect
@@ -127,6 +132,11 @@ add_library(gecosapi SHARED
         SpecHLSGecosAPIPasses.cpp
         BuiltinAttributes.cpp
         BuiltinTypes.cpp
+        ../lib/Transforms/Analysis/GuardLogicAnalyzer.cpp
+        ../lib/Transforms/Analysis/GuardLogicAnalyzer.cpp
+        ../lib/Transforms/Analysis/DataflowDominatorAnalysis.cpp
+        ../lib/Transforms/Analysis/PostDataflowDominatorAnalysis.cpp
+        ../lib/Transforms/SpecHLSToSeq/DelayConversion.cpp
 
 )
 #../lib/Analysis/RecMIIAnalysis.cpp) )

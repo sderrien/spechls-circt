@@ -9,6 +9,9 @@ add_compile_definitions(_YOSYS_)
 #
 # RTLILImporter.cpp
 add_mlir_library(SpecHLSTransforms
+        Analysis/TransitiveClosure.cpp
+        Analysis/GuardLogicAnalyzer.cpp
+        Common/OutliningUtils.cpp
         Simplifier/YosysOptimizer.cpp
         Simplifier/RTLILImporter.cpp
         Simplifier/FactorGammaInputs.cpp
@@ -21,6 +24,8 @@ add_mlir_library(SpecHLSTransforms
         SpecHLSToComb/GammaConversion.cpp
         SpecHLSToComb/RollbackConversion.cpp
         SpecHLSToComb/LUTConversion.cpp
+        SpecHLSToSeq/SpecHLSToSeq.cpp
+        SpecHLSToSeq/DelayConversion.cpp
         VitisExport/CFileContent.cpp
         VitisExport/PrintOperations.cpp
         VitisExport/PrintUtils.cpp
