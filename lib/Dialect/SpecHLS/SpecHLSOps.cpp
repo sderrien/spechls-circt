@@ -516,8 +516,8 @@ mlir::ParseResult PrintOp::parse(mlir::OpAsmParser &parser,
       return mlir::failure();
     typeOperands.push_back(dataType);
 
-    llvm::errs() << "type " << dataType << "\n";
-    llvm::errs() << nbargs << "\n";
+//    llvm::errs() << "type " << dataType << "\n";
+//    llvm::errs() << nbargs << "\n";
     nbargs++;
     if (parser.parseOptionalComma())
       break;
@@ -1032,8 +1032,11 @@ OpFoldResult CastOp::fold(FoldAdaptor adaptor) {
   auto op = getOperation();
 
   if (op->getOperand(0).getType() == op->getResult(0).getType()) {
-    // llvm::outs() << "simplifying " << *op << "\n";
-    return adaptor.getInput();
+    //llvm::errs() << "simplifying " << *op << " into "<< getInput() <<"\n";
+    return getInput();
+  } else {
+    //llvm::errs() << "cannot simplify " << *op << "\n";
+
   }
 
   return {};
