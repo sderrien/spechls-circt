@@ -184,7 +184,7 @@ def SpecHLSToSeq : Pass<"lower-spechls-to-seq", "circt::hw::HWModuleOp"> {
   let summary = "Lower SPECHLS to Seq";
   let constructor = "createConvertSpecHLSToSeqPass()";
   let dependentDialects = [
-    "circt::hw::HWDialect,circt::comb::CombDialect,SpecHLS::SpecHLSDialect"
+    "circt::hw::HWDialect,circt::comb::CombDialect,SpecHLS::SpecHLSDialect,circt::seq::SeqDialect"
   ];
 }
 
