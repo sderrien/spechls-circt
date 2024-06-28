@@ -176,25 +176,23 @@ circt::hw::HWModuleOp yosysBackend(MLIRContext *context,
 
   Yosys::log_error_stderr = true;
   LLVM_DEBUG(Yosys::log_streams.push_back(&std::cout));
-
+  std::stringstream cellOrder;
+  Yosys::log_streams.push_back(&cellOrder);
   auto start = std::chrono::high_resolution_clock::now();
   auto command = "read_verilog " + filename + ";";
   Yosys::run_pass(command);
-  Yosys::run_pass("dump;   ");
   Yosys::run_pass("proc; flatten;   ");
   Yosys::run_pass("opt -full;   ");
   // #ifdef USE_YOSYS_ABC
-  //Yosys::run_pass("synth -noabc ;  ");
+  Yosys::run_pass("synth -noabc ;  ");
   // #endif
-  Yosys::run_pass("abc -exe \"/opt/yosys/yosys-abc\" -g AND,OR ;");
-  //Yosys::run_pass("write_verilog " + string(op.getName().str()) + "_yosys.sv ;");
+  Yosys::run_pass("abc -g AND,OR ;");
   Yosys::run_pass("hierarchy -generate * o:Y i:*; opt; opt_clean -purge ;");
   Yosys::run_pass("clean -purge ;");
 
   auto stop = std::chrono::high_resolution_clock::now();
-  std::stringstream cellOrder;
-  Yosys::log_streams.push_back(&cellOrder);
   Yosys::run_pass("torder -stop * P*;");
+  Yosys::run_pass("write_verilog " + string(op.getName().str()) + "_yosys.sv ;");
   Yosys::log_streams.clear();
   auto topologicalOrder = getTopologicalOrder(cellOrder);
   RTLILImporter lutImporter = RTLILImporter(context);
