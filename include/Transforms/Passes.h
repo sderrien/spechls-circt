@@ -69,6 +69,9 @@ createConvertSpecHLSToCombPass();
 std::unique_ptr<mlir::OperationPass<circt::hw::HWModuleOp>>
 createConvertSpecHLSToSeqPass();
 
+std::unique_ptr<mlir::OperationPass<circt::hw::HWModuleOp>> 
+createUnrollInstrPass(); 
+
 std::unique_ptr<mlir::OperationPass<SpecHLS::LookUpTableOp>>
 createConvertSpecHLSLUTToCombPass();
 
@@ -134,6 +137,9 @@ void registerYosysOptimizerPipeline();
 
 #define GEN_PASS_DECL_AUTOPIPELINEPASS
 #define GEN_PASS_DEF_AUTOPIPELINEPASS
+
+#define GEN_PASS_DECL_UNROLLINSTRPASS
+#define GEN_PASS_DEF_UNROLLINSTRPASS
 
 #include "Transforms/Passes.h.inc"
 

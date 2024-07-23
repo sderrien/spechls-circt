@@ -52,7 +52,7 @@ public:
 void GroupControlNodePass::runOnOperation() {
   auto top = getOperation();
 
-  llvm::outs() << "GroupControlNodeImplPass on design " << top << "\n";
+  llvm::errs() << "GroupControlNodeImplPass on design " << top << "\n";
 
   auto *topLevelModule = top.getBody();
   int gammaId = 0;

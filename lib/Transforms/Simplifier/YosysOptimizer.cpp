@@ -177,7 +177,6 @@ circt::hw::HWModuleOp yosysBackend(MLIRContext *context,
   Yosys::log_error_stderr = true;
   LLVM_DEBUG(Yosys::log_streams.push_back(&std::cout));
   std::stringstream cellOrder;
-  Yosys::log_streams.push_back(&cellOrder);
   auto start = std::chrono::high_resolution_clock::now();
   auto command = "read_verilog " + filename + ";";
   Yosys::run_pass(command);
@@ -191,6 +190,7 @@ circt::hw::HWModuleOp yosysBackend(MLIRContext *context,
   Yosys::run_pass("clean -purge ;");
 
   auto stop = std::chrono::high_resolution_clock::now();
+  Yosys::log_streams.push_back(&cellOrder);
   Yosys::run_pass("torder -stop * P*;");
   Yosys::run_pass("write_verilog " + string(op.getName().str()) + "_yosys.sv ;");
   Yosys::log_streams.clear();
