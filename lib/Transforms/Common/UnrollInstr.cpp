@@ -19,6 +19,7 @@
 #include "mlir/Pass/PassManager.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/Verifier.h"
+#include "mlir/Transforms/Passes.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
@@ -115,28 +116,29 @@ namespace SpecHLS {
             void runOnOperation() override
             {
                 auto *ctx = &getContext();
-
+                auto pm = PassManager::on<ModuleOp>(ctx);
 
                 RewritePatternSet patterns(ctx);
                 patterns.add<UnrollInstrPattern>(ctx, *instrs);
 
-                if (failed(applyPatternsAndFoldGreedily(getOperation().getParentOp(),
+                if (failed(applyPatternsAndFoldGreedily(getOperation(),
                                 std::move(patterns))))
                 {
                     llvm::errs() << "failed\n";
                     signalPassFailure();
                 }
 
-               // if (failed(pm.run(getOperation().getParentOp())))
-               // {
-               //     llvm::errs() << "failed\n";
-               //     signalPassFailure();
-               // }
-
+                OpPassManager dynamicPM("builtin.module");
+                dynamicPM.addPass(createInlineModulesPass());
+                dynamicPM.addPass(createCanonicalizerPass());
+                if (failed(runPipeline(dynamicPM, getOperation())))
+                {
+                    signalPassFailure();
+                }
             }
     };
 
-    std::unique_ptr<OperationPass<hw::HWModuleOp>> createUnrollInstrPass() 
+    std::unique_ptr<OperationPass<ModuleOp>> createUnrollInstrPass() 
     {
         return std::make_unique<UnrollInstrPass>();
     }

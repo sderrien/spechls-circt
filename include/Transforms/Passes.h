@@ -63,14 +63,15 @@ createGuardLogicAnalyzerPass();
 std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>>
 createGroupControlNodePass();
 
+std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>> 
+createUnrollInstrPass(); 
+
 std::unique_ptr<mlir::OperationPass<circt::hw::HWModuleOp>>
 createConvertSpecHLSToCombPass();
 
 std::unique_ptr<mlir::OperationPass<circt::hw::HWModuleOp>>
 createConvertSpecHLSToSeqPass();
 
-std::unique_ptr<mlir::OperationPass<circt::hw::HWModuleOp>> 
-createUnrollInstrPass(); 
 
 std::unique_ptr<mlir::OperationPass<SpecHLS::LookUpTableOp>>
 createConvertSpecHLSLUTToCombPass();

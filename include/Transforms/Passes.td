@@ -218,7 +218,7 @@ def ConfigurationExcluderPass : Pass<"config-excluder", "SpecHLS::circuit"> {
    let dependentDialects = ["circt::ssp::SSPDialect"];
  }
 
- def UnrollInstrPass : Pass<"unroll-instr", "circt::hw::HWModuleOp"> {
+ def UnrollInstrPass : Pass<"unroll-instr", "mlir::ModuleOp"> {
     let summary = "Unroll the HW module's instructions flow";
     let description = [{
         Unroll the Hardware module to simulate the execution of a list of instructions by
@@ -226,7 +226,10 @@ def ConfigurationExcluderPass : Pass<"config-excluder", "SpecHLS::circuit"> {
     }];
     
     let constructor = "SpecHLS::createUnrollInstrPass()";
-    let dependentDialects = ["circt::hw::HWDialect,SpecHLS::SpecHLSDialect"];
+    let dependentDialects = [
+        "circt::hw::HWDialect",
+        "SpecHLS::SpecHLSDialect",
+        "mlir::arith::ArithDialect"];
 
     let options = [
         ListOption<"instrs", "instrs", "uint32_t", "The list of instructions">  

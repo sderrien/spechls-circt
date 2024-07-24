@@ -39,7 +39,8 @@ inline void registerAllPasses() {
     registerSchedulePass();
     registerConfigurationExcluderPass();
     registerExportVitisHLS();
-    registerGuardLogicAnalyzerPass();
+    //registerGuardLogicAnalyzerPass();
+    registerUnrollInstrPass();
     return true;
   }();
   (void)initOnce;
