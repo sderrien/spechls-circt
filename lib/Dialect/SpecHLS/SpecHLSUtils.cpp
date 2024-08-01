@@ -245,4 +245,27 @@ computeReverseTransitiveClosure(Operation *funcOp) {
 
   return useDefMap;
 }
+
+void setPragmaAttr(Operation * op, StringAttr value)
+{
+    op->setAttr("#pragma", value);
+}
+
+void removePragmaAttr(Operation * op, llvm::StringRef value)
+{
+    auto attr = op->getAttr(llvm::StringRef("#pragma"));
+    if (attr == NULL)
+        return;
+
+    auto strAttr = attr.dyn_cast<StringAttr>();
+    if (!strAttr)
+        return;
+
+    if (strAttr.getValue().contains(value))
+    {
+        op->removeAttr(llvm::StringRef("#pragma"));
+        return;
+    }
+    return;
+}
 } // namespace SpecHLS

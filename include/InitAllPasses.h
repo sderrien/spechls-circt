@@ -41,6 +41,7 @@ inline void registerAllPasses() {
     registerExportVitisHLS();
     //registerGuardLogicAnalyzerPass();
     registerUnrollInstrPass();
+    registerLongestPathPass();
     return true;
   }();
   (void)initOnce;

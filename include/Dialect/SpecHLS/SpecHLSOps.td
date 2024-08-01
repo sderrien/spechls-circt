@@ -446,7 +446,7 @@ def SpecHLS_DelayOp : SpecHLSOp<"delay", [AttrSizedOperandSegments,
    let arguments = (ins AnyType:$next,Optional<I1>:$enable,Optional<AnyType>:$init, I32Attr:$depth);
    let results = (outs AnyType:$result);
 
-    let hasCustomAssemblyFormat =1;
+   let hasCustomAssemblyFormat =1;
 
 }
 

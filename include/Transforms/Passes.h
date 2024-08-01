@@ -66,12 +66,14 @@ createGroupControlNodePass();
 std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>> 
 createUnrollInstrPass(); 
 
+std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>>
+createLongestPathPass();
+
 std::unique_ptr<mlir::OperationPass<circt::hw::HWModuleOp>>
 createConvertSpecHLSToCombPass();
 
 std::unique_ptr<mlir::OperationPass<circt::hw::HWModuleOp>>
 createConvertSpecHLSToSeqPass();
-
 
 std::unique_ptr<mlir::OperationPass<SpecHLS::LookUpTableOp>>
 createConvertSpecHLSLUTToCombPass();
@@ -141,6 +143,9 @@ void registerYosysOptimizerPipeline();
 
 #define GEN_PASS_DECL_UNROLLINSTRPASS
 #define GEN_PASS_DEF_UNROLLINSTRPASS
+
+#define GEN_PASS_DECL_LONGESTPATHPASS
+#define GEN_PASS_DEF_LONGESTPATHPASS
 
 #include "Transforms/Passes.h.inc"
 

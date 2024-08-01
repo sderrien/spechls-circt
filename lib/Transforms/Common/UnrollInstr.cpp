@@ -29,9 +29,6 @@ using namespace circt;
 using namespace SpecHLS;
 
 
-bool removePragmaAttr(Operation * op, StringRef name);
-void setPragmaAttr(Operation * op, StringAttr value);
-
 namespace SpecHLS {
 
     struct UnrollInstrPattern : OpRewritePattern<hw::HWModuleOp>
@@ -39,6 +36,7 @@ namespace SpecHLS {
         llvm::ArrayRef<unsigned int> instrs;
         using OpRewritePattern<hw::HWModuleOp>::OpRewritePattern;
 
+        // Constructor to save pass arguments
         UnrollInstrPattern(MLIRContext *ctx, const llvm::ArrayRef<unsigned int> intrs) : 
             OpRewritePattern<hw::HWModuleOp>(ctx)
         {
@@ -56,6 +54,7 @@ namespace SpecHLS {
             {
                 return failure();
             }
+            // Change tag of the module 
             removePragmaAttr(top, "UNROLL_NODE"); 
             setPragmaAttr(top, rewriter.getStringAttr("INLINE"));
             // Find all SpecHLS.mu node in the HWModuleOp
@@ -78,6 +77,8 @@ namespace SpecHLS {
                     );
             Block *body = unrolled_module.getBodyBlock();
             ImplicitLocOpBuilder builder = ImplicitLocOpBuilder::atBlockBegin(unrolled_module.getLoc(), body);
+            
+            
             SmallVector<hw::ConstantOp> cons;
             for (size_t i = 0; i < instrs.size(); i++)
             {
@@ -85,23 +86,31 @@ namespace SpecHLS {
             }
 
             auto initial = builder.create<InitOp>(list_mu[0].getInit().getType(), "initial_value");
+            setPragmaAttr(initial, rewriter.getStringAttr("MU_INITAL"));
 
             ArrayRef<Value> inputs = {cons[0], initial};
             hw::InstanceOp inst = builder.create<hw::InstanceOp>(
                     top, top.getName(), inputs
                     );
+            hw::ConstantOp enable = builder.create<hw::ConstantOp>(builder.getBoolAttr(1));
+            DelayOp delta = builder.create<DelayOp>(
+                    inst.getType(0), inst.getResult(0), enable, inst.getResult(0), 
+                    builder.getI32IntegerAttr(1));
 
             for (size_t i = 1; i < cons.size(); i++)
             {
                 hw::ConstantOp op = cons[i];
                 SmallVector<Value> in;
                 in.push_back(op);
-                in.push_back(inst.getResult(0));
+                in.push_back(delta.getResult());
                 inst = builder.create<hw::InstanceOp>(
                         top, top.getName(), ArrayRef(in)
                         );
+                delta = builder.create<DelayOp>(
+                        inst.getType(0), inst.getResult(0), enable, inst.getResult(0), 
+                        builder.getI32IntegerAttr(1));
             }
-            unrolled_module.appendOutput("out", inst.getResult(0));
+            unrolled_module.appendOutput("out", delta.getResult());
 
             return success();
         }
@@ -144,29 +153,3 @@ namespace SpecHLS {
     }
 
 } // namespace SpecHLS
-
-
-// To deplace to SpecHLSUtils.cpp
-
-void setPragmaAttr(Operation * op, StringAttr value)
-{
-    op->setAttr("#pragma", value);
-}
-
-bool removePragmaAttr(Operation * op, StringRef value)
-{
-    auto attr = op->getAttr(StringRef("#pragma"));
-    if (attr == NULL)
-        return false;
-
-    auto strAttr = attr.dyn_cast<StringAttr>();
-    if (!strAttr)
-        return false;
-
-    if (strAttr.getValue().contains(value))
-    {
-        op->removeAttr(StringRef("#pragma"));
-        return true;
-    }
-    return false;
-}

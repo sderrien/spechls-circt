@@ -236,5 +236,16 @@ def ConfigurationExcluderPass : Pass<"config-excluder", "SpecHLS::circuit"> {
     ];
 }
 
+ def LongestPathPass : Pass<"longest-path", "mlir::ModuleOp"> {
+    let summary = "Find the longest path from mu_init to hw.output";
+    let description = [{
+        TODO
+    }];
+    
+    let constructor = "SpecHLS::createLongestPathPass()";
+    let dependentDialects = [
+        "circt::hw::HWDialect",
+        "SpecHLS::SpecHLSDialect"];
+}
 
 #endif // SPECHLS_TRANSFORMS_PASSES

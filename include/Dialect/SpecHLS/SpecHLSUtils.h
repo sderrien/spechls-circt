@@ -16,4 +16,6 @@ namespace SpecHLS {
   bool hasPragmaContaining(mlir::Operation *op, llvm::StringRef keyword);
   std::string getPragma(mlir::Operation *op) ;
   bool hasConstantOutputs(circt::hw::HWModuleOp op);
+  void removePragmaAttr(mlir::Operation * op, llvm::StringRef name);
+  void setPragmaAttr(mlir::Operation * op, mlir::StringAttr value);
 }
