@@ -28,6 +28,32 @@ using namespace mlir;
 using namespace circt;
 using namespace SpecHLS;
 
+// Setup the HWModuleOp to be unrolled
+bool setupHWModule(hw::HWModuleOp op, PatternRewriter &rewriter, MuOp &first_mu)
+{
+    // Check module validity
+    if (op.getNumPorts() < 2)
+    {
+        return false;
+    }
+    if (!hasPragmaContaining(op, "UNROLL_NODE"))
+    {
+        return false;
+    }
+    
+    // Remove all MuOp
+    op.walk([&](MuOp mu) {
+            first_mu = mu;
+            // Replace the uses of the output of the mu by an op's argument
+            std::pair<StringAttr, BlockArgument> arg = op.appendInput(mu.getName(), 
+                    mu.getResult().getType());
+            rewriter.replaceOp(mu, arg.second);
+            });
+    
+    // Update pragma
+    setPragmaAttr(op, rewriter.getStringAttr("INLINE"));
+    return true;
+}
 
 namespace SpecHLS {
 
@@ -46,26 +72,11 @@ namespace SpecHLS {
         LogicalResult matchAndRewrite(hw::HWModuleOp top,
                                 PatternRewriter &rewriter) const override
         {
-            if (top.getNumPorts() < 2)
+            MuOp first_mu;
+            if (!setupHWModule(top, rewriter, first_mu))
             {
                 return failure();
             }
-            if (!hasPragmaContaining(top, "UNROLL_NODE"))
-            {
-                return failure();
-            }
-            // Change tag of the module 
-            removePragmaAttr(top, "UNROLL_NODE"); 
-            setPragmaAttr(top, rewriter.getStringAttr("INLINE"));
-            // Find all SpecHLS.mu node in the HWModuleOp
-            SmallVector<MuOp> list_mu;
-            top.walk([&](MuOp mu) {
-                    list_mu.push_back(mu);
-                    std::pair<StringAttr, BlockArgument> arg = top.appendInput(mu.getName(), 
-                            mu.getResult().getType());
-                    // replace SpecHLS.mu node by module arguments
-                    rewriter.replaceOp(mu, arg.second);
-                    });
 
             // Create the new module with all instances
             SmallVector<hw::PortInfo> ports;
@@ -78,38 +89,55 @@ namespace SpecHLS {
             Block *body = unrolled_module.getBodyBlock();
             ImplicitLocOpBuilder builder = ImplicitLocOpBuilder::atBlockBegin(unrolled_module.getLoc(), body);
             
+            auto initial = builder.create<InitOp>(first_mu.getInit().getType(), "initial_value");
+            setPragmaAttr(initial, rewriter.getStringAttr("MU_INITAL"));
             
+            // Create a constOp for each instruction
             SmallVector<hw::ConstantOp> cons;
             for (size_t i = 0; i < instrs.size(); i++)
             {
                 cons.push_back(builder.create<hw::ConstantOp>(builder.getI32IntegerAttr(instrs[i])));
             }
 
-            auto initial = builder.create<InitOp>(list_mu[0].getInit().getType(), "initial_value");
-            setPragmaAttr(initial, rewriter.getStringAttr("MU_INITAL"));
+            // Constant to drive the DelayOp between each instance 
+            hw::ConstantOp enable = builder.create<hw::ConstantOp>(builder.getBoolAttr(1));
 
-            ArrayRef<Value> inputs = {cons[0], initial};
+            // Add the first instance with the initial value
+            SmallVector<Value> inputs;
+            inputs.push_back(cons[0]);
+            inputs.push_back(initial);
             hw::InstanceOp inst = builder.create<hw::InstanceOp>(
                     top, top.getName(), inputs
                     );
-            hw::ConstantOp enable = builder.create<hw::ConstantOp>(builder.getBoolAttr(1));
-            DelayOp delta = builder.create<DelayOp>(
-                    inst.getType(0), inst.getResult(0), enable, inst.getResult(0), 
-                    builder.getI32IntegerAttr(1));
 
+            DelayOp delta = builder.create<DelayOp>(
+                    inst.getType(0),
+                    inst.getResult(0),
+                    enable,
+                    inst.getResult(0),
+                    builder.getI32IntegerAttr(1)
+                    );
+
+            // Add the other instances
             for (size_t i = 1; i < cons.size(); i++)
             {
+                inputs.clear();
                 hw::ConstantOp op = cons[i];
-                SmallVector<Value> in;
-                in.push_back(op);
-                in.push_back(delta.getResult());
+                inputs.push_back(op);
+                inputs.push_back(delta.getResult());
                 inst = builder.create<hw::InstanceOp>(
-                        top, top.getName(), ArrayRef(in)
+                        top, top.getName(), inputs
                         );
                 delta = builder.create<DelayOp>(
-                        inst.getType(0), inst.getResult(0), enable, inst.getResult(0), 
-                        builder.getI32IntegerAttr(1));
+                        inst.getType(0),
+                        inst.getResult(0),
+                        enable,
+                        inst.getResult(0),
+                        builder.getI32IntegerAttr(1)
+                        );
             }
+
+            // Plug the last delay into the output of the module
             unrolled_module.appendOutput("out", delta.getResult());
 
             return success();
@@ -153,3 +181,4 @@ namespace SpecHLS {
     }
 
 } // namespace SpecHLS
+

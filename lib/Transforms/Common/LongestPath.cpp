@@ -31,7 +31,7 @@ using namespace mlir;
 using namespace circt;
 using namespace SpecHLS;
 
-void topologicalSort(Operation * op, std::stack<Value> &stack, std::map<Operation *, bool> &visited);
+void topologicalSort(Operation * op, std::stack<Value> &stack, DenseMap<Operation *, bool> &visited);
 
 namespace SpecHLS {
 
@@ -60,8 +60,8 @@ namespace SpecHLS {
             {
                 return failure();
             }
-            std::map<Operation *, int> dists;
-            std::map<Operation *, bool> visited;
+            DenseMap<Operation *, int> dists;
+            DenseMap<Operation *, bool> visited;
             std::stack<Value> stack;
             for (Operation &op : top.getBody().front().getOperations())
             {
@@ -146,7 +146,7 @@ namespace SpecHLS {
 } // namespace SpecHLS
 
 
-void topologicalSort(Operation * op, std::stack<Value> &stack, std::map<Operation *, bool> &visited)
+void topologicalSort(Operation * op, std::stack<Value> &stack, DenseMap<Operation *, bool> &visited)
 {
     visited[op] = true;
 

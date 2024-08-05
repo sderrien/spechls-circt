@@ -10,8 +10,10 @@ add_compile_definitions(_YOSYS_)
 # RTLILImporter.cpp
 add_mlir_library(SpecHLSTransforms
         Analysis/TransitiveClosure.cpp
-        Analysis/GuardLogicAnalyzer.cpp
+        #        Analysis/GuardLogicAnalyzer.cpp
         Common/OutliningUtils.cpp
+        Common/UnrollInstr.cpp
+        Common/LongestPath.cpp
         Simplifier/YosysOptimizer.cpp
         Simplifier/RTLILImporter.cpp
         Simplifier/FactorGammaInputs.cpp
