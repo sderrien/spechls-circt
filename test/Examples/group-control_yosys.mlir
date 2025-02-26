@@ -56,11 +56,11 @@ module {
     hw.output %51 :i1
   }
 
-  hw.module @SCC_1(in %0 : i1, in %1 : i1, in %2 : i1, in %3 : i1, in %4 : i1, in %5 : i1, out out_0 : i1) {
-    %6 = comb.and %0, %1 : i1
-    %7 = comb.or %2, %3 : i1
+  hw.module @SCC_1(in %in_0 : i1, in %in_1 : i1, in %in_2 : i1, in %in_3 : i1, in %in_4 : i1, in %in_5 : i1, out out_0 : i1) {
+    %6 = comb.and %in_0, %in_1 : i1
+    %7 = comb.or %in_2, %in_3 : i1
     %8 = comb.xor %6, %7 : i1
-    %11 = SpecHLS.gamma @x %8 ? %4,%5 :i1
+    %11 = SpecHLS.gamma @x %8 ? %in_4,%in_5 :i1
     hw.output %11 :i1
   }
 

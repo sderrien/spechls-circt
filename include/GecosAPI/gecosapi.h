@@ -19,8 +19,7 @@ extern "C" {
 #endif
 void initSpecHLS();
 MlirModule parseMLIR(const char *mlir);
-void traverseRegion(MlirRegion region);
-void traverseMLIR(MlirModule module);
+void destroyMLIR(MlirModule module);
 void pass(const char *mlir);
 #ifdef __cplusplus
 }
@@ -35,14 +34,39 @@ extern "C" {
 #endif
 
 // Registration for the entire group
-MLIR_CAPI_EXPORTED void createSchedulePass(void);
-MLIR_CAPI_EXPORTED void registerSchedulePass(void);
-
 // Registration for the entire group
-MLIR_CAPI_EXPORTED void createMobilityPass(void);
+//MLIR_CAPI_EXPORTED void createSchedulePass(void);
+//MLIR_CAPI_EXPORTED void createMobilityPass(void);
+//MLIR_CAPI_EXPORTED void createConfigurationExcluderPass(void);
+
+MLIR_CAPI_EXPORTED void registerSchedulePass(void);
 MLIR_CAPI_EXPORTED void registerMobilityPass(void);
-MLIR_CAPI_EXPORTED void createConfigurationExcluderPass(void);
 MLIR_CAPI_EXPORTED void registerConfigurationExcluderPass(void);
+
+#define DECLARE_GECOS_API_PASS(name, pass) \
+  MlirPass mlirCreate##pass(); \
+  bool name(MlirModule module) ;
+
+
+DECLARE_GECOS_API_PASS(scheduleMLIR, SchedulePass)
+DECLARE_GECOS_API_PASS(canonicalizeMLIR, TransformsCanonicalizer)
+DECLARE_GECOS_API_PASS(mobilityMLIR, MobilityPass)
+
+DECLARE_GECOS_API_PASS(configurationExcluderMLIR, ConfigurationExcluderPass)
+
+DECLARE_GECOS_API_PASS(exportVitisHLS, ExportVitisHLS)
+DECLARE_GECOS_API_PASS(yosysOptimizer, YosysOptimizerPass)
+DECLARE_GECOS_API_PASS(groupControl, GroupControlNodePass)
+DECLARE_GECOS_API_PASS(groupGammas, GroupGammaNodesPass)
+DECLARE_GECOS_API_PASS(factorGammaInputs, FactorGammaInputsPass)
+DECLARE_GECOS_API_PASS(mergeLUTs, MergeLookUpTablesPass)
+DECLARE_GECOS_API_PASS(mergeGammas, MergeGammasPass)
+DECLARE_GECOS_API_PASS(mergeGammas, MergeGammasPass)
+DECLARE_GECOS_API_PASS(lowerGecosOspToComb,LowerGecosOpsToCombPass)
+
+DECLARE_GECOS_API_PASS(eliminateRedundantGammaInputs,
+                      EliminateRedundantGammaInputsPass)
+DECLARE_GECOS_API_PASS(inlineModule, InlineModulesPass)
 
 #ifdef __cplusplus
 }

@@ -6,7 +6,7 @@ module {
     %1 = comb.or %in_2, %in_3 : i1
     %2 = comb.xor %0, %1 : i1
     %3 = comb.concat %0, %1, %2 : i1, i1, i1
-    %4 = SpecHLS.lookUpTable [%3 ] :i1= {0,1,1,0,1,0,1,0 }
+    %4 = SpecHLS.lookUpTable [%3:i3 ] :i1= {0,1,1,0,1,0,1,0 }
     hw.output %4 : i1
   }
 

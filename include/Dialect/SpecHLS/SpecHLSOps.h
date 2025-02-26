@@ -16,6 +16,9 @@
 #include "mlir/IR/RegionKindInterface.h"
 #include "mlir/Interfaces/InferTypeOpInterface.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
+#include "mlir/Support/TypeID.h"
+#include "Dialect/SpecHLS/SpecHLSTypes.h"
+#include "mlir/IR/SymbolTable.h"
 
 #define GET_OP_CLASSES
 #include "Dialect/SpecHLS/SpecHLSOps.h.inc"

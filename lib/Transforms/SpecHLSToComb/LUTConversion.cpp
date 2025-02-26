@@ -14,6 +14,10 @@
 LogicalResult LookUpTableToTruthTableOpConversion::matchAndRewrite(
     LookUpTableOp op, PatternRewriter &rewriter) const {
 
+  if (op.getResult().getType().isUnsigned()) {
+    llvm::errs() << "Cannot lower LUT " << op << " with unsigned index " << "\n";
+    return LogicalResult::failure();
+  }
   auto content = op.getContent();
 #ifdef USE_TRUTH_TABLE
   SmallVector<Attribute> newContent[op.getType().getWidth()];

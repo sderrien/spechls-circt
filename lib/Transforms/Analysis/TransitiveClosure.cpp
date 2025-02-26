@@ -10,6 +10,14 @@
 #include <unordered_map>
 #include <vector>
 
+#include "Dialect/SpecHLS/SpecHLSOps.h"
+#include "Dialect/SpecHLS/SpecHLSUtils.h"
+#include "Transforms/Passes.h"
+#include "circt/Dialect/Comb/CombOps.h"
+#include "circt/Dialect/HW/HWAttributes.h"
+#include "circt/Dialect/HW/HWOpInterfaces.h"
+#include "circt/Dialect/HW/HWOps.h"
+#include "circt/Support/Namespace.h"
 
 using namespace mlir;
 
@@ -92,7 +100,19 @@ using namespace mlir;
     forwardAdjMatrix = new std::vector<llvm::BitVector>(numOps, llvm::BitVector(numOps, false));
     std::vector<llvm::BitVector> &mat = *adjMatrix;
     // Define a lambda function for filtering defining operations
-    auto filter = [](mlir::Operation *op) -> bool {
+    auto filter = [intraIteration](mlir::Operation *op) -> bool {
+      if (intraIteration) {
+        return  TypeSwitch<Operation*, bool>(op)
+            .Case<SpecHLS::MuOp>([&](auto op) {
+              return false;
+            })
+            .Case<SpecHLS::DelayOp>([&](auto op) {
+              return false;
+            })
+            .Default([&](auto op) {
+              return true;
+            });
+      }
       // Example filter: include all operations
       // Modify this lambda to filter specific defining operations as needed
       return true;

@@ -24,6 +24,7 @@
 #include "Dialect/ScheduleDialect/ScheduleDialectDialect.h"
 #include "Dialect/SpecHLS/SpecHLSDialect.h"
 #include "Dialect/SpecHLS/SpecHLSOpsDialect.cpp.inc"
+#include "Dialect/SpecHLS/SpecHLSOpsTypes.cpp.inc"
 
 #include "circt/Dialect/Comb/CombDialect.h"
 #include "circt/Dialect/HW/HWDialect.h"

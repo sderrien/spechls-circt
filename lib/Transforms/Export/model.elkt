@@ -1,0 +1,48 @@
+aspectRatio: 0.1 // only for presentation purposes
+node freePorts {
+    node n1 {
+        label "text"
+        port p1
+        port p2
+    }
+    node n2 {
+        portConstraints: FREE
+        port p1
+        port p2
+    }
+    edge n1.p1 -> n2.p1
+    edge n1.p2 -> n2.p2
+    port p0 { ^port.side: WEST }
+}
+    edge freePorts.p0 -> fixedSide.p1
+
+node fixedSide {
+    port p1 { ^port.side: WEST }
+    node n1 {
+        portConstraints: FIXED_SIDE
+        port p1 { ^port.side: WEST }
+        port p2 { ^port.side: EAST }
+    }
+    node n2 {
+        portConstraints: FIXED_SIDE
+        port p1 { ^port.side: WEST }
+        port p2 { ^port.side: NORTH }
+    }
+    edge n1.p1 -> n2.p1
+    edge n1.p2 -> n2.p2
+}
+
+node fixedPosition {
+    node n1 {
+        portConstraints: FIXED_POS
+        port p1 { layout [ position: -5, 5 ] }
+        port p2 { layout [ position: 35, 10 ] }
+    }
+    node n2 {
+        portConstraints: FIXED_SIDE
+        port p1 { layout [ position: 10, -10 ] }
+        port p2 { layout [ position: 15, 40 ] }
+    }
+    edge n1.p1 -> n2.p1
+    edge n1.p2 -> n2.p2
+}

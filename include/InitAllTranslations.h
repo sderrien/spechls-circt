@@ -1,4 +1,4 @@
-//===- InitAllTranslations.h - CIRCT Translations Registration --*- C++ -*-===//
+//===- InitAllTranslations.h - dummy Translations Registration --*- C++ -*-===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -7,7 +7,7 @@
 //===----------------------------------------------------------------------===//
 //
 // This file defines a helper to trigger the registration of all translations
-// in and out of CIRCT to the system.
+// in and out of dummy to the system.
 //
 //===----------------------------------------------------------------------===//
 

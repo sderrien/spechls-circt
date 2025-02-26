@@ -96,8 +96,8 @@ bool isControlLogicOperation(Operation *op) {
       .Case<circt::comb::XorOp>([&](auto op) { return true; })
       .Case<circt::comb::ConcatOp>([&](auto op) { return true; })
       .Case<circt::comb::ICmpOp>([&](auto op) { return true; })
-      .Default([&](auto op) {
-        llvm::errs() << "Operation " << *op << "is not synthesizable\n";
+      .Default([&](auto defop) {
+        llvm::errs() << "Operation " << *op << " in  " << *op->getParentOp() << "is not synthesizable\n";
         return false;
       });
 }

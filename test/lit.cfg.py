@@ -27,7 +27,9 @@ config.suffixes = ['.mlir']
 config.test_source_root = os.path.dirname(__file__)
 
 # test_exec_root: The root path where tests should be run.
-config.test_exec_root = os.path.join(config.SpecHLS_obj_root, 'test')
+config.test_exec_root = os.path.join(config.SpecHLS_obj_root, 'test/SpecHLS'
+                                                              ''
+                                                              '')
 
 config.substitutions.append(('%PATH%', config.environment['PATH']))
 

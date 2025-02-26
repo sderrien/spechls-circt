@@ -25,8 +25,14 @@ void getBackwardSlice(Operation &rootOp,
                             SetVector<Operation *> &slice,
                        llvm::function_ref<bool(Operation *)> filter);
 
-hw::HWModuleOp outlineSliceAsHwModule(hw::HWModuleOp hwmodule, Operation &root,
+hw::HWModuleOp  outlineSliceAsHwModule(hw::HWModuleOp hwmodule,
                                       SetVector<Operation *> &slice,
                                       SetVector<Value> &inputs,
                                       SetVector<Value> &outputs,
                                       Twine newName);
+
+SpecHLS::HTaskOp outlineSliceAsHwThread(SpecHLS::HKernelOp op,
+                                          SetVector<Operation *> &slice,
+                                          SetVector<Value> &inputs,
+                                          SetVector<Value> &outputs,
+                                          Twine newName);

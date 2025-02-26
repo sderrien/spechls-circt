@@ -1,7 +1,7 @@
 // RUN: ./cmake-build-debug/bin/spechls-opt --group-control  ./test/SpecHLS/test-group-control.mlir | ./cmake-build-debug/bin/spechls-opt --yosys-optimizer="replace-with-optimized-module=true" | FileCheck %s
 module {
   hw.module.extern @foo(in %in0 : i32, out out0 : i1)
-  hw.module @SCC_0() {
+  hw.module @SCC_0(out res : i1) {
     %false = hw.constant false
     %c32_i32 = hw.constant 32 : i32
     %c1_i32 = hw.constant 1 : i32
@@ -47,20 +47,20 @@ module {
     %38 = builtin.unrealized_conversion_cast %10 : ui32 to i32
     %39 = SpecHLS.gamma @i %12 ? %37,%38 :i32
     %40 = comb.concat %36, %24 : i1, i1
-    %41 = SpecHLS.lookUpTable [%40 ] :i2= {0,0,1,2 }
+    %41 = SpecHLS.lookUpTable [%40 :i2] :i2= {0,0,1,2 }
     %42 = comb.concat %41, %12 : i2, i1
-    %43 = SpecHLS.lookUpTable [%42 ] :i32= {0,0,1,2,2,2,2,2 }
+    %43 = SpecHLS.lookUpTable [%42:i3 ] :i2= {0,0,1,2,2,2,2,2 }
     %44 = SpecHLS.gamma @i %43 ? %37,%38,%7 :i32
     %45 = SpecHLS.def @i %44 : i32
     %46 = comb.icmp slt %39, %c32_i32 : i32
     %47 = SpecHLS.def @exit10 %1 : i1
     %48 = comb.concat %30, %18 : i1, i1
-    %49 = SpecHLS.lookUpTable [%48 ] :i2= {0,0,1,2 }
+    %49 = SpecHLS.lookUpTable [%48:i2 ] :i2= {0,0,1,2 }
     %50 = SpecHLS.gamma @guard %49 ? %1,%46,%5 :i1
     %51 = SpecHLS.def @guard %50 : i1
     %52 = SpecHLS.def @guard %51 : i1
     %53 = comb.icmp eq %false, %52 : i1
     %54 = SpecHLS.exit %53 live  %47:i1 ,%52:i1 ,%51:i1
-    hw.output
+    hw.output %53:i1
   }
 }

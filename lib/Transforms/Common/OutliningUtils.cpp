@@ -30,6 +30,7 @@
 using namespace mlir;
 using namespace circt;
 
+#define VERBOSE false
 //===----------------------------------------------------------------------===//
 // StubExternalModules Helpers
 //===----------------------------------------------------------------------===//
@@ -131,6 +132,27 @@ void getSliceInputs(mlir::SetVector<Operation *> &slice,
   }
 };
 
+mlir::Operation *cloneWithoutGraphRegion(mlir::Operation *op) {
+  // Create an OperationState to hold the cloned operation's state
+  mlir::OperationState state(op->getLoc(), op->getName());
+
+  // Copy result types
+  state.types.assign(op->result_type_begin(), op->result_type_end());
+
+  // Copy operands directly; supports use-before-def operands
+  state.operands.assign(op->operand_begin(), op->operand_end());
+
+  // Copy attributes
+  state.attributes.append(op->getAttrs().begin(), op->getAttrs().end());
+
+  // Note: We do NOT clone the regions, so we leave state.regions empty.
+
+  // Create the new operation
+  mlir::Operation *newOp = mlir::Operation::create(state);
+
+  // Return the cloned operation
+  return newOp;
+}
 /*
  * void getBackwardSlice(Operation &rootOp, SetVector<Operation *> &slice,
                       llvm::function_ref<bool(Operation *)> filter);
@@ -140,7 +162,7 @@ void getSliceInputs(mlir::SetVector<Operation *> &slice,
 // that passes those values through.  Returns the new module and the instance
 // pointing to it.
 
-hw::HWModuleOp outlineSliceAsHwModule(hw::HWModuleOp op, Operation &root,
+hw::HWModuleOp outlineSliceAsHwModule(hw::HWModuleOp op,
                                       SetVector<Operation *> &slice,
                                       SetVector<Value> &inputs,
                                       SetVector<Value> &outputs,
@@ -151,8 +173,6 @@ hw::HWModuleOp outlineSliceAsHwModule(hw::HWModuleOp op, Operation &root,
   auto builder = OpBuilder(op.getContext());
   auto moduleName = builder.getStringAttr(newName);
 
-  if (verbose) {
-  }
 
   for (auto v : outputs) {
     if (!slice.contains(v.getDefiningOp())) {
@@ -187,7 +207,6 @@ hw::HWModuleOp outlineSliceAsHwModule(hw::HWModuleOp op, Operation &root,
 
   // Create the module, setting the output path if indicated.
   auto newModule = b.create<hw::HWModuleOp>(op->getLoc(), moduleName, ports);
-  llvm::errs() << newModule;
   b.setInsertionPointToStart(newModule.getBodyBlock());
 
   IRMapping cutMap;
@@ -200,15 +219,132 @@ hw::HWModuleOp outlineSliceAsHwModule(hw::HWModuleOp op, Operation &root,
 
   op.walk<WalkOrder::PreOrder>([&](Operation *op) {
     if (slice.count(op)) {
-      auto newOp = b.cloneWithoutRegions(*op, cutMap);
+      auto newOp = b.clone(*op, cutMap);
+      cutMap.map(op,newOp);
+      for (int k=0;k<op->getNumResults();k++) {
+        cutMap.map(op->getResult(k),newOp->getResult(k));
+      }
     }
   });
+
+  /* Step to fix inconsistent SSA values due to use before def in graph region */
+  for (auto op : slice) {
+    if (auto newOp  = cutMap.lookupOrNull(op)) {
+      for (auto id =0 ; id < op->getNumOperands(); id++) {
+        auto expected = cutMap.lookupOrNull(op->getOperand(id));
+        auto observed = newOp->getOperand(id);
+        if (expected!=observed) {
+          newOp->setOperand(id,expected);
+        }
+      }
+    }
+  }
 
   for (auto port : enumerate(outputs)) {
     auto newVal = cutMap.getValueMap().at(port.value());
     outputOp->insertOperands(port.index(),newVal);
   }
-
   mlir::verify(newModule, true);
   return newModule;
 }
+
+
+
+
+SpecHLS::HTaskOp outlineSliceAsHwThread(SpecHLS::HKernelOp op,
+                                      SetVector<Operation *> &slice,
+                                      SetVector<Value> &inputs,
+                                      SetVector<Value> &outputs,
+                                      Twine newName) {
+
+  bool verbose = false;
+  OpBuilder b(op);
+
+  auto moduleName = b.getStringAttr(newName);
+
+  for (auto v : outputs) {
+    if (!slice.contains(v.getDefiningOp())) {
+      llvm::errs() << "inconsistent output " << v << " : " << *v.getDefiningOp()
+                   << " is not in the slice"
+                   << "\n";
+      return NULL;
+    }
+  }
+
+  // Create the extracted module right next to the original one.
+  SmallVector<Value> inputVector;
+
+  // Construct the ports, this is just the input Values
+  SmallVector<Type> inputTypes, outputTypes;
+  for (Value input : inputs) {
+  //  inputTypes.push_back(input.getType());
+//    inputVector.push_back(input);
+    llvm::errs() << "input: "<< input << ":" << input.getType() <<"\n";
+
+  }
+  for (Value output : outputs)
+    outputTypes.push_back(output.getType());
+
+  b.setInsertionPoint(slice.front());
+  // Create the module, setting the output path if indicated.
+  auto hthread = b.create<SpecHLS::HTaskOp>(slice.front()->getLoc(),outputTypes,moduleName, inputVector);
+  // This should be in the HTaskOp builder method
+
+  hthread.getRegion().push_back(new Block());
+
+  llvm::errs() << "input: "<< hthread << "\n";
+
+  auto body = hthread.getBody(0);
+
+  IRMapping cutMap;
+  // Update the mapping from old values to cloned values
+  for (auto port : enumerate(inputs)) {
+    auto argType =port.value().getType();
+    hthread->insertOperands(port.index(),port.value());
+
+    body->addArgument(argType,b.getUnknownLoc());
+    auto arg = body->getArgument(port.index());
+    cutMap.map(port.value(), arg);
+  }
+
+  b.setInsertionPointToEnd(body);
+  op.walk<WalkOrder::PreOrder>([&](Operation *op) {
+    if (slice.count(op)) {
+      auto newOp = b.clone(*op, cutMap);
+      cutMap.map(op,newOp);
+      for (int k=0;k<op->getNumResults();k++) {
+        cutMap.map(op->getResult(k),newOp->getResult(k));
+      }
+    }
+  });
+
+  /* Step to fix inconsistent SSA values due to use before def in graph region */
+  for (auto op : slice) {
+    if (auto newOp  = cutMap.lookupOrNull(op)) {
+      for (auto id =0 ; id < op->getNumOperands(); id++) {
+        auto expected = cutMap.lookupOrNull(op->getOperand(id));
+        auto observed = newOp->getOperand(id);
+        if (expected!=observed) {
+          newOp->setOperand(id,expected);
+        }
+      }
+    }
+  }
+
+  b.setInsertionPointAfter(&body->back());
+  auto _true = b.create<hw::ConstantOp>(hthread->getLoc(),b.getIntegerType(1),1).getResult();
+  auto outputOp = b.create<SpecHLS::CommitOp>(body->back().getLoc());
+  //body->push_back(outputOp);
+
+  outputOp->insertOperands(0,_true);
+  for (auto port : enumerate(outputs)) {
+    auto newVal = cutMap.lookupOrNull(port.value());
+    outputOp->insertOperands(port.index()+1,newVal);
+  }
+
+  llvm::errs() << "HThread :\n"<< *hthread->getParentOp() << "\n";
+  mlir::verify(hthread, true);
+  llvm::errs() << "Verified  :\n";
+  return hthread;
+}
+

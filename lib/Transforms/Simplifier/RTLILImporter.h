@@ -37,7 +37,7 @@ namespace mlir {
 //   cell $abc$167$auto$blifparse.cc:525:parse_blif$170
 //   cell $abc$167$auto$blifparse.cc:525:parse_blif$169
 //   cell $abc$167$auto$blifparse.cc:525:parse_blif$171
-llvm::SmallVector<std::string, 10>
+llvm::SmallVector<Yosys::RTLIL::IdString, 10>
 getTopologicalOrder(std::stringstream &torderOutput);
 
 class RTLILImporter {
@@ -48,7 +48,7 @@ public:
   // config. cellOrdering is a topologically sorted list of cells that can be
   // used to sequentially create the MLIR representation.
   circt::hw::HWModuleOp
-  importModule(circt::hw::HWModuleOp op, Yosys::RTLIL::Module *module, const llvm::SmallVector<std::string, 10> &cellOrdering);
+  importModule(circt::hw::HWModuleOp op, Yosys::RTLIL::Design *design, const llvm::SmallVector<Yosys::RTLIL::IdString, 10> &cellOrdering);
 
 protected:
   // cellToOp converts an RTLIL cell to an MLIR operation.
@@ -57,13 +57,12 @@ protected:
                                     mlir::ImplicitLocOpBuilder &b) ;
 
   // Returns a list of RTLIL cell inputs.
-   llvm::SmallVector<Yosys::RTLIL::SigSpec, 4>
-  getInputs(Yosys::RTLIL::Cell *cell) ;
+   llvm::SmallVector<Yosys::RTLIL::SigSpec, 4> getInputs(Yosys::RTLIL::Cell *cell) ;
 
   // Returns an RTLIL cell output.
-   Yosys::RTLIL::SigSpec getOutput(Yosys::RTLIL::Cell *cell) ;
+   Yosys::RTLIL::SigSpec getOutput(Yosys::RTLIL::Cell *cell);
 
-private:
+ private:
   mlir::MLIRContext *context;
 
   llvm::StringMap<mlir::Value> wireNameToValue;

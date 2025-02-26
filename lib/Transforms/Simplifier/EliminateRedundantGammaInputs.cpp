@@ -71,16 +71,26 @@ private:
      * inputs that have hoisted out to the inner Gamma
      */
     auto nbInputs = op.getInputs().size();
-    size_t outerLutSize = 1 << (size_t)(std::ceil(log(nbInputs) / log(2)));
+    size_t outerLutSize = 1<<(op.getSelect().getType().getWidth());
+    if (verbose) {
+      llvm::errs() << "## createOuterReindexingLUT for " << op << "\n";
+      if (verbose) {
+        llvm::errs() << "Reindexing Outer gamma " << op << "  \n";
+        llvm::errs() << "LUT size  " << outerLutSize << "  \n";
+        llvm::errs() << "outerLutSize  " << outerLutSize << "  \n";
+      }
+    }
     auto firstMatchIndex = matches[0];
     SmallVector<int> outerLutContent;
-    u_int32_t pos = 0;
     for (int k = 0; k <= firstMatchIndex; k++) {
       outerLutContent.push_back(k);
+      if (verbose) llvm::errs() << " - input " << op.getInputs()[k] << " reindexed to " << k << " \n";
     }
+    u_int32_t pos = firstMatchIndex;
     for (int k = firstMatchIndex + 1; k < nbInputs; k++) {
       if (std::count_if(matches.begin(), matches.end(),
                         [&](const auto &item) { return (k == item); })) {
+        if (verbose) llvm::errs() << " - input " << op.getInputs()[k] << " reindexed to " << firstMatchIndex << " \n";
         outerLutContent.push_back(firstMatchIndex);
       } else {
         if (pos == firstMatchIndex)
@@ -88,24 +98,40 @@ private:
           pos++;
         }
         outerLutContent.push_back(pos++);
+        if (verbose) {
+          if (k<op.getInputs().size())
+            llvm::errs() << " - input " << op.getInputs()[k] << " reindexed to " << outerLutContent[k] << " \n";
+        }
       }
     }
     for (size_t k = nbInputs; k < outerLutSize; k++)
     {
       outerLutContent.push_back(pos);
+      if (verbose)
+          llvm::errs() << " - don't care input " << k << " reindexed to " << outerLutContent[k] << " \n";
     }
 
-    if (verbose)
-    {
-      llvm::outs() << "Outer gamma " << op << " reindexing  \n";
-      for (int k = 0; k < nbInputs; k++) {
-        llvm::outs() << " - input " << k << " reindexed to "
-          << outerLutContent[k] << " \n";
-      }
+    size_t maxIndex = 0;
+    for (size_t k = 0; k < outerLutContent.size(); k++)  {
+      if (outerLutContent[k]>maxIndex)
+        maxIndex = outerLutContent[k];
     }
+
+    auto selWidth = op.getSelect().getType().getWidth();
+    int lutOutputWidth = APInt(32, maxIndex).getActiveBits();
+
+    if (lutOutputWidth<selWidth) {
+      if (verbose) {
+        llvm::errs() << "Resizing lut address witdh from "<< selWidth <<" to "<< lutOutputWidth <<" (maxIndex = "<< maxIndex<<"\n";
+      }
+
+      selWidth=lutOutputWidth;
+    }
+
+    auto lutAddressType = rewriter.getIntegerType(selWidth);
 
     return rewriter.create<SpecHLS::LookUpTableOp>(
-        op->getLoc(), op.getSelect().getType(), op.getSelect(),
+        op->getLoc(), lutAddressType, op.getSelect(),
         rewriter.getI32ArrayAttr(outerLutContent));
   }
 
@@ -123,6 +149,9 @@ public:
         rewriter.eraseOp(op);
         return success();
       } else {
+        if (verbose) {
+          llvm::errs() << "## eliminate redundant gamma inputs " << op << "\n";
+        }
 
         auto lut = createOuterReindexingLUT(op, matches, rewriter);
 
@@ -140,11 +169,13 @@ public:
             args.push_back(op.getInputs()[k]);
           }
         }
-        auto gamma = rewriter.create<SpecHLS::GammaOp>(
-            op->getLoc(), op->getResultTypes(), op.getName(), lut->getResult(0),
-            args);
+        auto gamma = rewriter.create<SpecHLS::GammaOp>(op->getLoc(), op->getResultTypes(), op.getName(), lut->getResult(0), args);
+        if (verbose) {
+          llvm::errs() << "Simplifying  " << op << " into  " << gamma << "\n";
+        }
 
-        llvm::errs() << "Simplifying  " << op << " into  " << gamma << "\n";
+        verify(gamma);
+
         rewriter.replaceOp(op, gamma);
         return success();
       }

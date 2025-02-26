@@ -24,7 +24,6 @@
 #include "llvm/ADT/PostOrderIterator.h"
 #include "llvm/Support/Debug.h"
 
-#define DEBUG_TYPE "arc-inline-modules"
 
 namespace circt {} // namespace circt
 
@@ -157,7 +156,7 @@ void InlineOptimizedModulesPass::runOnOperation() {
             return signalPassFailure();
           }
           if (verbose) {
-            llvm::errs() << "Inlining successfull\n";
+            llvm::errs() << "Inlining successfully\n";
           }
 
           inst.erase();

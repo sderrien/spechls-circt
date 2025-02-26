@@ -87,6 +87,18 @@
 
 extern "C" {
 
+void mlirGetPassName(MlirPass p) {
+//  auto pass = unwrap(p);
+//  if (pass!=NULL) {
+//    auto name = pass->getName();
+//    if (name.data()!=NULL) {
+//      llvm::errs() << name  ;
+//
+//    }
+//  }
+  //return const_cast<char *>(pass->getName().data());
+}
+
 // FIXME move into include file
 MlirPass mlirCreateSchedulePass(void);
 MlirPass mlirCreateMobilityPass(void);
@@ -94,11 +106,14 @@ MlirPass mlirCreateLocalMobilityPass(void);
 MlirPass mlirCreateConfigurationExcluderPass(void);
 MlirPass mlirCreateExportVitisHLS(void);
 
+                                      \
+
+
 #define DEFINE_GECOS_API_PASS(name, pass)                                      \
                                                                                \
   MlirPass mlirCreate##pass();                                                 \
                                                                                \
-  MlirModule name(MlirModule module) {                                         \
+  bool name(MlirModule module) {                                               \
     MlirContext ctx = mlirModuleGetContext(module);                            \
     MlirOperation op = mlirModuleGetOperation(module);                         \
     MlirPassManager pm = wrap(                                                 \
@@ -107,14 +122,17 @@ MlirPass mlirCreateExportVitisHLS(void);
     MlirPass p = mlirCreate##pass();                                           \
     mlirPassManagerAddOwnedPass(pm, p);                                        \
     MlirLogicalResult success = mlirPassManagerRunOnOp(pm, op);                \
-    if (mlirLogicalResultIsFailure(success)) {                                 \
-      fprintf(stderr, "Unexpected failure running pass manager.\n");           \
-      exit(EXIT_FAILURE);                                                      \
-    }                                                                          \
     mlirPassManagerDestroy(pm);                                                \
-    return module;                                                             \
+    if (mlirLogicalResultIsFailure(success)) {                                 \
+      fprintf(stderr, "Unexpected failure running pass\n");              \
+      mlirGetPassName(p);                                                       \
+      return false;                                                            \
+    }  else {                                                                  \
+      return true;                                                             \
+    }                                                                          \
   }
 
+DEFINE_GECOS_API_PASS(cse, CSEPass)
 DEFINE_GECOS_API_PASS(scheduleMLIR, SchedulePass)
 DEFINE_GECOS_API_PASS(canonicalizeMLIR, TransformsCanonicalizer)
 DEFINE_GECOS_API_PASS(mobilityMLIR, MobilityPass)
@@ -124,10 +142,13 @@ DEFINE_GECOS_API_PASS(configurationExcluderMLIR, ConfigurationExcluderPass)
 DEFINE_GECOS_API_PASS(exportVitisHLS, ExportVitisHLS)
 DEFINE_GECOS_API_PASS(yosysOptimizer, YosysOptimizerPass)
 DEFINE_GECOS_API_PASS(groupControl, GroupControlNodePass)
+DEFINE_GECOS_API_PASS(groupGammas, GroupGammaNodesPass)
 DEFINE_GECOS_API_PASS(factorGammaInputs, FactorGammaInputsPass)
 DEFINE_GECOS_API_PASS(mergeLUTs, MergeLookUpTablesPass)
 DEFINE_GECOS_API_PASS(mergeGammas, MergeGammasPass)
-DEFINE_GECOS_API_PASS(eliminateRedundantGammaInputs,
-                      EliminateRedundantGammaInputsPass)
+DEFINE_GECOS_API_PASS(eliminateRedundantGammaInputs, EliminateRedundantGammaInputsPass)
 DEFINE_GECOS_API_PASS(inlineModule, InlineModulesPass)
+DEFINE_GECOS_API_PASS(lowerGecosOpsToCombPass, LowerGecosOpsToCombPass)
+DEFINE_GECOS_API_PASS(wordLengthPropagation, WordLengthPropagationPass)
+DEFINE_GECOS_API_PASS(topoSort, TopoSortPass)
 }

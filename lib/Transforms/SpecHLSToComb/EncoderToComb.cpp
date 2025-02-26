@@ -9,6 +9,7 @@
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
+#include "mlir/IR/Verifier.h"           // from @llvm-project
 
 namespace SpecHLS {
 #define GEN_PASS_DEF_SPECHLSTOCOMB
@@ -61,8 +62,9 @@ struct EncoderToCombOpConversion : OpConversionPattern<EncoderOp> {
       auto value = concatInput->getResults()[0];
       auto selBit = rewriter.create<LookUpTableOp>(loc, resType, value, content);
     }
-
+    //auto castBit = rewriter.create<CastOp>(loc, op.getData(), 0, width.getZExtValue() / 2);
     auto extractBit = rewriter.create<ExtractOp>(loc, op.getData(), 0, width.getZExtValue() / 2);
+    mlir::verify(extractBit);
 
     return success();
   }

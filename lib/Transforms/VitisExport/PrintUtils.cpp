@@ -140,7 +140,7 @@ std::string attr2str(Attribute attr) {
   llvm::errs() << attr << "\n";
 
   // Get the TypeID of the attribute
-  mlir::TypeID typeID = attr.getTypeID();
+  //mlir::TypeID typeID = attr.getTypeID();
 
   // Print the TypeID as a string
   llvm::outs() << "Attribute " << attr << "\n";

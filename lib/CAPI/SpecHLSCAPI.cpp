@@ -25,6 +25,7 @@
 
 #include "Dialect/ScheduleDialect/ScheduleDialectOps.cpp.inc"
 #include "Dialect/SpecHLS/SpecHLSOpsDialect.cpp.inc"
+#include "Dialect/SpecHLS/SpecHLSOpsTypes.cpp.inc"
 #include "mlir/CAPI/Registration.h"
 
 #include "mlir-c/BuiltinAttributes.h"

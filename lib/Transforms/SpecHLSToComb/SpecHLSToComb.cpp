@@ -17,6 +17,7 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include <mlir/Transforms/GreedyPatternRewriteDriver.h>
+#include "mlir/IR/Verifier.h"           // from @llvm-project
 
 //===----------------------------------------------------------------------===//
 // Convert Comb to Arith pass
@@ -38,11 +39,13 @@ void ConvertSpecHLSToCombPass::runOnOperation() {
   mlir::RewritePatternSet patterns(&getContext());
   patterns.insert<LookUpTableToTruthTableOpConversion>(&getContext());
   patterns.insert<GammaToMuxOpConversion>(&getContext());
-  patterns.insert<RollbackToCombConversion>(&getContext());
+//  patterns.insert<RollbackToCombConversion>(&getContext());
 
   if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns)))) {
     signalPassFailure();
   }
+
+  mlir::verify(op, true);
 }
 
 namespace SpecHLS {

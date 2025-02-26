@@ -1,0 +1,10 @@
+//
+// Created by Steven on 13/01/2025.
+//
+
+#ifndef SPECHLS_DIALECT_COMBSIMULATOR_H
+#define SPECHLS_DIALECT_COMBSIMULATOR_H
+
+class CombSimulator {};
+
+#endif // SPECHLS_DIALECT_COMBSIMULATOR_H

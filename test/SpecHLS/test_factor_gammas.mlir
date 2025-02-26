@@ -9,7 +9,7 @@
 
 module {
 
-   hw.module private @test1(in %sel : i3, in %a : i32, in %b: i32,in %c: i32,in %d:i32,in %e: i32,in %f:i32,in %g:i32, out out0 :i32) attributes {"#pragma" = "INLINE"}
+   hw.module private @test1(in %sel : ui3, in %a : i32, in %b: i32,in %c: i32,in %d:i32,in %e: i32,in %f:i32,in %g:i32, out out0 :i32) attributes {"#pragma" = "INLINE"}
    {
        %1 = comb.xor %a,%b :i32
        %2 = comb.add %c,%d :i32

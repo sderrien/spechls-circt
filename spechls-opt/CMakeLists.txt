@@ -76,46 +76,46 @@ function(llvm_update_compile_flags_custom name)
     set_property(TARGET ${name} APPEND PROPERTY COMPILE_DEFINITIONS ${LLVM_COMPILE_DEFINITIONS})
 endfunction()
 
-
-get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
-get_property(conversion_libs GLOBAL PROPERTY MLIR_CONVERSION_LIBS)
-set(LIBS
-        ${dialect_libs}
-        ${conversion_libs}
-        ${Z3_LIBRARIES}
-        CIRCTLogicalEquivalence
-        CIRCTExportVerilog
-        MLIROptLib
-        MLIRSpecHLS
-        SpecHLSScheduleDialect
-        SpecHLSTransforms
-        CIRCTLogicalEquivalence
-        CIRCTSeq
-        CIRCTComb
-        CIRCTHW
-        CIRCTDC
-        CIRCTFIRRTL
-        CIRCTHWArith
-        CIRCTComb
-        CIRCTSeq
-        CIRCTSSP
-        CIRCTCombTransforms
-        CIRCTFIRRTL
-        CIRCTFSM
-        CIRCTHW
-        CIRCTHWArith
-        CIRCTScheduling
-        CIRCTHWArith
-        CIRCTSystemC
-        CIRCTTransforms
-        CIRCTSupport
-        yosys
-)
+#
+#get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
+#get_property(conversion_libs GLOBAL PROPERTY MLIR_CONVERSION_LIBS)
+#set(LIBS
+#        ${dialect_libs}
+#        ${conversion_libs}
+#        ${Z3_LIBRARIES}
+#        CIRCTLogicalEquivalence
+#        CIRCTExportVerilog
+#        MLIROptLib
+#        MLIRSpecHLS
+#        SpecHLSScheduleDialect
+#        SpecHLSTransforms
+#        CIRCTLogicalEquivalence
+#        CIRCTSeq
+#        CIRCTComb
+#        CIRCTHW
+#        CIRCTDC
+#        CIRCTFIRRTL
+#        CIRCTHWArith
+#        CIRCTComb
+#        CIRCTSeq
+#        CIRCTSSP
+#        CIRCTCombTransforms
+#        CIRCTFIRRTL
+#        CIRCTFSM
+#        CIRCTHW
+#        CIRCTHWArith
+#        CIRCTScheduling
+#        CIRCTHWArith
+##        CIRCTSystemC
+#        CIRCTTransforms
+#        CIRCTSupport
+#        yosys
+#)
 add_llvm_executable(spechls-opt spechls-opt.cpp)
 
 
 llvm_update_compile_flags(spechls-opt)
 
-target_link_libraries(spechls-opt PRIVATE ${LIBS})
+target_link_libraries(spechls-opt PUBLIC spechlsbase)
 target_compile_options(spechls-opt PUBLIC -fexceptions)
 install(TARGETS spechls-opt DESTINATION bin)

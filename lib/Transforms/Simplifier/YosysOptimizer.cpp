@@ -10,6 +10,9 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <filesystem>
+#include <iostream>
+namespace fs = std::filesystem;
 
 #include "RTLILImporter.h"
 #include "circt/Dialect/HW/HWAttributes.h"
@@ -162,8 +165,11 @@ private:
 
 circt::hw::HWModuleOp yosysBackend(MLIRContext *context,
                                    circt::hw::HWModuleOp op, bool replace) {
+
+
   delete Yosys::yosys_design;
   Yosys::yosys_design = new Yosys::RTLIL::Design;
+
 
   string filename = string(op.getName().str()) + ".sv";
   if (!std::filesystem::exists(filename)) {
@@ -174,42 +180,59 @@ circt::hw::HWModuleOp yosysBackend(MLIRContext *context,
 
   string toplevel = string(op.getName().str());
 
-  Yosys::log_error_stderr = true;
-  LLVM_DEBUG(Yosys::log_streams.push_back(&std::cout));
-  std::stringstream cellOrder;
+  if (VERBOSE) llvm::errs() << "Synthesizing  " << toplevel << " using yosys\n";
+  Yosys::log_error_stderr = false;
+  //LLVM_DEBUG(Yosys::log_streams.push_back(&std::cout));
   auto start = std::chrono::high_resolution_clock::now();
   auto command = "read_verilog " + filename + ";";
   Yosys::run_pass(command);
+  if (VERBOSE) llvm::errs() << "  - [OK] read_verilog\n";
+
   Yosys::run_pass("proc; flatten;   ");
   Yosys::run_pass("opt -full;   ");
+  if (VERBOSE) llvm::errs() << "  - [OK] proc/opt\n";
   // #ifdef USE_YOSYS_ABC
   Yosys::run_pass("synth -noabc ;  ");
+  if (VERBOSE) llvm::errs() << "  - [OK] synth -noabc\n";
   // #endif
   Yosys::run_pass("abc -g AND,OR ;");
+  if (VERBOSE) llvm::errs() << "  - [OK] abc -g AND,OR \n";
   Yosys::run_pass("hierarchy -generate * o:Y i:*; opt; opt_clean -purge ;");
   Yosys::run_pass("clean -purge ;");
+  if (VERBOSE) llvm::errs() << "  - [OK] clean/purge \n";
 
   auto stop = std::chrono::high_resolution_clock::now();
+
+  //Yosys::run_pass("write_verilog " + string(op.getName().str()) + "_yosys.sv ;");
+
+  std::stringstream cellOrder;
   Yosys::log_streams.push_back(&cellOrder);
   Yosys::run_pass("torder -stop * P*;");
-  Yosys::run_pass("write_verilog " + string(op.getName().str()) + "_yosys.sv ;");
   Yosys::log_streams.clear();
+  if (VERBOSE) llvm::errs() << "  - [OK] generating cell list in topological order \n";
+
   auto topologicalOrder = getTopologicalOrder(cellOrder);
   RTLILImporter lutImporter = RTLILImporter(context);
   Yosys::RTLIL::Design *design = Yosys::yosys_get_design();
 
+  if (VERBOSE) llvm::errs() << "Yosys synthesis successfull for " << op.getSymName() << " \n";
+
   circt::hw::HWModuleOp submodule =
-      lutImporter.importModule(op, design->top_module(), topologicalOrder);
+      lutImporter.importModule(op, design, topologicalOrder);
 
   auto duration =
       std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
 
-  llvm::errs() << "Yosys synthesis successfull for " << op.getSymName() << " ("
+  if (VERBOSE) llvm::errs() << "Yosys RTLIL import successfull for " << op.getSymName() << " ("
                << duration.count() << " ms) \n";
 #ifdef VERBOSE
   if (VERBOSE)
     llvm::errs() << "Created module : " << submodule << "  \n";
 #endif
+
+  // Never shut down !
+  // Yosys::yosys_shutdown();
+
   return submodule;
 }
 
@@ -312,10 +335,10 @@ void YosysOptimizer::runOnOperation() {
       // Add a pass on the top-level module operation.
       dynamicPM.addPass(SpecHLS::createConvertSpecHLSToCombPass());
       if (failed(runPipeline(dynamicPM, op))) {
-        llvm::errs() << "   - error for " << op.getSymName() << " \n";
+        llvm::errs() << "   - SpecHLSToCombPass error for " << op.getSymName() << " \n";
       } else {
         if (VERBOSE)
-          llvm::errs() << "   - module lowered to \n" << op << " \n";
+          llvm::errs() << "   - SpecHLSToCombPass lowering to \n" << op << " \n";
       }
     }
 
@@ -356,7 +379,6 @@ void YosysOptimizer::runOnOperation() {
     return WalkResult::advance();
   });
 
-  clone->dump();
   circt::exportSplitVerilog(clone, "./");
 
   SmallVector<std::string> optimizedModules;
@@ -370,12 +392,13 @@ void YosysOptimizer::runOnOperation() {
       }
     });
   });
-  Yosys::yosys_setup();
   // applique Yosys sur tout les HWModules restants
   auto result = clone->walk([&](circt::hw::HWModuleOp op) {
     if (VERBOSE)
       llvm::errs() << "Optimizing module " << op.getName() << "\n";
+
     circt::hw::HWModuleOp optimized = yosysBackend(&getContext(), op, replace);
+
 
     if (optimized == NULL) {
       op.emitError("Yosys synthesis failed for module " + op.getName());
@@ -398,7 +421,6 @@ void YosysOptimizer::runOnOperation() {
     }
     return WalkResult::advance();
   });
-  Yosys::yosys_shutdown();
 
   if (result.wasInterrupted()) {
     if (VERBOSE)
@@ -412,6 +434,8 @@ void YosysOptimizer::runOnOperation() {
 namespace SpecHLS {
 
 std::unique_ptr<mlir::Pass> createYosysOptimizerPass() {
+  Yosys::yosys_setup();
+
   return std::make_unique<mlir::YosysOptimizer>();
 }
 

@@ -7,7 +7,8 @@ module {
 
    {
     %index = arith.index_cast %address : i32 to index
-    %31 = SpecHLS.alpha @x : %enable -> %array[%index], %value : memref<16xi32>
+    %mu = SpecHLS.mu @x : %array, %array : memref<16xi32>
+    %31 = SpecHLS.alpha @x : %enable -> %mu[%index], %value : memref<16xi32>
     hw.output %31 :memref<16xi32>
   }
 }
