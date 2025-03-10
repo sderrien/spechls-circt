@@ -1,0 +1,16 @@
+node {0} {
+	layout [ size: {1}, {2} ]
+	nodeLabels.placement: "[H_LEFT, V_TOP, OUTSIDE]"
+	portConstraints: FIXED_ORDER
+	label L{0}: "{2}" {
+		layout [ size: {4}, {5} ]
+	}
+	{3}
+}
+
+
+	port P{0} {
+		layout [ size: {8}, {8}]
+		index: 0
+		side: WEST
+	}

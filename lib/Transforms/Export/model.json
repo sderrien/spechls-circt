@@ -1,0 +1,216 @@
+{
+  "id": "n0",
+  "children": [
+    {
+      "id": "freePorts",
+      "ports": [
+        {
+          "id": "p0",
+          "layoutOptions": {
+            "port.side": "WEST"
+          }
+        }
+      ],
+      "children": [
+        {
+          "id": "n1",
+          "labels": [
+            {
+              "text": "text"
+            }
+          ],
+          "ports": [
+            {
+              "id": "p1"
+            },
+            {
+              "id": "p2"
+            }
+          ]
+        },
+        {
+          "id": "n2",
+          "ports": [
+            {
+              "id": "p1_g232597"
+            },
+            {
+              "id": "p2_g097276"
+            }
+          ],
+          "layoutOptions": {
+            "portConstraints": "FREE"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1",
+          "sources": [
+            "p1"
+          ],
+          "targets": [
+            "p1_g232597"
+          ]
+        },
+        {
+          "id": "e2",
+          "sources": [
+            "p2"
+          ],
+          "targets": [
+            "p2_g097276"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fixedSide",
+      "ports": [
+        {
+          "id": "p1_g929633",
+          "layoutOptions": {
+            "port.side": "WEST"
+          }
+        }
+      ],
+      "children": [
+        {
+          "id": "n1_g370496",
+          "ports": [
+            {
+              "id": "p1_g026701",
+              "layoutOptions": {
+                "port.side": "WEST"
+              }
+            },
+            {
+              "id": "p2_g702777",
+              "layoutOptions": {
+                "port.side": "EAST"
+              }
+            }
+          ],
+          "layoutOptions": {
+            "portConstraints": "FIXED_SIDE"
+          }
+        },
+        {
+          "id": "n2_g742300",
+          "ports": [
+            {
+              "id": "p1_g669315",
+              "layoutOptions": {
+                "port.side": "WEST"
+              }
+            },
+            {
+              "id": "p2_g165374",
+              "layoutOptions": {
+                "port.side": "NORTH"
+              }
+            }
+          ],
+          "layoutOptions": {
+            "portConstraints": "FIXED_SIDE"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e3",
+          "sources": [
+            "p1_g026701"
+          ],
+          "targets": [
+            "p1_g669315"
+          ]
+        },
+        {
+          "id": "e4",
+          "sources": [
+            "p2_g702777"
+          ],
+          "targets": [
+            "p2_g165374"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fixedPosition",
+      "children": [
+        {
+          "id": "n1_g367595",
+          "ports": [
+            {
+              "id": "p1_g434122",
+              "x": -5.0,
+              "y": 5.0
+            },
+            {
+              "id": "p2_g125797",
+              "x": 35.0,
+              "y": 10.0
+            }
+          ],
+          "layoutOptions": {
+            "portConstraints": "FIXED_POS"
+          }
+        },
+        {
+          "id": "n2_g433733",
+          "ports": [
+            {
+              "id": "p1_g827523",
+              "x": 10.0,
+              "y": -10.0
+            },
+            {
+              "id": "p2_g823050",
+              "x": 15.0,
+              "y": 40.0
+            }
+          ],
+          "layoutOptions": {
+            "portConstraints": "FIXED_SIDE"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e5",
+          "sources": [
+            "p1_g434122"
+          ],
+          "targets": [
+            "p1_g827523"
+          ]
+        },
+        {
+          "id": "e6",
+          "sources": [
+            "p2_g125797"
+          ],
+          "targets": [
+            "p2_g823050"
+          ]
+        }
+      ]
+    }
+  ],
+  "layoutOptions": {
+    "aspectRatio": "0.1"
+  },
+  "edges": [
+    {
+      "id": "e0",
+      "sources": [
+        "p0"
+      ],
+      "targets": [
+        "p1_g929633"
+      ]
+    }
+  ]
+}

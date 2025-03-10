@@ -1,0 +1,6 @@
+J'ai un dialecte MLIR (SpechHLS disponible sur Github) avec une opération qui permet de décrire des LookUpTable (LookUpTableOp), et dont la sématique est "out=Table[in]" où in est une entrée sur n bits, out est une sortie sur m bit, et table est un ArrayAttr sur nxm bits. Je voudrais une passe MLIR qui simplifie les LookUpTable en les fusionnant lorsque qu'elles sont composée. Plus precisemnt en construisant la table Table_3 issue de la composiiton de Table_2 et Table_1 via l'equivalent out2=Table_3[in]] <=> out2Table_2[out_1=Table_1[in]]. Explique mois ta démarche et produite moi :
+
+- La déclaration de la passe au format TableGen, celle-ci operant sur des ModuleOp
+- Le code C+ complet le la passe avec des commentaires détaillés expliquant chauque étape de la simplification
+- Des exemples de tests ou l'opération est utilisée dans des operation hwModuleOp issues du dialact Hw de Circt
+- Un documentation technique de la pass au format md, qui explique ce que fait la psse, et ls points clés de son implemnetaion (avec ses éventuel bugs ou cas limites)

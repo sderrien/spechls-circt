@@ -1,0 +1,51 @@
+hw.module @SCC_0() {
+	%t1 = SpecHLS.init @exit10 : i1 
+	%t2 = SpecHLS.mu @exit10 : %t1,%t3 : i1 
+	%t4 = SpecHLS.init @guard : i1 
+	%t5 = SpecHLS.mu @guard : %t4,%t6 : i1 
+	%t7 = SpecHLS.init @guard : i1 
+	%t8 = SpecHLS.mu @guard : %t7,%t9 : i1 
+	%t10 = SpecHLS.init @i : i32 
+	%t11 = SpecHLS.mu @i : %t10,%t12 : i32 
+	%t13 = builtin.unrealized_conversion_cast %t5 : i1 to i1 
+	%t14 = builtin.unrealized_conversion_cast %t8 : i1 to i1 
+	%t15 = hw.constant 1 : i32 
+	%t16 = hw.constant 32 : i32 
+	%t17 = comb.and %t13,%t14 : i1 
+	%t18 = comb.and %t13,%t14 : i1 
+	%t19_0 = hw.constant 0 : i1
+	%t19 = comb.icmp eq %t19_0,%t14: i1
+	%t20 = comb.and %t13,%t19 : i1 
+	%t21 = comb.and %t13,%t14 : i1 
+	%t22 = comb.or  %t20,%t21 : i1 
+	%t23_0 = hw.constant 0 : i1
+	%t23 = comb.icmp eq %t23_0,%t14: i1
+	%t24 = comb.and %t13,%t23 : i1 
+	%t25 = comb.and %t13,%t14 : i1 
+	%t26 = comb.or  %t24,%t25 : i1 
+	%t27_0 = hw.constant 0 : i1
+	%t27 = comb.icmp eq %t27_0,%t14: i1
+	%t28 = comb.and %t13,%t27 : i1 
+	%t29 = comb.and %t13,%t14 : i1 
+	%t30 = comb.or  %t28,%t29 : i1 
+	%t31 = SpecHLS.init @i : i32 
+	%t32 = builtin.unrealized_conversion_cast %t11 : i32 to i32 
+	%t33 = comb.add %t32,%t15 : i32 
+	%t34 = comb.icmp slt %t33,%t16 : i32 
+	%t35 = builtin.unrealized_conversion_cast %t34 : i1 to i1 
+	%t36 = SpecHLS.gamma @exit10 %t17 ? %t2,%t35 :i1 
+	%t37 = SpecHLS.gamma @exit10 %t22 ? %t2,%t36 :i1 
+	%t3 = SpecHLS.def @exit10 %t37: i1 
+	%t38 = SpecHLS.gamma @guard %t26 ? %t8,%t36 :i1 
+	%t9 = SpecHLS.def @guard %t38: i1 
+	%t6 = SpecHLS.def @guard %t9: i1 
+	%t39 = builtin.unrealized_conversion_cast %t6 : i1 to i1 
+	%t40_0 = hw.constant 0 : i1
+	%t40 = comb.icmp eq %t40_0,%t39: i1
+	SpecHLS.exit %t40  live  %t3:i1,%t6:i1,%t9:i1,%t12:i32   
+	%t41 = builtin.unrealized_conversion_cast %t33 : i32 to i32 
+	%t42 = SpecHLS.gamma @i %t18 ? %t11,%t41 :i32 
+	%t43 = SpecHLS.gamma @i %t30 ? %t11,%t42 :i32 
+	%t12 = SpecHLS.def @i %t43: i32 
+}
+

@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hierarchical Graph with ElkJs and D3.js</title>
+    <script src="https://cdn.jsdelivr.net/npm/elkjs/lib/elk.bundled.js"></script>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        svg {
+            display: block;
+            margin: 0 auto;
+            background-color: #f8f8f8;
+        }
+        .port {
+            stroke: black;
+            stroke-width: 1px;
+        }
+        .link {
+            stroke: black;
+            stroke-width: 2px;
+            fill: none;
+        }
+        .context-menu {
+            position: absolute;
+            background-color: white;
+            border: 1px solid black;
+            display: none;
+            z-index: 1000;
+        }
+        .context-menu ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+        .context-menu ul li {
+            padding: 8px;
+            cursor: pointer;
+        }
+        .context-menu ul li:hover {
+            background-color: #ddd;
+        }
+    </style>
+</head>
+<body>
+
+<h1 style="text-align: center;">Hierarchical Graph with ElkJs and D3.js</h1>
+<div style="text-align: center;">
+    <input type="file" id="fileInput" accept="application/json" />
+    <button id="loadButton">Load Graph</button>
+</div>
+<svg width="1200" height="800"></svg>
+<div id="context-menu" class="context-menu">
+    <ul>
+        <li onclick="contextCommand('Node Command 1')">Node Command 1</li>
+
+    </ul>
+</div>
+
+<script>
+    const elk = new ELK();
+
+    function getRandomColor() {
+        const letters = '0123456789ABCDEF';
+        let color = '#';
+        for (let i = 0; i < 6; i++) {
+            color += letters[Math.floor(Math.random() * 16)];
+        }
+        return color;
+    }
+
+    function assignColors(nodes) {
+        nodes.forEach(node => {
+            node.color = getRandomColor();
+            if (node.children) {
+                assignColors(node.children);
+            }
+        });
+    }
+
+    function drawGraph(layout) {
+        const svg = d3.select("svg").html("")
+            .call(d3.zoom().on("zoom", event => {
+                svg.attr("transform", event.transform);
+            }))
+            .append("g");
+
+        const drawNodesAndLinks = (parent, nodes, links) => {
+            nodes.forEach(node => {
+                const nodeGroup = parent.append("g")
+                    .attr("transform", `translate(${node.x}, ${node.y})`)
+                    .on("click", function(event) {
+                        event.stopPropagation();
+                        d3.selectAll(".node-rect").attr("fill", d => d.color);
+                        d3.select(this).select("rect").attr("fill", "black");
+                    })
+                    .on("contextmenu", function(event) {
+                        event.preventDefault();
+                        showContextMenu(event.pageX, event.pageY);
+                    });
+
+                nodeGroup.append("rect")
+                    .attr("width", node.width)
+                    .attr("height", node.height)
+                    .attr("fill", node.color)
+                    .attr("stroke", "black")
+                    .attr("class", "node-rect");
+
+                nodeGroup.append("text")
+                    .attr("class", "node-label")
+                    .attr("x", node.width / 2)
+                    .attr("y", node.height / 2)
+                    .attr("dy", ".35em")
+                    .attr("text-anchor", "middle")
+                    .text(node.labels[0].text);
+
+                if (node.ports) {
+                    node.ports.forEach(port => {
+                        nodeGroup.append("rect")
+                            .attr("x", port.x)
+                            .attr("y", port.y)
+                            .attr("width", port.width)
+                            .attr("height", port.height)
+                            .attr("fill", node.color)
+                            .attr("stroke", "black")
+                            .attr("class", "port");
+                    });
+                }
+
+                if (node.children) {
+                    drawNodesAndLinks(nodeGroup, node.children, node.edges || []);
+                }
+            });
+
+            parent.selectAll("path")
+                .data(links)
+                .enter()
+                .append("path")
+                .attr("d", d => {
+                    const sections = d.sections || [];
+                    return sections.map(section => {
+                        const points = [section.startPoint]
+                            .concat(section.bendPoints || [])
+                            .concat([section.endPoint]);
+                        return d3.line().x(p => p.x).y(p => p.y)(points);
+                    }).join(" ");
+                })
+                .attr("class", "link")
+                .attr("marker-end", "url(#arrowhead)");
+        };
+
+        svg.append("defs").append("marker")
+            .attr("id", "arrowhead")
+            .attr("viewBox", "-0 -5 10 10")
+            .attr("refX", 10)
+            .attr("refY", 0)
+            .attr("orient", "auto")
+            .attr("markerWidth", 6)
+            .attr("markerHeight", 6)
+            .attr("xoverflow", "visible")
+            .append("svg:path")
+            .attr("d", "M 0,-5 L 10 ,0 L 0,5")
+            .attr("fill", "#000")
+            .style("stroke", "none");
+
+        drawNodesAndLinks(svg, layout.children, layout.edges);
+    }
+
+    document.getElementById("loadButton").addEventListener("click", () => {
+        const fileInput = document.getElementById("fileInput");
+        const file = fileInput.files[0];
+
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const graph = JSON.parse(event.target.result);
+                    assignColors(graph.children);
+                    elk.layout(graph)
+                        .then(layout => {
+                            drawGraph(layout);
+                        })
+                        .catch(console.error);
+                } catch (error) {
+                    alert("Error parsing JSON: " + error.message);
+                }
+            };
+            reader.readAsText(file);
+        } else {
+            alert("Please select a file first.");
+        }
+    });
+
+    function showContextMenu(x, y) {
+        d3.select("#context-menu")
+            .style("left", `${x}px`)
+            .style("top", `${y}px`)
+            .style("display", "block");
+    }
+
+    function hideContextMenu() {
+        d3.select("#context-menu")
+            .style("display", "none");
+    }
+
+    function contextCommand(command) {
+        console.log(command);
+        hideContextMenu();
+    }
+
+    d3.select("body").on("click", function() {
+        if (d3.event.target.closest("#context-menu") === null) {
+            hideContextMenu();
+            d3.selectAll(".node-rect").attr("fill", d => d.color);
+        }
+    });
+</script>
+
+</body>
+</html>

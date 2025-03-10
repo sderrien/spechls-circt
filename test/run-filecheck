@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# Vérifier qu'un seul argument est passé
+if [ "$#" -ne 1 ]; then
+    echo "Usage: $0 nom_du_fichier"
+    exit 1
+fi
+
+nom_fichier="$1"
+
+# Lire la première ligne du fichier
+premiere_ligne=$(head -n 1 "$nom_fichier")
+
+# Extraire la commande après "// RUN:"
+commande=$(echo "$premiere_ligne" | sed -n 's#//[ ]*RUN:[ ]*##p')
+
+# Vérifier si une commande a été trouvée
+if [ -z "$commande" ]; then
+    echo "Aucune commande trouvée dans la première ligne de $nom_fichier"
+    exit 1
+fi
+
+# Remplacer %s par le nom du fichier
+commande=$(echo "$commande" | sed "s#%s#$nom_fichier#g")
+
+# Exécuter la commande
+eval "$commande"
+

@@ -1,0 +1,132 @@
+// RUN: spechls-opt --eliminiate-redundant-gamma-inputs %s | spechls-opt | FileCheck %s
+module {
+  hw.module.extern @encoder_5(in %in_0 : i1, in %in_1 : i1, in %in_2 : i1, in %in_3 : i1, in %in_4 : i1, out out0 : ui3)
+  hw.module @SCC_0() {
+    %c6_i32 = hw.constant 6 : i32
+    %c5_i32 = hw.constant 5 : i32
+    %c12_i32 = hw.constant 12 : i32
+    %c0_i32 = hw.constant 0 : i32
+    %false = hw.constant false
+    %c1_i32 = hw.constant 1 : i32
+    %c2_i32 = hw.constant 2 : i32
+    %c3_i32 = hw.constant 3 : i32
+    %0 = SpecHLS.init @io_state : i32
+    %1 = SpecHLS.mu @io_state : %0, %106 : i32
+    %2 = SpecHLS.init @x : i32
+    %3 = SpecHLS.mu @x : %2, %99 : i32
+    %4 = SpecHLS.init @guard : i1
+    %5 = SpecHLS.mu @guard : %4, %113 : i1
+    %6 = SpecHLS.init @i : i32
+    %7 = SpecHLS.mu @i : %6, %110 : i32
+    %8 = SpecHLS.cast %3 : i32 to i32
+    %9 = comb.add %8, %c3_i32 : i32
+    %10 = comb.icmp eq %7, %c0_i32 : i32
+    %11 = comb.icmp eq %7, %c0_i32 : i32
+    %12 = comb.and %5, %11 : i1
+    %13 = SpecHLS.cast %3 : i32 to i32
+    %14 = comb.add %13, %c2_i32 : i32
+    %15 = comb.icmp eq %7, %c1_i32 : i32
+    %16 = comb.icmp eq %7, %c1_i32 : i32
+    %17 = comb.and %5, %16 : i1
+    %18 = SpecHLS.cast %3 : i32 to i32
+    %19 = comb.sub %18, %c2_i32 : i32
+    %20 = comb.icmp eq %7, %c2_i32 : i32
+    %21 = comb.icmp eq %7, %c2_i32 : i32
+    %22 = comb.and %5, %21 : i1
+    %23 = SpecHLS.cast %3 : i32 to i32
+    %24 = comb.sub %23, %c2_i32 : i32
+    %25 = comb.icmp eq %7, %c3_i32 : i32
+    %26 = comb.icmp eq %7, %c3_i32 : i32
+    %27 = comb.and %5, %26 : i1
+    %28 = comb.icmp sgt %3, %c12_i32 : i32
+    %29 = comb.icmp eq %false, %28 : i1
+    %30 = comb.icmp eq %false, %28 : i1
+    %31 = SpecHLS.cast %3 : i32 to i32
+    %32 = comb.and %31, %c3_i32 : i32
+    %33 = SpecHLS.cast %32 : i32 to i1
+    %34 = comb.icmp eq %false, %33 : i1
+    %35 = comb.icmp eq %false, %33 : i1
+    %36 = SpecHLS.cast %3 : i32 to i32
+    %37 = comb.sub %36, %c1_i32 : i32
+    %38 = SpecHLS.cast %3 : i32 to i32
+    %39 = comb.add %38, %c1_i32 : i32
+    %40 = SpecHLS.cast %37 : i32 to i32
+    %41 = SpecHLS.cast %39 : i32 to i32
+    %42 = comb.icmp eq %7, %c0_i32 : i32
+    %43 = comb.icmp eq %7, %c1_i32 : i32
+    %44 = comb.or %42, %43 : i1
+    %45 = comb.icmp eq %false, %44 : i1
+    %46 = comb.and %45, %28 : i1
+    %47 = comb.and %45, %29 : i1
+    %48 = comb.and %47, %33 : i1
+    %49 = comb.and %47, %34 : i1
+    %50 = comb.or %48, %49 : i1
+    %51 = comb.or %46, %50 : i1
+    %52 = SpecHLS.cast %10 : i1 to i1
+    %53 = SpecHLS.cast %15 : i1 to i1
+    %54 = SpecHLS.cast %20 : i1 to i1
+    %55 = SpecHLS.cast %25 : i1 to i1
+    %56 = SpecHLS.cast %51 : i1 to i1
+    %25103.out0 = hw.instance "%103" @encoder_5(in_0: %52: i1, in_1: %53: i1, in_2: %54: i1, in_3: %55: i1, in_4: %56: i1) -> (out0: ui3)
+    %57 = comb.icmp eq %7, %c0_i32 : i32
+    %58 = comb.icmp eq %7, %c1_i32 : i32
+    %59 = comb.or %57, %58 : i1
+    %60 = comb.icmp eq %false, %59 : i1
+    %61 = comb.and %5, %60 : i1
+    %62 = comb.and %61, %28 : i1
+    %63 = comb.and %61, %30 : i1
+    %64 = comb.and %63, %33 : i1
+    %65 = comb.and %63, %35 : i1
+    %66 = comb.or %64, %65 : i1
+    %67 = comb.or %62, %66 : i1
+    %68 = comb.or %67, %12 : i1
+    %69 = comb.or %68, %17 : i1
+    %70 = comb.or %69, %22 : i1
+    %71 = comb.or %70, %27 : i1
+    %72 = SpecHLS.cast %9 : i32 to i32
+    %73 = SpecHLS.cast %14 : i32 to i32
+    %74 = SpecHLS.cast %19 : i32 to i32
+    %75 = SpecHLS.cast %24 : i32 to i32
+    %76 = SpecHLS.cast %25103.out0 : ui3 to i3
+    %77 = SpecHLS.cast %50 : i1 to i1
+    %78 = comb.concat %76, %77 : i3, i1
+    %79 = SpecHLS.lookUpTable [%78 : i4] :i4= {0,0,1,1,2,2,3,3,4,5,5,5,5,5,5,5 }
+    %80 = SpecHLS.cast %79 : i4 to i4
+    %81 = SpecHLS.cast %49 : i1 to i1
+    %82 = comb.concat %80, %81 : i4, i1
+    %83 = SpecHLS.lookUpTable [%82 : i5] :i5= {0,0,1,2,2,2,3,3,4,4,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5 }
+    %84 = SpecHLS.gamma @x %83:i5 ? %40,%41,%c5_i32,%72,%73,%74,%75 :i32
+    %85 = SpecHLS.cast %71 : i1 to i1
+    %86 = SpecHLS.cast %25103.out0 : ui3 to i3
+    %87 = comb.concat %85, %86 : i1, i3
+    %88 = SpecHLS.lookUpTable [%87 : i4] :i4= {0,0,0,0,0,0,0,0,1,2,3,4,5,5,5,5 }
+    %89 = SpecHLS.cast %88 : i4 to i4
+    %90 = SpecHLS.cast %50 : i1 to i1
+    %91 = comb.concat %89, %90 : i4, i1
+    %92 = SpecHLS.lookUpTable [%91 : i5] :i5= {0,0,1,1,2,2,3,3,4,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5 }
+    %93 = SpecHLS.cast %92 : i5 to i5
+    %94 = SpecHLS.cast %49 : i1 to i1
+    %95 = comb.concat %93, %94 : i5, i1
+    %96 = SpecHLS.lookUpTable [%95 : i6] :i6= {0,0,1,2,2,2,3,3,4,4,5,5,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6 }
+    %97 = SpecHLS.gamma @x %96:i6 ? %40,%41,%c5_i32,%72,%73,%74,%75,%3 :i32
+    %98 = SpecHLS.cast %97 : i32 to i32
+    %99 = SpecHLS.def @x %98 : i32
+    %100 = SpecHLS.cast %7 : i32 to i32
+    %101 = comb.add %100, %c1_i32 : i32
+    %102 = SpecHLS.ioprintf "%d %d\n" (  %101 : i32, %84 : i32) from %1 when %71
+    %103 = SpecHLS.cast %102 : i32 to i32
+    %104 = SpecHLS.gamma @io_state %71:i1 ? %1,%103 :i32
+    %105 = SpecHLS.cast %104 : i32 to i32
+    %106 = SpecHLS.def @io_state %105 : i32
+    %107 = SpecHLS.cast %101 : i32 to i32
+    %108 = SpecHLS.gamma @i %71:i1 ? %7,%107 :i32
+    %109 = SpecHLS.cast %108 : i32 to i32
+    %110 = SpecHLS.def @i %109 : i32
+    %111 = comb.icmp slt %110, %c6_i32 : i32
+    %112 = SpecHLS.cast %111 : i1 to i1
+    %113 = SpecHLS.def @guard %112 : i1
+    %114 = comb.icmp eq %false, %113 : i1
+    %115 = SpecHLS.exit %114 live  %106:i32 ,%99:i32 ,%113:i1 
+    hw.output
+  }
+}

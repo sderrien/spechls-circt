@@ -1,0 +1,22 @@
+bool t100;
+bool t101;
+bool t101;
+bool t100;
+t102  = havoc();
+t103  = havoc();
+t103  = t104 ^ t104;
+commit();
+// Error 0x60e000001390
+commit();
+// Error 0x60d000000ad0
+exit (out_0=t105; out_1=t105);;
+procedure SpecSCC_13(in_0 : bool) modifies out_0 : 0 { 
+bool t106;
+bool t106;
+t106  = havoc();
+t106  = t107 ^ t107;
+// Error 0x60b000004f50
+}
+procedure SCC_14(in_0 : bool) modifies  { 
+// Error 0x60b000005000
+}
