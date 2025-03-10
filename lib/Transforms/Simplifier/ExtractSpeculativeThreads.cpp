@@ -106,16 +106,13 @@ void ExtractSpeculativeThreadsPass::runOnOperation() {
               continue;
             }
 
-            getBackwardSlice(*controlOp, slice, opfilter);
-            slice.insert(controlOp);
-            // Find the dataflow into the clone set
-            SetVector<Value> inputs;
-            getSliceInputs(slice, inputs);
+            SetVector<Value*> inputs;
+            getBackwardSlice(*controlOp, slice, inputs, opfilter);
 
 
-            SetVector<Value> outputs;
+            SetVector<Value*> outputs;
             for (auto res : controlOp->getResults()) {
-              outputs.insert(res);
+              outputs.insert(&res);
             }
             auto newName =
                 topModule.getName() + "_ctrl_" + std::to_string(gammaId++);
@@ -126,7 +123,7 @@ void ExtractSpeculativeThreadsPass::runOnOperation() {
 
               SmallVector<Value, 8> operands;
               for (auto i : inputs) {
-                operands.push_back(i);
+                operands.push_back(*i);
               }
 
               builder.setInsertionPoint(gamma);

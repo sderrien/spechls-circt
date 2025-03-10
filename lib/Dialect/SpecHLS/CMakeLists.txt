@@ -9,8 +9,4 @@ add_mlir_dialect_library(MLIRSpecHLS
 
         DEPENDS
         MLIRSpecHLSOpsIncGen
-
-        LINK_LIBS PUBLIC
-        MLIRIR
-        MLIRInferTypeOpInterface
 )

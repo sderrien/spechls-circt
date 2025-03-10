@@ -39,8 +39,7 @@ using namespace circt;
 // non-insert ordered set.  Implement this as a DFS and not a BFS so that the
 // order is stable across changes to intermediary operations.  (It is then
 // necessary to use the _operands_ as a worklist and not the _operations_.)
-void getBackwardSlice(Operation &rootOp, SetVector<Operation *> &backwardSlice,
-                      function_ref<bool(Operation *)> filter) {
+void getBackwardSlice(Operation &rootOp, SetVector<Operation *> &backwardSlice, SetVector<Value *> &inputs, function_ref<bool(Operation *)> filter) {
   SmallVector<Value> worklist(rootOp.getOperands());
 
   while (!worklist.empty()) {
@@ -90,7 +89,30 @@ void getBackwardSlice(Operation &rootOp, SetVector<Operation *> &backwardSlice,
     }
 
     backwardSlice.insert(definingOp);
+
+
+
   }
+
+
+  // Find the dataflow into the clone set to find the slice inputs
+  for (auto *op : backwardSlice) {
+    for (auto arg : op->getOperands()) {
+      auto argOp = arg.getDefiningOp(); // may be null
+      if (argOp == NULL) {
+        inputs.insert(&arg);
+      } else {
+        // If a value is not used by any op in the slice, it should be
+        // considered as an input
+        if (!backwardSlice.count(argOp))
+          inputs.insert(&arg);
+      }
+    }
+  }
+
+
+
+
 }
 
 // Some blocks have terminators, some don't
@@ -114,23 +136,6 @@ void addBlockMapping(IRMapping &cutMap, Operation *oldOp, Operation *newOp) {
   }
 }
 
-void getSliceInputs(mlir::SetVector<Operation *> &slice,
-                    SetVector<Value> &inputs) {
-  // Find the dataflow into the clone set
-  for (auto *op : slice) {
-    for (auto arg : op->getOperands()) {
-      auto argOp = arg.getDefiningOp(); // may be null
-      if (argOp == NULL) {
-        inputs.insert(arg);
-      } else {
-        // If a value is not used by any op in the slice, it should be
-        // considered as an input
-        if (!slice.count(argOp))
-          inputs.insert(arg);
-      }
-    }
-  }
-};
 
 mlir::Operation *cloneWithoutGraphRegion(mlir::Operation *op) {
   // Create an OperationState to hold the cloned operation's state
@@ -162,21 +167,21 @@ mlir::Operation *cloneWithoutGraphRegion(mlir::Operation *op) {
 // that passes those values through.  Returns the new module and the instance
 // pointing to it.
 
-hw::HWModuleOp outlineSliceAsHwModule(hw::HWModuleOp op,
+hw::HWModuleOp outlineSliceAsHwModule(Operation* op,
                                       SetVector<Operation *> &slice,
-                                      SetVector<Value> &inputs,
-                                      SetVector<Value> &outputs,
+                                      SetVector<Value*> &inputs,
+                                      SetVector<Value*> &outputs,
                                       Twine newName) {
 
   bool verbose = false;
 
-  auto builder = OpBuilder(op.getContext());
+  auto builder = OpBuilder(op->getContext());
   auto moduleName = builder.getStringAttr(newName);
 
 
   for (auto v : outputs) {
-    if (!slice.contains(v.getDefiningOp())) {
-      llvm::errs() << "inconsistent output " << v << " : " << *v.getDefiningOp()
+    if (!slice.contains(v->getDefiningOp())) {
+      llvm::errs() << "inconsistent output " << v << " : " << *v->getDefiningOp()
                    << " is not in the slice"
                    << "\n";
       return NULL;
@@ -193,13 +198,13 @@ hw::HWModuleOp outlineSliceAsHwModule(hw::HWModuleOp op,
     for (auto port : enumerate(inputs)) {
       auto name = portNames.newName("in_" + Twine(port.index()));
 
-      ports.push_back({{b.getStringAttr(name), port.value().getType(),
+      ports.push_back({{b.getStringAttr(name), port.value()->getType(),
                         hw::ModulePort::Direction::Input},
                        port.index()});
     }
     for (auto port : enumerate(outputs)) {
       auto name = portNames.newName("out_" + Twine(port.index()));
-      ports.push_back({{b.getStringAttr(name), port.value().getType(),
+      ports.push_back({{b.getStringAttr(name), port.value()->getType(),
                         hw::ModulePort::Direction::Output},
                        port.index()});
     }
@@ -214,10 +219,10 @@ hw::HWModuleOp outlineSliceAsHwModule(hw::HWModuleOp op,
 
   // Update the mapping from old values to cloned values
   for (auto port : enumerate(inputs)) {
-    cutMap.map(port.value(), newModule.getBody().getArgument(port.index()));
+    cutMap.map(*port.value(), newModule.getBody().getArgument(port.index()));
   }
 
-  op.walk<WalkOrder::PreOrder>([&](Operation *op) {
+  op->walk<WalkOrder::PreOrder>([&](Operation *op) {
     if (slice.count(op)) {
       auto newOp = b.clone(*op, cutMap);
       cutMap.map(op,newOp);
@@ -241,7 +246,7 @@ hw::HWModuleOp outlineSliceAsHwModule(hw::HWModuleOp op,
   }
 
   for (auto port : enumerate(outputs)) {
-    auto newVal = cutMap.getValueMap().at(port.value());
+    auto newVal = cutMap.getValueMap().at(*port.value());
     outputOp->insertOperands(port.index(),newVal);
   }
   mlir::verify(newModule, true);
@@ -251,10 +256,10 @@ hw::HWModuleOp outlineSliceAsHwModule(hw::HWModuleOp op,
 
 
 
-SpecHLS::HTaskOp outlineSliceAsHwThread(SpecHLS::HKernelOp op,
+SpecHLS::HTaskOp outlineSliceAsHTask(Operation* op,
                                       SetVector<Operation *> &slice,
-                                      SetVector<Value> &inputs,
-                                      SetVector<Value> &outputs,
+                                      SetVector<Value*> &inputs,
+                                      SetVector<Value*> &outputs,
                                       Twine newName) {
 
   bool verbose = false;
@@ -263,8 +268,8 @@ SpecHLS::HTaskOp outlineSliceAsHwThread(SpecHLS::HKernelOp op,
   auto moduleName = b.getStringAttr(newName);
 
   for (auto v : outputs) {
-    if (!slice.contains(v.getDefiningOp())) {
-      llvm::errs() << "inconsistent output " << v << " : " << *v.getDefiningOp()
+    if (!slice.contains(v->getDefiningOp())) {
+      llvm::errs() << "inconsistent output " << v << " : " << *v->getDefiningOp()
                    << " is not in the slice"
                    << "\n";
       return NULL;
@@ -275,40 +280,37 @@ SpecHLS::HTaskOp outlineSliceAsHwThread(SpecHLS::HKernelOp op,
   SmallVector<Value> inputVector;
 
   // Construct the ports, this is just the input Values
-  SmallVector<Type> inputTypes, outputTypes;
-  for (Value input : inputs) {
-  //  inputTypes.push_back(input.getType());
-//    inputVector.push_back(input);
-    llvm::errs() << "input: "<< input << ":" << input.getType() <<"\n";
+  SmallVector<Type>  outputTypes;
 
-  }
-  for (Value output : outputs)
-    outputTypes.push_back(output.getType());
+  for (Value* output : outputs)
+    outputTypes.push_back(output->getType());
 
   b.setInsertionPoint(slice.front());
   // Create the module, setting the output path if indicated.
-  auto hthread = b.create<SpecHLS::HTaskOp>(slice.front()->getLoc(),outputTypes,moduleName, inputVector);
+  auto htask = b.create<SpecHLS::HTaskOp>(slice.front()->getLoc(),outputTypes,moduleName, inputVector);
   // This should be in the HTaskOp builder method
 
-  hthread.getRegion().push_back(new Block());
+  htask.getRegion().push_back(new Block());
 
-  llvm::errs() << "input: "<< hthread << "\n";
+  llvm::errs() << "Created Empty HTask : "<< moduleName<< ":\n" << htask << "\n";
 
-  auto body = hthread.getBody(0);
+  auto body = htask.getBody(0);
+
+  llvm::outs() << "Fix inconsistent SSA values :\n";
 
   IRMapping cutMap;
   // Update the mapping from old values to cloned values
   for (auto port : enumerate(inputs)) {
-    auto argType =port.value().getType();
-    hthread->insertOperands(port.index(),port.value());
+    auto argType =port.value()->getType();
+    htask->insertOperands(port.index(),*port.value());
 
     body->addArgument(argType,b.getUnknownLoc());
     auto arg = body->getArgument(port.index());
-    cutMap.map(port.value(), arg);
+    cutMap.map(*port.value(), arg);
   }
 
   b.setInsertionPointToEnd(body);
-  op.walk<WalkOrder::PreOrder>([&](Operation *op) {
+  op->walk<WalkOrder::PreOrder>([&](Operation *op) {
     if (slice.count(op)) {
       auto newOp = b.clone(*op, cutMap);
       cutMap.map(op,newOp);
@@ -317,6 +319,8 @@ SpecHLS::HTaskOp outlineSliceAsHwThread(SpecHLS::HKernelOp op,
       }
     }
   });
+
+  llvm::outs() << "Fix inconsistent SSA values :\n";
 
   /* Step to fix inconsistent SSA values due to use before def in graph region */
   for (auto op : slice) {
@@ -331,20 +335,20 @@ SpecHLS::HTaskOp outlineSliceAsHwThread(SpecHLS::HKernelOp op,
     }
   }
 
-  b.setInsertionPointAfter(&body->back());
-  auto _true = b.create<hw::ConstantOp>(hthread->getLoc(),b.getIntegerType(1),1).getResult();
-  auto outputOp = b.create<SpecHLS::CommitOp>(body->back().getLoc());
-  //body->push_back(outputOp);
+  llvm::outs() << "Inserting Commit Op :\n";
 
+  b.setInsertionPointAfter(&body->back());
+  auto _true = b.create<hw::ConstantOp>(htask->getLoc(),b.getIntegerType(1),1).getResult();
+  auto outputOp = b.create<SpecHLS::CommitOp>(body->back().getLoc());
   outputOp->insertOperands(0,_true);
   for (auto port : enumerate(outputs)) {
-    auto newVal = cutMap.lookupOrNull(port.value());
+    auto newVal = cutMap.lookupOrNull(*port.value());
     outputOp->insertOperands(port.index()+1,newVal);
   }
 
-  llvm::errs() << "HThread :\n"<< *hthread->getParentOp() << "\n";
-  mlir::verify(hthread, true);
-  llvm::errs() << "Verified  :\n";
-  return hthread;
+  llvm::outs() << "HTask :\n"<< htask << "\n";
+  mlir::verify(htask, true);
+  llvm::outs() << "Verified  :\n";
+  return htask;
 }
 

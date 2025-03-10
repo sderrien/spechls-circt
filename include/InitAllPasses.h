@@ -27,20 +27,33 @@ inline void registerAllPasses() {
     registerSpecHLSToCombPass();
     registerSpecHLSLUTToComb();
     registerSpecHLSToSeq();
+
     registerMergeGammasPass();
     registerMergeLookUpTablesPass();
     registerFactorGammaInputsPass();
-    registerAutoPipelinePass();
     registerEliminateRedundantGammaInputsPass();
+
+    registerAutoPipelinePass();
+
+    registerTopoSortPass();
+
+
     registerGroupControlNodePass();
     registerInlineModules();
     registerYosysOptimizerPass();
+
+      registerOutlineSCCPass();
+
     registerMobilityPass();
     registerSchedulePass();
     registerConfigurationExcluderPass();
-    registerExportVitisHLS();
-    //registerGuardLogicAnalyzerPass();
+
+      registerExportElkPass();
+      registerExportUclid5Pass();
+      registerExportVitisHLS();
+
     registerUnrollInstrPass();
+
     registerLongestPathPass();
     return true;
   }();

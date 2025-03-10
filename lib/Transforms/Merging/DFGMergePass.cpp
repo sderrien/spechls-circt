@@ -38,7 +38,8 @@ namespace SpecHLS {
  * operations.
  */
 
-extern std::vector<Operation *> bronKerboschMaxWeightClique(const std::unordered_map<Operation *,
+extern std::vector<Operation *> bronKerboschMaxWeightClique(
+    const std::unordered_map<Operation *,
                              std::vector<std::pair<Operation *, int>>> &graph);
 extern std::vector<Operation *> graspMaxWeightClique(
     const std::unordered_map<Operation *,
@@ -206,8 +207,8 @@ public:
 
     return newModule;
   }
-}
-;
+};
+
 
 std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>> createDFGMergePass() {
   return std::make_unique<DFGMergePass>();

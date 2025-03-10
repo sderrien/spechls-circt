@@ -46,11 +46,16 @@ using namespace circt;
 extern "C" {
 #endif
 
+    
 DEFINE_CAPI_DECL(MergeLookUpTablesPass)
 DEFINE_CAPI_DECL(SchedulePass)
 DEFINE_CAPI_DECL(MobilityPass)
 DEFINE_CAPI_DECL(YosysOptimizerPass)
+
 DEFINE_CAPI_DECL(ExportVitisHLS)
+DEFINE_CAPI_DECL(ExportUclid5Pass)
+DEFINE_CAPI_DECL(ExportElkPass)
+
 DEFINE_CAPI_DECL(GroupControlNodePass)
 DEFINE_CAPI_DECL(GroupGammaNodesPass)
 DEFINE_CAPI_DECL(FactorGammaInputsPass)
@@ -61,6 +66,7 @@ DEFINE_CAPI_DECL(LowerGecosOpsToCombPass)
 DEFINE_CAPI_DECL(ConfigurationExcluderPass)
 DEFINE_CAPI_DECL(WordLengthPropagationPass)
 DEFINE_CAPI_DECL(TopoSortPass)
+DEFINE_CAPI_DECL(OutlineSCCPass)
 
 MlirPass mlirCreateConfigurationExcluderPass(void);
 void mlirRegisterConfigurationExcluderPass(void);
@@ -76,7 +82,11 @@ DEFINE_CAPI_IMPL(MergeLookUpTablesPass)
 DEFINE_CAPI_IMPL(SchedulePass)
 DEFINE_CAPI_IMPL(MobilityPass)
 DEFINE_CAPI_IMPL(YosysOptimizerPass)
+
 DEFINE_CAPI_IMPL(ExportVitisHLS)
+DEFINE_CAPI_IMPL(ExportUclid5Pass)
+DEFINE_CAPI_IMPL(ExportElkPass)
+
 DEFINE_CAPI_IMPL(GroupControlNodePass)
 DEFINE_CAPI_IMPL(GroupGammaNodesPass)
 DEFINE_CAPI_IMPL(FactorGammaInputsPass)
@@ -86,6 +96,7 @@ DEFINE_CAPI_IMPL(InlineModulesPass)
 DEFINE_CAPI_IMPL(LowerGecosOpsToCombPass)
 DEFINE_CAPI_IMPL(WordLengthPropagationPass)
 DEFINE_CAPI_IMPL(TopoSortPass)
+DEFINE_CAPI_DECL(OutlineSCCPass)
 
 #ifdef __cplusplus
 extern "C" {

@@ -72,15 +72,19 @@ int main(int argc, char **argv) {
 
   // registerAllDialects(registry);
   registry.insert<SpecHLS::ScheduleDialectDialect, SpecHLS::SpecHLSDialect,
-                  mlir::func::FuncDialect, mlir::arith::ArithDialect,
-                  mlir::memref::MemRefDialect, circt::hwarith::HWArithDialect,
-                  circt::comb::CombDialect, circt::seq::SeqDialect,
-                  circt::hw::HWDialect, circt::sv::SVDialect,
+                  mlir::func::FuncDialect,
+//                  mlir::arith::ArithDialect,
+//                  mlir::memref::MemRefDialect,
+                  circt::hwarith::HWArithDialect,
+                  circt::comb::CombDialect,
+                  circt::seq::SeqDialect,
+                  circt::hw::HWDialect,
+                  circt::sv::SVDialect,
                   circt::ssp::SSPDialect,
                   //      circt::firrtl::FIRRTLDialect,
                   circt::fsm::FSMDialect>();
 
-  mlir::registerAllPasses();
+  //mlir::registerAllPasses();
   // TODO: Register SpecHLS passes here.
   SpecHLS::registerAllTranslations();
   SpecHLS::registerAllPasses();

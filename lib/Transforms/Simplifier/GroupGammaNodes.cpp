@@ -78,33 +78,31 @@ void GroupGammaNodes::runOnOperation() {
              * Slices control logic of gamma node
              */
             SetVector<Operation *> slice = {};
+            SetVector<Value*> inputs = {};
             auto opfilter = [&](Operation *op) {
               return TypeSwitch<Operation *, bool>(op)
                 .Case<SpecHLS::GammaOp>([&](auto op) { return true;})
                 .Default([&](auto op) { return false; });
             };
 
-            getBackwardSlice(*gamma.getOperation(), slice, opfilter);
+            getBackwardSlice(*gamma.getOperation(), slice, inputs, opfilter);
             if (slice.size()==0)
               continue;
-            slice.insert(gamma);
-            // Find the dataflow into the clone set
-            SetVector<Value> inputs;
-            getSliceInputs(slice,inputs);
 
             auto builder = OpBuilder(topModule.getContext());
             //builder.create<comb::ConcatOp>(gamma->getLoc(),)
-            SetVector<Value> outputs;
-            for (auto res : gamma->getResults()) {
-              outputs.insert(res);
-            }
+
+            SetVector<Value*> outputs;
+            for (auto res : gamma->getResults())
+              outputs.insert(&res);
+
             auto newName = topModule.getName() + "_ctrl_" + std::to_string(gammaId);
             auto newModule = outlineSliceAsHwModule(topModule,slice,inputs,outputs,newName);
             if (newModule) {
 
               SmallVector<Value, 8> operands;
               for (auto i : inputs) {
-                operands.push_back(i);
+                operands.push_back(*i);
               }
 
               builder.setInsertionPoint(gamma);

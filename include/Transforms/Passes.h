@@ -42,6 +42,7 @@ namespace SpecHLS {
 //===----------------------------------------------------------------------===//
 
 std::unique_ptr<mlir::OperationPass<>> createMergeGammasPass();
+
 std::unique_ptr<mlir::OperationPass<>> createMergeLookUpTablesPass();
 std::unique_ptr<mlir::OperationPass<>> createFactorGammaInputsPass();
 std::unique_ptr<mlir::OperationPass<>>
@@ -69,17 +70,34 @@ createUnrollInstrPass();
 std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>>
 createLongestPathPass();
 
+std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>>
+createGroupGammaNodesPass();
+
 std::unique_ptr<mlir::OperationPass<circt::hw::HWModuleOp>>
 createConvertSpecHLSToCombPass();
 
-std::unique_ptr<mlir::OperationPass<circt::hw::HWModuleOp>>
-createConvertSpecHLSToSeqPass();
+std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>> createOutlineSCCPass();
+std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>> createExtractSpeculativeThreadsPass();
 
-std::unique_ptr<mlir::OperationPass<SpecHLS::LookUpTableOp>>
-createConvertSpecHLSLUTToCombPass();
+std::unique_ptr<mlir::OperationPass<circt::hw::HWModuleOp>> createConvertSpecHLSToSeqPass();
+
+std::unique_ptr<mlir::OperationPass<SpecHLS::LookUpTableOp>> createConvertSpecHLSLUTToCombPass();
+
+std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>> createLowerGecosOpsToCombPass();
 
 std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>> createExportVitisHLS();
-std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>> createExportElkJS();
+std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>> createExportUclid5Pass();
+std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>> createExportElkPass();
+
+std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>> createDFGMergePass();
+
+std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>> createWordLengthPropagationPass();
+
+std::unique_ptr<mlir::OperationPass<>> createSimplifyCastsPass();
+
+std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>> createTopoSortPass();
+std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>> createBarrettReductionPass();
+
 
 void registerYosysOptimizerPipeline();
 
@@ -101,6 +119,10 @@ void registerYosysOptimizerPipeline();
 #define GEN_PASS_DECL_ELIMINATEREDUNDANTGAMMAINPUTSPASS
 
 #define GEN_PASS_DEF_GROUPCONTROLNODEPASS
+#define GEN_PASS_DECL_GROUPCONTROLNODEPASS
+
+#define GEN_PASS_DEF_GROUPGAMMANODESPASS
+#define GEN_PASS_DECL_GROUPGAMMANODESPASS
 
 #define GEN_PASS_DEF_GUARDLOGICANALYZERPASS
 #define GEN_PASS_DECL_GUARDLOGICANALYZERPASS
@@ -117,14 +139,34 @@ void registerYosysOptimizerPipeline();
 #define GEN_PASS_DECL_EXPORTVITISHLS
 #define GEN_PASS_DEF_EXPORTVITISHLS
 
+#define GEN_PASS_DECL_OUTLINESCCPASS
+#define GEN_PASS_DEF_OUTLINESCCPASS
+
+#define GEN_PASS_DECL_EXTRACTSPECULATIVETHREADSPASS
+#define GEN_PASS_DEF_EXTRACTSPECULATIVETHREADSPASS
+
+#define GEN_PASS_DEF_UNROLLINSTRPASS
+
+#define GEN_PASS_DECL_EXPORTUCLID5
+#define GEN_PASS_DEF_EXPORTUCLID5
+
 #define GEN_PASS_DECL_EXPORTELKJS
 #define GEN_PASS_DEF_EXPORTELKJS
+
+#define GEN_PASS_DECL_EXPORTELK
+#define GEN_PASS_DEF_EXPORTELK
+
+#define GEN_PASS_DEF_DFGMERGEPASS
+#define GEN_PASS_DECL_DFGMERGEPASS
 
 #define GEN_PASS_DECL_SPECHLSLUTTOCOMB
 #define GEN_PASS_DEF_SPECHLSLUTTOCOMB
 
 #define GEN_PASS_DECL_SPECHLSTOCOMB
 #define GEN_PASS_DEF_SPECHLSTOCOMB
+
+#define GEN_PASS_DEF_LOWERGECOSOPSTOCOMBPASS
+#define GEN_PASS_DECL_LOWERGECOSOPSTOCOMBPASS
 
 #define GEN_PASS_DECL_SPECHLSTOSEQ
 #define GEN_PASS_DEF_SPECHLSTOSEQ
@@ -135,6 +177,12 @@ void registerYosysOptimizerPipeline();
 #define GEN_PASS_DECL_CONFIGURATIONEXCLUDERPASS
 #define GEN_PASS_DEF_CONFIGURATIONEXCLUDERPASS
 
+#define GEN_PASS_DECL_WORDLENGTHPROPAGATIONPASS
+#define GEN_PASS_DEF_WORDLENGTHPROPAGATIONPASS
+
+#define GEN_PASS_DECL_SIMPLIFYCASTSPASS
+#define GEN_PASS_DEF_SIMPLIFYCASTSPASS
+
 #define GEN_PASS_DECL_SCHEDULEPASS
 #define GEN_PASS_DEF_SCHEDULEPASS
 
@@ -144,8 +192,15 @@ void registerYosysOptimizerPipeline();
 #define GEN_PASS_DECL_UNROLLINSTRPASS
 #define GEN_PASS_DEF_UNROLLINSTRPASS
 
+
+#define GEN_PASS_DEF_TOPOSORTPASS
+#define GEN_PASS_DECL_TOPOSORTPASS
+
 #define GEN_PASS_DECL_LONGESTPATHPASS
 #define GEN_PASS_DEF_LONGESTPATHPASS
+
+#define GEN_PASS_DECL_BARRETREDUCTIONPASS
+#define GEN_PASS_DEF_BARRETREDUCTIONPASS
 
 #include "Transforms/Passes.h.inc"
 

@@ -4,7 +4,6 @@ get_property(conversion_libs GLOBAL PROPERTY MLIR_CONVERSION_LIBS)
 set(LIBS
         ${mlir_dialect_libs}
         ${mlir_conversion_libs}
-        yosys
         gecosapi
 )
 add_llvm_executable(test-gecos test-transitive-closure.c)

@@ -39,9 +39,9 @@ void OutlineSCCPass::runOnOperation() {
   int gammaId = 0;
 
   for (auto &op : topLevelModule->getOperations()) {
-    if (auto HKernelOp = dyn_cast<SpecHLS::HKernelOp>(op)) {
+    if (auto kernelOp = dyn_cast<SpecHLS::HKernelOp>(op)) {
 
-      auto &block = HKernelOp.getRegion().front();
+      auto &block = kernelOp.getRegion().front();
 
       SCCComputer comp;
       auto sccs = comp.computeSCCs(block);
@@ -50,7 +50,7 @@ void OutlineSCCPass::runOnOperation() {
         auto candidateOps = scc.operations;
         auto size = scc.operations.size();
 
-        /* add operations that have no predecessors to cndidate lits (typpically
+        /* add operations that have no predecessors to candidate list (typpically
          * constant and init operations) */
         for (Operation *op : candidateOps) {
           for (auto operand : op->getOperands()) {
@@ -71,7 +71,7 @@ void OutlineSCCPass::runOnOperation() {
         } else {
           llvm::errs() << "SCC with " << size << " nodes\n";
           // Collect inputs and outputs for the SCC
-          SetVector<Value> inputs, outputs;
+          SetVector<Value*> inputs, outputs;
           SetVector<Operation *> sccOps;
 
           for (Operation *op : candidateOps) {
@@ -82,48 +82,54 @@ void OutlineSCCPass::runOnOperation() {
             for (Value operand : op->getOperands()) {
               if (std::find(candidateOps.begin(), candidateOps.end(),
                             operand.getDefiningOp()) == candidateOps.end())
-                inputs.insert(operand);
+                inputs.insert(&operand);
             }
             for (Value result : op->getResults()) {
               for (Operation *user : result.getUsers()) {
                 if (std::find(candidateOps.begin(), candidateOps.end(), user) ==
                     candidateOps.end())
-                  outputs.insert(result);
+                  outputs.insert(&result);
               }
             }
           }
 
           // Create the new HWModuleOp for the SCC
 
-          auto region = &HKernelOp.getBodyRegion();
+          auto region = &kernelOp.getBodyRegion();
           OpBuilder builder(region);
           //
           SmallVector<Type, 8> inputTypes, outputTypes;
 
-          for (Value input : inputs)
-            inputTypes.push_back(input.getType());
+          for (Value* input : inputs)
+            inputTypes.push_back(input->getType());
 
-          for (Value output : outputs)
-            outputTypes.push_back(output.getType());
+          for (Value* output : outputs)
+            outputTypes.push_back(output->getType());
 
-          Twine name =
-              HKernelOp.getNameAttr().getValue().str() + "_SCC_" + std::to_string(scc_id);
+          auto name =
+                  kernelOp.getNameAttr().getValue().str() + "_SCC_" + std::to_string(scc_id);
 
+
+//            SpecHLS::HTaskOp outlineSliceAsHTask(Operation* op,
+//                                                 SetVector<Operation *> &slice,
+//                                                 SetVector<Value*> &inputs,
+//                                                 SetVector<Value*> &outputs,
+//                                                 Twine newName);
           auto hthread =
-              outlineSliceAsHwThread(HKernelOp, sccOps, inputs, outputs, name);
+                  outlineSliceAsHTask(kernelOp, sccOps, inputs, outputs, name);
 
-          SmallVector<Value, 8> callOperands(inputs.begin(), inputs.end());
+          SmallVector<Value*, 8> callOperands(inputs.begin(), inputs.end());
 
           // Replace the outputs in the original module with the results of the
           // call
           for (auto result : llvm::enumerate(outputs)) {
             auto res = result.value();
-            res.replaceAllUsesWith(hthread.getResult(result.index()));
+            res->replaceAllUsesWith(hthread.getResult(result.index()));
           }
         }
 
-        llvm::errs() << HKernelOp;
-        mlir::verify(HKernelOp);
+        llvm::errs() << kernelOp;
+        mlir::verify(kernelOp);
       }
     }
   }

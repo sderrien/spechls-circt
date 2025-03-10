@@ -21,8 +21,6 @@ $ cmake -G Ninja ../llvm \
     -DLLVM_ENABLE_RTTI=ON \
     -DLLVM_ENABLE_EH=ON \
     -DLLVM_ENABLE_ASSERTIONS=ON \
-    -DLLVM_ENABLE_PROJECTS="mlir;clang" \
-    -DLLVM_TARGETS_TO_BUILD="X86;RISCV" 
     
 $ ninja
 $ ninja check-mlir

@@ -119,9 +119,8 @@ def GroupControlNodePass : Pass<"group-control","mlir::ModuleOp"> {
   }];
   let constructor = "SpecHLS::createGroupControlNodePass()";
   let dependentDialects = ["circt::hw::HWDialect, mlir::arith::ArithDialect, circt::comb::CombDialect,circt::seq::SeqDialect,SpecHLS::SpecHLSDialect"];
-  let statistics = [
-    Statistic<"numOpsExtracted", "num-ops-extracted", "Number of ops extracted">,
-    Statistic<"numOpsErased", "num-ops-erased", "Number of ops erased">
+  let options = [
+    Option<"target","target", "std::string", "\"dummy\"", "This option is used to specify the kind of target operation to be used for outlining the control ops. The options can take either hwmodule or htask">
   ];
 }
 
@@ -314,6 +313,9 @@ def LongestPathPass : Pass<"longest-path", "mlir::ModuleOp"> {
 
 def BarrettReductionPass : Pass<
     "barrett-reduction", "mlir::ModuleOp"> {
+
+        let constructor = "SpecHLS::createBarrettReductionPass()";
+
   let description = [{
     This pass matches and replaces comb.mod operations of the form:
       %res = comb.mod %lhs, %rhs
@@ -334,7 +336,7 @@ def DFGMergePass : Pass<"dfg-merge", "mlir::ModuleOp"> {
 
     // Name of the pass (used as --dfg-merge on the command line)
     let summary = "Merge DFGs using the Comb dialect to optimize area and resource usage.";
-    let constructor = "createDFGMergePass()";
+    let constructor = "SpecHLS::createDFGMergePass()";
 
     // Description of what the pass does (displayed in help options)
     let description = [{

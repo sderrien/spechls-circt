@@ -1,8 +1,0 @@
-Pattern {
-  // ** match section ** //
-  let arg: Value;
-  let root = op<my_dialect.foo>
-
-  // ** rewrite section ** //
-  replace root with arg;
-}

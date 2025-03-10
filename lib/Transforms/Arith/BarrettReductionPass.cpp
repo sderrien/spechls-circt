@@ -10,7 +10,13 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
+#include "mlir/Pass/Pass.h"
+
+#include "Dialect/SpecHLS/SpecHLSOps.h"
+#include "Dialect/SpecHLS/SpecHLSUtils.h"
 #include "Transforms/Passes.h"
+
+
 #include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/HW/HWOps.h"
 #include "mlir/IR/Builders.h"
@@ -20,15 +26,11 @@
 #include "mlir/Support/LogicalResult.h"
 #include "llvm/Support/CommandLine.h"
 
-#include "BarrettReductionPass.h" // Generated from BarrettReductionPass.td
 
 using namespace mlir;
 using namespace circt::comb;
+using namespace circt;
 
-namespace mlir {
-std::unique_ptr<Pass> createBarrettReductionPass();
-void registerBarrettReductionPass();
-} // end namesp
 
 /// ----------------------------------------------------------------------------
 /// Explanation of Barrett Reduction:
@@ -61,14 +63,14 @@ void registerBarrettReductionPass();
 /// so for a real production pass, you might refine it further.
 /// ----------------------------------------------------------------------------
 
-namespace {
+namespace SpecHLS {
 
 /// Pattern rewriting: matches a comb.mod where the RHS is a constant
 /// and replaces it with a Barrett reduction sequence.
-struct BarrettReductionPattern : public OpRewritePattern<comb::ModOp> {
-  using OpRewritePattern<comb::ModOp>::OpRewritePattern;
+struct BarrettReductionPattern : public OpRewritePattern<comb::ModUOp> {
+  using OpRewritePattern<comb::ModUOp>::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(comb::ModOp modOp,
+  LogicalResult matchAndRewrite(comb::ModUOp modOp,
                                 PatternRewriter &rewriter) const override {
     // 1. Check if RHS is a constant
     auto rhsCstOp = modOp.getRhs().getDefiningOp<hw::ConstantOp>();
@@ -76,7 +78,7 @@ struct BarrettReductionPattern : public OpRewritePattern<comb::ModOp> {
       return failure(); // Not a constant, skip.
 
     // 2. Extract the constant modulus M
-    APInt modulus = rhsCstOp.getValue().cast<APInt>();
+    APInt modulus = rhsCstOp.getValue();
     if (modulus.isZero()) {
       // Degenerate case: mod by 0 is not well-defined, skip.
       return failure();
@@ -131,7 +133,7 @@ struct BarrettReductionPattern : public OpRewritePattern<comb::ModOp> {
     //   cmp = r >= M
     //   final = select cmp (r - M) r
     Value cmp = rewriter.create<comb::ICmpOp>(
-        loc, comb::ICmpPredicate::ge, r, constM);
+        loc, comb::ICmpPredicate::uge, r, constM);
 
     Value rMinusM = rewriter.create<comb::SubOp>(loc, r, constM);
     Value finalResult = rewriter.create<comb::MuxOp>(loc, cmp, rMinusM, r);
@@ -145,7 +147,7 @@ struct BarrettReductionPattern : public OpRewritePattern<comb::ModOp> {
 
 /// The actual pass that runs the pattern above.
 struct BarrettReductionPassImpl
-    : public BarrettReductionPassBase<BarrettReductionPassImpl> {
+    : public impl::BarrettReductionPassBase<BarrettReductionPassImpl> {
   void runOnOperation() override {
     // We will apply the pattern to all comb::ModOp in the current operation.
     RewritePatternSet patterns(&getContext());
@@ -157,24 +159,10 @@ struct BarrettReductionPassImpl
   }
 };
 
-} // end anonymous namespace
 
 /// Creates the pass declared in BarrettReductionPass.td
-std::unique_ptr<mlir::OperationPass> createBarrettReductionPass() {
+std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>> createBarrettReductionPass() {
   return std::make_unique<BarrettReductionPassImpl>();
-}
-
-//===----------------------------------------------------------------------===//
-// Registration
-//===----------------------------------------------------------------------===//
-
-/// This registerPass() call will allow us to run:
-///   mlir-opt --barrett-reduction ...
-/// if properly linked into an MLIR-based tool.
-void mlir::registerBarrettReductionPass() {
-  ::mlir::registerPass([]() -> std::unique_ptr<::mlir::Pass> {
-    return createBarrettReductionPass();
-  });
 }
 
 }

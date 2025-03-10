@@ -6,7 +6,7 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This transformation pass extracts simulation constructs to sunewModuleules.
+// This transformation pass extracts simulation constructs to sunewHTaskules.
 // It will take simulation operations, write, finish, assert, assume, and cover
 // and extract them and the dataflow into them into a separate module.  This
 // module is then instantiated in the original module.
@@ -15,10 +15,10 @@
 
 #include "mlir/Pass/Pass.h"
 
+#include "Common/OutliningUtils.h"
 #include "Dialect/SpecHLS/SpecHLSOps.h"
 #include "Dialect/SpecHLS/SpecHLSUtils.h"
 #include "Transforms/Passes.h"
-#include "Common/OutliningUtils.h"
 #include "circt/Dialect/Comb/CombOps.h"
 #include "circt/Dialect/HW/HWAttributes.h"
 #include "circt/Dialect/HW/HWOpInterfaces.h"
@@ -33,148 +33,169 @@
 
 using namespace mlir;
 using namespace circt;
-
-
+using namespace circt::comb;
 
 //===----------------------------------------------------------------------===//
 // StubExternalModules Pass
 //===----------------------------------------------------------------------===//
 
 struct GroupControlNodePass
-    : public SpecHLS::impl::GroupControlNodePassBase<GroupControlNodePass> {
-  int max_bitwidth = 4;
-  GroupControlNodePass() {}
+        : public SpecHLS::impl::GroupControlNodePassBase<GroupControlNodePass> {
+    int max_bitwidth = 4;
+
+    function_ref<bool(Operation *)> opfilter = [&](Operation *op) {
+        return false;
+    };
+
+    GroupControlNodePass() {}
 
 public:
-  void runOnOperation() override;
+    void runOnOperation() override;
+
+private:
+    bool checkResultIntBitwidth(Operation *op);
+
+    virtual bool filter(Operation *op);
+
+    Operation *gammaFilter(SpecHLS::GammaOp gamma);
+
+    mlir::LogicalResult sliceGammaControlOps(Operation *op, Block *body);
+
+    mlir::LogicalResult groupAsHTask(SpecHLS::GammaOp gamma, StringRef name, SetVector<Operation *> slice, SetVector<Value *> inputs, SetVector<Value *> outputs);
+
+    mlir::LogicalResult groupAsHWModule(SpecHLS::GammaOp gamma, StringRef name, SetVector<Operation *> slice, SetVector<Value *> inputs, SetVector<Value *> outputs);
 };
-//
+
+
 void GroupControlNodePass::runOnOperation() {
-  auto top = getOperation();
+    auto top = getOperation();
+    auto *topLevelModule = top.getBody();
+    if (topLevelModule) {
+        for (auto &op: llvm::make_early_inc_range(topLevelModule->getOperations())) {
+            TypeSwitch<Operation *>(&op)
+                    .Case<SpecHLS::HKernelOp>([&](auto op) {
+                        sliceGammaControlOps(op, op.getBody());
+                    })
+                    .Case<hw::HWModuleOp>([&](auto op) {
+                        sliceGammaControlOps(op, op.getBodyBlock());
+                    });
+        }
+    }
+}
 
-  llvm::errs() << "GroupControlNodeImplPass on design " << top << "\n";
+mlir::LogicalResult GroupControlNodePass::sliceGammaControlOps(Operation *op, Block *body) {
+    auto gammas = body->getOps<SpecHLS::GammaOp>();
+    auto gammaId = 0;
 
-  auto *topLevelModule = top.getBody();
-  int gammaId = 0;
-
-  for (auto &op : llvm::make_early_inc_range(topLevelModule->getOperations())) {
-    if (auto topModule = dyn_cast<hw::HWModuleOp>(op)) {
-      if (!topModule.getBody().empty()) {
-
-        for (auto &innerOp : llvm::make_early_inc_range(
-                 topModule.getBodyBlock()->getOperations())) {
-          if (auto gamma = dyn_cast<SpecHLS::GammaOp>(innerOp)) {
-            gammaId++;
-            if (!(gamma->getNumOperands() > 0)) {
-              continue;
-            }
-            auto controlValue = gamma->getOperand(0);
-            auto controlOp = controlValue.getDefiningOp();
-
+    for (auto gamma: gammas) {
+        llvm::outs() << " - analyzing gamma   " << gamma << "\n";
+        auto controlOp = gammaFilter(gamma);
+        if (controlOp) {
             /*
-             * Slices control logic of gamma node
+             * builds the slice starting from controlOp
              */
             SetVector<Operation *> slice = {};
-            auto opfilter =
-             [&](Operation *op) {
-              // llvm::outs() << " default filter  " << *op << "\n";
-              bool res =
-                  TypeSwitch<Operation *, bool>(op)
-                      .Case<circt::comb::AddOp>([&](auto op) {
-                        // llvm::outs() << " found and " << *op << "\n";
-                        circt::comb::AddOp _op = op;
-                        return (_op.getResult()
-                                    .getType()
-                                    .getIntOrFloatBitWidth()) < max_bitwidth;
-                      })
-                      .Case<circt::comb::SubOp>([&](auto op) {
-                        // llvm::outs() << " found and " << *op << "\n";
-                        circt::comb::SubOp _op = op;
-                        return (_op.getResult()
-                                    .getType()
-                                    .getIntOrFloatBitWidth()) < max_bitwidth;
-                      })
-                      .Case<circt::comb::ICmpOp>([&](auto op) {
-                        // llvm::outs() << " found and " << *op << "\n";
-                        circt::comb::ICmpOp _op = op;
-                        return (_op.getResult()
-                                    .getType()
-                                    .getIntOrFloatBitWidth()) < max_bitwidth;
-                      })
-                      .Case<circt::comb::AndOp>([&](auto op) {
-                        // llvm::outs() << " found and " << *op << "\n";
-                        return true;
-                      })
-                      .Case<circt::comb::OrOp>([&](auto op) { return true; })
-                      .Case<circt::comb::XorOp>([&](auto op) { return true; })
-                      .Case<circt::comb::ExtractOp>(
-                          [&](auto op) { return true; })
-                      .Case<circt::comb::ConcatOp>(
-                          [&](auto op) { return true; })
-                      .Case<circt::hw::ConstantOp>(
-                          [&](auto op) { return true; })
-                      .Case<circt::comb::MuxOp>([&](auto op) { return true; })
-                      .Case<circt::comb::TruthTableOp>(
-                          [&](auto op) { return true; })
-                      .Case<SpecHLS::LookUpTableOp>(
-                          [&](auto op) { return true; })
-                      .Default([&](auto op) {
-                        // llvm::outs() << " default filter  " << *op << "\n";
-                        return false;
-                      });
-              // llvm::outs() << " res " << res << "\n";
-              return res;
-            };
-
-           if (!opfilter(controlOp)) {
-              continue;
-           }
-
-
-            getBackwardSlice(*controlOp, slice, opfilter);
-            slice.insert(controlOp);
-            // Find the dataflow into the clone set
-            SetVector<Value> inputs;
-            getSliceInputs(slice,inputs);
-
-            SetVector<Value> outputs;
-            for (auto res : controlOp->getResults()) {
-              outputs.insert(res);
+            SetVector<Value *> inputs = {};
+            SetVector<Value *> outputs = {};
+            for (auto res: controlOp->getResults()) {
+                outputs.insert(&res);
             }
-            auto newName = topModule.getName() + "_ctrl_" + std::to_string(gammaId);
-            auto newModule = outlineSliceAsHwModule(topModule,*controlOp,slice,inputs,outputs,newName);
-            if (newModule) {
-              auto builder = OpBuilder(topModule.getContext());
+            getBackwardSlice(*controlOp, slice, inputs, opfilter);
 
-              SmallVector<Value, 8> operands;
-              for (auto i : inputs) {
-                operands.push_back(i);
-              }
-
-              builder.setInsertionPoint(gamma);
-
-              auto inst = builder.create<hw::InstanceOp>(
-                  controlOp->getLoc(), newModule,
-                  builder.getStringAttr(newModule.getName()), operands, ArrayAttr());
-
-              gamma.setOperand(0, inst.getResult(0));
-
-              newModule->setAttr(builder.getStringAttr("#pragma"),
-                                 builder.getStringAttr("CONTROL_NODE"));
-
+            /*
+             * building new HTAsk from sliced ops
+             */
+            auto newName = "ctrl_" + std::to_string(gammaId++);
+            if (target == "htask") {
+                groupAsHTask(gamma, newName, slice, inputs, outputs);
+            } else {
+                groupAsHWModule(gamma, newName, slice, inputs, outputs);
             }
-          }
+            mlir::verify(op, true);
         }
-      }
     }
-  }
-  mlir::verify(top, true);
 }
+
+bool GroupControlNodePass::checkResultIntBitwidth(Operation *op) {
+    return (op->getResult(0).getType().getIntOrFloatBitWidth()) < max_bitwidth;
+}
+
+bool GroupControlNodePass::filter(Operation *op) {
+    return TypeSwitch<Operation *, bool>(op)
+            .Case<AddOp>([&](auto op) { return checkResultIntBitwidth(op); })
+            .Case<SubOp>([&](auto op) { return checkResultIntBitwidth(op); })
+            .Case<ICmpOp>([&](auto op) { return checkResultIntBitwidth(op); })
+            .Case<circt::comb::AndOp>([&](auto op) { return true; })
+            .Case<circt::comb::OrOp>([&](auto op) { return true; })
+            .Case<circt::comb::XorOp>([&](auto op) { return true; })
+            .Case<circt::comb::ExtractOp>([&](auto op) { return true; })
+            .Case<circt::comb::ConcatOp>([&](auto op) { return true; })
+            .Case<circt::hw::ConstantOp>([&](auto op) { return true; })
+            .Case<circt::comb::MuxOp>([&](auto op) { return true; })
+            .Case<circt::comb::TruthTableOp>([&](auto op) { return true; })
+            .Case<SpecHLS::CastOp>([&](auto op) { return true; })
+            .Case<SpecHLS::LookUpTableOp>([&](auto op) { return true; })
+            .Default([&](auto op) { return false; });
+}
+
+Operation *GroupControlNodePass::gammaFilter(SpecHLS::GammaOp gamma) {
+    if (!(gamma->getNumOperands() > 0)) {
+        auto controlValue = gamma->getOperand(0);
+        auto controlOp = controlValue.getDefiningOp();
+        if (filter(controlOp)) return controlOp;
+    }
+    return NULL;
+
+}
+
+mlir::LogicalResult
+GroupControlNodePass::groupAsHTask(SpecHLS::GammaOp gamma, StringRef name, SetVector<Operation *> slice, SetVector<Value *> inputs, SetVector<Value *> outputs) {
+    auto builder = OpBuilder(gamma.getContext());
+    builder.setInsertionPoint(gamma);
+
+    auto newHTask = outlineSliceAsHTask(gamma->getParentOp(), slice, inputs, outputs, name);
+
+    if (newHTask) {
+        gamma.setOperand(0, newHTask.getResult(0));
+        newHTask->setAttr(builder.getStringAttr("#pragma"), builder.getStringAttr("CONTROL_NODE"));
+        return LogicalResult::success();
+    }
+    return LogicalResult::failure();
+}
+
+mlir::LogicalResult
+GroupControlNodePass::groupAsHWModule(SpecHLS::GammaOp gamma, StringRef name, SetVector<Operation *> slice, SetVector<Value *> inputs, SetVector<Value *> outputs) {
+    auto builder = OpBuilder(gamma.getContext());
+    builder.setInsertionPoint(gamma);
+    auto newHwModule = outlineSliceAsHwModule(gamma->getParentOp(), slice, inputs, outputs, name);
+
+    if (newHwModule) {
+        SmallVector<Value, 8> operands;
+        for (auto i: inputs) {
+            operands.push_back(*i);
+        }
+        auto inst = builder.create<hw::InstanceOp>(
+                gamma->getLoc(), newHwModule,
+                builder.getStringAttr(newHwModule.getName()), operands,
+                ArrayAttr());
+
+        gamma.setOperand(0, inst.getResult(0));
+
+        newHwModule->setAttr(builder.getStringAttr("#pragma"),
+                             builder.getStringAttr("CONTROL_NODE"));
+        return LogicalResult::success();
+    }
+    return LogicalResult::failure();
+
+
+}
+
+
 
 namespace SpecHLS {
-std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>>
-createGroupControlNodePass() {
-  // llvm::outs() << "GroupControlNodeImplPass created " << "\n";
-  return std::make_unique<GroupControlNodePass>();
-}
+    std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>>
+    createGroupControlNodePass() {
+        // llvm::outs() << "GroupControlNodeImplPass created " << "\n";
+        return std::make_unique<GroupControlNodePass>();
+    }
 } // namespace SpecHLS

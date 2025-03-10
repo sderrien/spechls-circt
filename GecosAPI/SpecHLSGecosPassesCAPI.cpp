@@ -132,6 +132,37 @@ MlirPass mlirCreateExportVitisHLS(void);
     }                                                                          \
   }
 
+
+//#define DEFINE_GECOS_API_PASS_WITH_OPTIONS(name, pass)                         \
+//                                                                               \
+//
+//bool nameWithOptions(MlirModule module,char *options) {                      \                         \
+//    MlirContext ctx = mlirModuleGetContext(module);                            \
+//    MlirOperation op = mlirModuleGetOperation(module);                         \
+//    MlirPassManager pm = wrap(                                                 \
+//        new mlir::PassManager(unwrap(ctx), mlir::ModuleOp::getOperationName(), \
+//                              mlir::PassManager::Nesting::Implicit));          \
+//
+//    char pipeline[1024];
+//    snprintf(pipeline,1024,"%s{%s}",#name,options);                                                                           \
+//    mlirParsePassPipeline(pm, pipeline);
+//    MlirLogicalResult success = mlirParsePassPipeline(pm,                      \
+//   Parse and apply the pass pipeline
+//   MlirLogicalResult result = mlirParsePassPipeline(
+//        passManager, mlirStringRefCreateFromCString(pipeline), errorCallback, NULL);
+//
+//MlirPassManager pm = mlirPassManagerCreate(context);
+//    mlirStringRefCreateFromCString(pipeline),options, NULL,NULL); \                                                                            \
+//    mlirPassManagerDestroy(pm);                                                \
+//    if (mlirLogicalResultIsFailure(success)) {                                 \
+//      fprintf(stderr, "Unexpected failure running pass\n");                     \
+//      mlirGetPassName(p);                                                       \
+//      return false;                                                            \
+//    }  else {                                                                  \
+//      return true;                                                             \
+//    }                                                                          \
+//  }
+
 DEFINE_GECOS_API_PASS(cse, CSEPass)
 DEFINE_GECOS_API_PASS(scheduleMLIR, SchedulePass)
 DEFINE_GECOS_API_PASS(canonicalizeMLIR, TransformsCanonicalizer)

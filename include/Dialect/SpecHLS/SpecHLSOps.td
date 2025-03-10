@@ -110,6 +110,7 @@ def SpecHLS_HTaskOp : SpecHLSOp<"htask", [IsolatedFromAbove,SingleBlock,RegionKi
       return ::mlir::RegionKind::Graph;
     }
   }];
+
   // let hasCanonicalizer = 1;
   // let hasFolder = 1;
   let hasCustomAssemblyFormat = 1;
@@ -291,6 +292,7 @@ def SpecHLS_CastOp : SpecHLSOp<"cast", [Pure]> {
     let results = (outs AnyType:$res);
 
     let hasFolder = 1;
+   let hasCanonicalizer = 1;
 
     let assemblyFormat = "$input `:` type($input) `to` type($res) attr-dict";
 }
